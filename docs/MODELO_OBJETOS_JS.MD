@@ -1,4 +1,4 @@
-# Solucion Hotel Tools v2
+# Solution Hotel Tools v2
 
 ## Modelo de objetos JavaScript
 
