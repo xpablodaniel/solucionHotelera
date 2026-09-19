@@ -94,6 +94,15 @@ function groupByRoom(records, esContingente = false) {
 
             rooms.set(numero, {
                 numero,
+
+                capacidad: record.plazas
+                    ? record.plazas.cantidad
+                    : null,
+
+                ocupadasInformadas: record.plazas
+                    ? record.plazas.ocupadas
+                    : null,
+
                 pasajeros: [],
                 asignaciones: []
             });

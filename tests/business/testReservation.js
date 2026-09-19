@@ -11,7 +11,6 @@ function assert(condition, message) {
     }
 }
 
-
 console.log("\n=== Tests de lógica de reservas ===\n");
 
 console.log("Probando groupByVoucher()...");
@@ -62,7 +61,6 @@ assert(
     resultado[0].voucher === "30243135",
     "El primer voucher debería ser 30243135"
 );
-
 
 assert(
     resultado[0].pasajeros.length === 3,
@@ -140,6 +138,10 @@ const registrosPorHabitacion = [
             numero: "238",
             asignacion: "A"
         },
+        plazas: {
+            cantidad: 3,
+            ocupadas: 3
+        },
         pax: {
             nombre: "GOMEZ GRACIELA"
         }
@@ -149,6 +151,10 @@ const registrosPorHabitacion = [
         habitacion: {
             numero: "238",
             asignacion: "B"
+        },
+        plazas: {
+            cantidad: 3,
+            ocupadas: 3
         },
         pax: {
             nombre: "ALBA LAUTARO"
@@ -226,16 +232,23 @@ assert(
 console.log("✅ groupByRoom() sin contingente OK");
 
 
-console.log("Probando groupByRoom() con contingente A/B/C...");
+console.log(
+    "Probando capacidad de habitación con contingente A/B/C..."
+);
 
 
 const grupoContingente = [
 
     {
-        voucher: "30243135",
+        voucher: "30243138",
         habitacion: {
             numero: "238",
             asignacion: "A"
+        },
+        tipoHabitacion: "TRIPLE A COMPARTIR",
+        plazas: {
+            cantidad: 3,
+            ocupadas: 3
         },
         pax: {
             nombre: "GOMEZ GRACIELA"
@@ -243,10 +256,15 @@ const grupoContingente = [
     },
 
     {
-        voucher: "30243135",
+        voucher: "30243138",
         habitacion: {
             numero: "238",
             asignacion: "B"
+        },
+        tipoHabitacion: "TRIPLE A COMPARTIR",
+        plazas: {
+            cantidad: 3,
+            ocupadas: 3
         },
         pax: {
             nombre: "ALBA LAUTARO"
@@ -254,10 +272,15 @@ const grupoContingente = [
     },
 
     {
-        voucher: "30243135",
+        voucher: "30243138",
         habitacion: {
             numero: "238",
             asignacion: "C"
+        },
+        tipoHabitacion: "TRIPLE A COMPARTIR",
+        plazas: {
+            cantidad: 3,
+            ocupadas: 3
         },
         pax: {
             nombre: "INES PEREZ"
@@ -286,12 +309,24 @@ assert(
 
 
 assert(
+    habitacionesContingente[0].capacidad === 3,
+    "La capacidad no debería sumarse entre las filas del contingente"
+);
+
+
+assert(
+    habitacionesContingente[0].ocupadasInformadas === 3,
+    "Las plazas ocupadas no deberían sumarse entre las filas del contingente"
+);
+
+
+assert(
     habitacionesContingente[0].asignaciones.join(",") === "A,B,C",
     "El contingente debería conservar las asignaciones A, B y C"
 );
 
 
-console.log("✅ groupByRoom() contingente A/B/C OK");
+console.log("✅ Capacidad A/B/C conservada correctamente");
 
 
 console.log("Probando groupByRoom() con reserva individual...");
@@ -338,6 +373,77 @@ assert(
 
 
 console.log("✅ groupByRoom() reserva individual OK");
+
+
+console.log(
+    "Probando capacidad y pasajeros detectados..."
+);
+
+
+const habitacionTripleUnaPersona = [
+
+    {
+        voucher: "30243137",
+
+        habitacion: {
+            numero: "237",
+            asignacion: null
+        },
+
+        tipoHabitacion: "TRIPLE",
+
+        plazas: {
+            cantidad: 3,
+            ocupadas: 1
+        },
+
+        pax: {
+            nombre: "PEREZ JUAN"
+        }
+    }
+];
+
+
+const resultadoTriple =
+    groupByRoom(
+        habitacionTripleUnaPersona,
+        false
+    );
+
+
+assert(
+    resultadoTriple.length === 1,
+    "Debería existir una sola habitación"
+);
+
+
+assert(
+    resultadoTriple[0].numero === "237",
+    "La habitación debería ser 237"
+);
+
+
+assert(
+    resultadoTriple[0].pasajeros.length === 1,
+    "Debería detectarse un solo pasajero"
+);
+
+
+assert(
+    resultadoTriple[0].capacidad === 3,
+    "La capacidad debería ser 3"
+);
+
+
+assert(
+    resultadoTriple[0].ocupadasInformadas === 1,
+    "Las plazas ocupadas informadas deberían ser 1"
+);
+
+
+console.log(
+    "✅ Capacidad y pasajeros detectados OK"
+);
 
 
 console.log("Probando validaciones de entrada...");

@@ -1,233 +1,155 @@
-const {
-    normalizeText,
-    hasTransport,
-    hasFullBoard,
-    hasLunchAndDinner,
-    hasGroupPackage,
-    analyzeRecord,
-    classifyRecord
-} = require("../../src/business/classification");
+Ya tenemos groupByRoom() preparado para conservar la información propia de la habitación sin romper lo que ya funcionaba.
 
+Ahora viene exactamente la prueba que anunciamos: el caso A/B/C no puede multiplicar la capacidad ni las plazas ocupadas.
 
-function assert(condition, message) {
+🔥 Siguiente test: contingente A/B/C
 
-    if (!condition) {
-        throw new Error(
-            `❌ TEST FALLIDO: ${message}`
-        );
-    }
-}
-
-
-console.log("\n=== Tests de clasificación de reservas ===\n");
-
-
-// ---------------------------------------------------------
-// Normalización
-// ---------------------------------------------------------
-
-console.log("Probando normalizeText()...");
-
-assert(
-    normalizeText(" pensión completa ") ===
-    "PENSION COMPLETA",
-    "Debe normalizar espacios y acentos"
-);
-
-assert(
-    normalizeText("ppj") === "PPJ",
-    "Debe convertir a mayúsculas"
-);
-
-console.log("✅ normalizeText() OK");
-
-
-// ---------------------------------------------------------
-// Reserva individual
-// ---------------------------------------------------------
-
-console.log("Probando reserva individual...");
-
-const individual = {
-
-    servicios: "DESAYUNO",
-
-    transporte: "Sin Transporte",
-
-    paquete: null
-};
-
-
-assert(
-    hasTransport(individual) === false,
-    "La reserva individual no debería tener transporte"
-);
-
-assert(
-    hasFullBoard(individual) === false,
-    "DESAYUNO no debería ser pensión completa"
-);
-
-assert(
-    hasGroupPackage(individual) === false,
-    "La reserva individual no debería tener paquete de grupo"
-);
-
-
-const resultadoIndividual =
-    classifyRecord(individual);
-
-
-assert(
-    resultadoIndividual.tipo === "INDIVIDUAL",
-    "La reserva debería clasificarse como INDIVIDUAL"
-);
-
-
-console.log("✅ Reserva individual OK");
-
-
-// ---------------------------------------------------------
-// Contingente PPJ real
-// ---------------------------------------------------------
-
-console.log("Probando contingente PPJ...");
-
-const grupoPPJ = {
-
-    servicios:
-        "ACTIVIDAD RECREATI - COORDINADOR MDQ - PENSIÓN COMPLETA - SEGUROS - SERVICIOS PPJ",
-
-    transporte:
-        "PPJ MDQ BUS 2 - PPJ MDQ 2",
-
-    paquete:
-        "PPJ MAR DEL PLATA 23/10 2"
-};
-
-
-assert(
-    hasTransport(grupoPPJ) === true,
-    "El PPJ debería tener transporte"
-);
-
-assert(
-    hasFullBoard(grupoPPJ) === true,
-    "El PPJ debería tener pensión completa"
-);
-
-assert(
-    hasGroupPackage(grupoPPJ) === true,
-    "El PPJ debería ser detectado por el paquete"
-);
-
-
-const resultadoPPJ =
-    classifyRecord(grupoPPJ);
-
-
-assert(
-    resultadoPPJ.tipo === "CONTINGENTE",
-    "El PPJ debería clasificarse como CONTINGENTE"
-);
-
-
-console.log("✅ Contingente PPJ OK");
-
-
-// ---------------------------------------------------------
-// Caso incompleto
-// ---------------------------------------------------------
-
-console.log("Probando datos insuficientes...");
-
-const incompleto = {
-
-    servicios: "",
-
-    transporte: "",
-
-    paquete: ""
-};
-
-
-const resultadoIncompleto =
-    classifyRecord(incompleto);
-
-
-assert(
-    resultadoIncompleto.tipo === "NO_CLASIFICADA",
-    "Los datos insuficientes no deberían clasificarse arbitrariamente"
-);
-
-
-console.log("✅ Datos insuficientes OK");
-
-
-// ---------------------------------------------------------
-// Almuerzo y cena
-// ---------------------------------------------------------
-
-console.log("Probando almuerzo y cena...");
-
-const grupoComidas = {
-
-    servicios: "ALMUERZO Y CENA",
-
-    transporte: "BUS GRUPO",
-
-    paquete: ""
-};
-
-
-assert(
-    hasLunchAndDinner(grupoComidas) === true,
-    "Debe detectar almuerzo y cena"
-);
-
-
-const resultadoComidas =
-    classifyRecord(grupoComidas);
-
-
-assert(
-    resultadoComidas.tipo === "CONTINGENTE",
-    "Transporte + almuerzo/cena debería ser contingente"
-);
-
-
-console.log("✅ Almuerzo y cena OK");
-
-
-// ---------------------------------------------------------
-// Resultado de evidencias
-// ---------------------------------------------------------
-
-console.log("Probando analyzeRecord()...");
-
-const analisis =
-    analyzeRecord(grupoPPJ);
-
-
-assert(
-    analisis.transporte === true,
-    "El análisis debería detectar transporte"
-);
-
-assert(
-    analisis.servicios.pensionCompleta === true,
-    "El análisis debería detectar pensión completa"
-);
-
-assert(
-    analisis.paquete.contingente === true,
-    "El análisis debería detectar paquete de contingente"
-);
-
-
-console.log("✅ analyzeRecord() OK");
-
+Agreguemos a testReservation.js un caso donde las tres filas representan la misma habitación:
 
 console.log(
-    "\n🎉 Todos los tests de clasificación pasaron.\n"
+    "Probando capacidad de habitación con contingente A/B/C..."
 );
+
+const habitacionContingenteCompleta = [
+
+    {
+        voucher: "30243138",
+
+        habitacion: {
+            numero: "238",
+            asignacion: "A"
+        },
+
+        tipoHabitacion: "TRIPLE A COMPARTIR",
+
+        plazas: {
+            cantidad: 3,
+            ocupadas: 3
+        },
+
+        pax: {
+            nombre: "GOMEZ GRACIELA"
+        }
+    },
+
+    {
+        voucher: "30243138",
+
+        habitacion: {
+            numero: "238",
+            asignacion: "B"
+        },
+
+        tipoHabitacion: "TRIPLE A COMPARTIR",
+
+        plazas: {
+            cantidad: 3,
+            ocupadas: 3
+        },
+
+        pax: {
+            nombre: "ALBA LAUTARO"
+        }
+    },
+
+    {
+        voucher: "30243138",
+
+        habitacion: {
+            numero: "238",
+            asignacion: "C"
+        },
+
+        tipoHabitacion: "TRIPLE A COMPARTIR",
+
+        plazas: {
+            cantidad: 3,
+            ocupadas: 3
+        },
+
+        pax: {
+            nombre: "INES PEREZ RODRIGUEZ"
+        }
+    }
+];
+
+const resultadoContingenteCompleto =
+    groupByRoom(
+        habitacionContingenteCompleta,
+        true
+    );
+
+assert(
+    resultadoContingenteCompleto.length === 1,
+    "A/B/C debería representar una sola habitación"
+);
+
+assert(
+    resultadoContingenteCompleto[0].numero === "238",
+    "La habitación debería ser 238"
+);
+
+assert(
+    resultadoContingenteCompleto[0].capacidad === 3,
+    "La capacidad debería seguir siendo 3"
+);
+
+assert(
+    resultadoContingenteCompleto[0].ocupadasInformadas === 3,
+    "Las ocupadas informadas deberían seguir siendo 3"
+);
+
+assert(
+    resultadoContingenteCompleto[0].pasajeros.length === 3,
+    "Deberían existir 3 pasajeros"
+);
+
+assert(
+    resultadoContingenteCompleto[0].asignaciones.length === 3,
+    "Deberían existir 3 asignaciones"
+);
+
+assert(
+    resultadoContingenteCompleto[0].asignaciones.join(",") === "A,B,C",
+    "Las asignaciones deberían ser A, B y C"
+);
+
+console.log(
+    "✅ Capacidad A/B/C conservada correctamente"
+);
+El objetivo
+
+Queremos blindar esta transformación:
+
+238 A ─┐
+238 B ─┼──► HABITACIÓN 238
+238 C ─┘
+
+con:
+
+capacidad             3
+ocupadasInformadas    3
+pasajerosDetectados   3
+asignaciones          A,B,C
+
+No:
+
+capacidad             9  ❌
+ocupadasInformadas    9  ❌
+
+Y esto además nos deja una separación muy limpia:
+
+El parser descubre que "238 A" significa:
+
+{
+    numero: "238",
+    asignacion: "A"
+}
+
+groupByRoom() decide que los tres registros pertenecen a:
+
+238
+
+y solo si es contingente conserva A/B/C como información operativa.
+
+Ese diseño empieza a parecerse mucho más a una herramienta que puede sobrevivir a los CSV reales del hotel, en lugar de simplemente transformar texto.
