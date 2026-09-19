@@ -179,6 +179,73 @@ function parseRow(fields) {
  * Todavía no maneja correctamente comas
  * dentro de campos entrecomillados.
  */
+/**
+ * Separa una línea CSV respetando campos entrecomillados.
+ *
+ * Ejemplo:
+ *
+ * 900,HOTEL,"GOMEZ, GRACIELA",65
+ *
+ * produce:
+ *
+ * [
+ *   "900",
+ *   "HOTEL",
+ *   "GOMEZ, GRACIELA",
+ *   "65"
+ * ]
+ *
+ * Esta función no interpreta las columnas.
+ * Solamente separa correctamente los campos.
+ */
+function parseCSVLine(line) {
+
+    const fields = [];
+    let field = "";
+    let insideQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+
+        const char = line[i];
+
+        // Comilla
+        if (char === '"') {
+
+            // Comilla doble dentro de un campo:
+            // "" representa una comilla literal.
+            if (
+                insideQuotes &&
+                line[i + 1] === '"'
+            ) {
+                field += '"';
+                i++;
+            }
+            else {
+                insideQuotes = !insideQuotes;
+            }
+
+            continue;
+        }
+
+        // Coma fuera de comillas:
+        // termina el campo actual.
+        if (
+            char === "," &&
+            !insideQuotes
+        ) {
+            fields.push(field);
+            field = "";
+            continue;
+        }
+
+        field += char;
+    }
+
+    // Último campo
+    fields.push(field);
+
+    return fields;
+}
 function parseCSV(csvText) {
 
     if (typeof csvText !== "string") {
@@ -197,13 +264,13 @@ function parseCSV(csvText) {
     }
 
     // Primera línea: cabecera
-    const header = lines[0].split(",");
+    const header = parseCSVLine(lines[0]);
 
     // Las restantes son registros
     const dataRows = lines.slice(1);
 
     return dataRows
-        .map(line => line.split(","))
+        .map(line => parseCSVLine(line))
         .filter(fields => fields.length === 28)
         .map(fields => parseRow(fields));
 }
@@ -214,6 +281,7 @@ if (typeof module !== "undefined" && module.exports) {
     parseInteger,
     parseRoom,
     parseRow,
-    parseCSV
+    parseCSV,
+    parseCSVLine
 };
 }
