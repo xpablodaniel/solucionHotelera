@@ -2,7 +2,9 @@ const {
     buildRooming,
     countRoomingRooms,
     getRoomsByVoucher,
-    getRoomsByPassenger
+    getRoomsByPassenger,
+    calculateRoomOccupancy,
+    attachBedConfiguration
 } = require("../../src/business/rooming");
 
 
@@ -152,4 +154,169 @@ try {
 assert(errorDetectado, "countRoomingRooms deberia validar la entrada");
 
 console.log("OK consultas y validaciones");
+
+
+console.log("Probando calculateRoomOccupancy()...");
+
+const ocupacionCompleta = calculateRoomOccupancy({
+    capacidad: 3,
+    cantidadPasajeros: 3
+});
+
+assert(ocupacionCompleta.capacidad === 3, "La capacidad deberia ser 3");
+assert(ocupacionCompleta.cantidadPasajeros === 3, "Deberia haber tres pasajeros");
+assert(ocupacionCompleta.plazasLibres === 0, "No deberia haber plazas libres");
+assert(ocupacionCompleta.porcentajeOcupacion === 100, "La ocupacion deberia ser del 100%");
+assert(ocupacionCompleta.estado === "OK", "El estado deberia ser OK");
+
+const ocupacionParcial = calculateRoomOccupancy({
+    capacidad: 4,
+    cantidadPasajeros: 1
+});
+
+assert(ocupacionParcial.plazasLibres === 3, "Deberia haber tres plazas libres");
+assert(ocupacionParcial.porcentajeOcupacion === 25, "La ocupacion deberia ser del 25%");
+assert(ocupacionParcial.estado === "OK", "Una ocupacion parcial deberia ser valida");
+
+const capacidadSuperada = calculateRoomOccupancy({
+    capacidad: 3,
+    cantidadPasajeros: 4
+});
+
+assert(capacidadSuperada.plazasLibres === -1, "Deberia indicar una plaza negativa");
+assert(
+    capacidadSuperada.porcentajeOcupacion === (4 / 3) * 100,
+    "La ocupacion deberia superar el 100%"
+);
+assert(
+    capacidadSuperada.estado === "CAPACIDAD_SUPERADA",
+    "Deberia detectar capacidad superada"
+);
+
+const capacidadDesconocida = calculateRoomOccupancy({
+    capacidad: null,
+    cantidadPasajeros: 2
+});
+
+assert(capacidadDesconocida.plazasLibres === null, "No se deberian calcular plazas sin capacidad");
+assert(
+    capacidadDesconocida.porcentajeOcupacion === null,
+    "No se deberia calcular porcentaje sin capacidad"
+);
+assert(
+    capacidadDesconocida.estado === "CAPACIDAD_DESCONOCIDA",
+    "Deberia detectar capacidad desconocida"
+);
+
+const capacidadInvalida = calculateRoomOccupancy({
+    capacidad: 0,
+    cantidadPasajeros: 1
+});
+
+assert(capacidadInvalida.plazasLibres === -1, "Deberia calcular las plazas libres");
+assert(
+    capacidadInvalida.porcentajeOcupacion === null,
+    "No deberia calcular porcentaje para capacidad invalida"
+);
+assert(
+    capacidadInvalida.estado === "CAPACIDAD_INVALIDA",
+    "Deberia detectar capacidad invalida"
+);
+
+let habitacionInvalida = false;
+
+try {
+    calculateRoomOccupancy(null);
+} catch (error) {
+    habitacionInvalida = true;
+}
+
+assert(habitacionInvalida, "Deberia validar la habitacion recibida");
+
+const roomOriginal = {
+    numero: "240",
+    capacidad: 4,
+    cantidadPasajeros: 1
+};
+
+calculateRoomOccupancy(roomOriginal);
+
+assert(roomOriginal.capacidad === 4, "La capacidad original no deberia modificarse");
+assert(
+    roomOriginal.cantidadPasajeros === 1,
+    "La cantidad original no deberia modificarse"
+);
+assert(
+    !Object.prototype.hasOwnProperty.call(roomOriginal, "plazasLibres"),
+    "El calculo no deberia agregar propiedades a la habitacion"
+);
+
+console.log("OK calculos e inmutabilidad");
+
+
+console.log("Probando attachBedConfiguration()...");
+
+const roomingOperativo = attachBedConfiguration(rooming);
+
+assert(
+    Array.isArray(roomingOperativo),
+    "El rooming operativo deberia ser un array"
+);
+
+const individualOperativo = roomingOperativo.find(
+    room => room.voucher === "V001"
+);
+
+assert(
+    individualOperativo.configuracionCamas.codigoTipo === "X",
+    "La habitacion 109 deberia usar la configuracion X"
+);
+assert(
+    individualOperativo.configuracionCamas.camas[0].tipo === "MATRIMONIAL",
+    "La habitacion 109 deberia tener cama matrimonial"
+);
+assert(
+    individualOperativo.ocupacion.plazasLibres === 0,
+    "La habitacion 109 no deberia tener plazas libres"
+);
+assert(
+    individualOperativo.ocupacion.porcentaje === 100,
+    "La ocupacion de la habitacion 109 deberia ser del 100%"
+);
+
+const contingenteOperativo = roomingOperativo.find(
+    room => room.voucher === "V002"
+);
+
+assert(
+    contingenteOperativo.configuracionCamas.codigoTipo === "III",
+    "La habitacion 238 deberia usar la configuracion III"
+);
+assert(
+    contingenteOperativo.configuracionCamas.camas[0].cantidad === 3,
+    "La habitacion 238 deberia tener tres camas individuales"
+);
+assert(
+    contingenteOperativo.ocupacion.estado === "OK",
+    "La ocupacion del contingente deberia ser correcta"
+);
+assert(
+    contingenteOperativo.asignaciones.join(",") === "A,B,C",
+    "La conexion no deberia modificar las asignaciones"
+);
+assert(
+    contingenteOperativo.pasajeros.length === 3,
+    "La conexion no deberia modificar los pasajeros"
+);
+
+assert(
+    !Object.prototype.hasOwnProperty.call(rooming[0], "configuracionCamas"),
+    "La conexion no deberia modificar el Rooming original"
+);
+assert(
+    !Object.prototype.hasOwnProperty.call(rooming[0], "ocupacion"),
+    "La conexion no deberia agregar ocupacion al Rooming original"
+);
+
+console.log("OK conexion con configuracion de camas");
 console.log("\nTodos los tests del Rooming pasaron.\n");

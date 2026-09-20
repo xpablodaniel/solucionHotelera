@@ -22,7 +22,12 @@ La base funcional implementada incluye:
 - inventario fisico del Hotel 23 de Mayo;
 - integracion entre las habitaciones del CSV y el inventario fisico mediante
 	`getRoom()`;
-- construccion de un rooming logico por habitacion, voucher y pasajero.
+- construccion de un rooming logico por habitacion, voucher y pasajero;
+- calculo independiente de plazas libres, porcentaje de ocupacion y estado de
+- capacidad;
+- catalogo explicito de configuraciones fisicas de camas por tipo de
+	habitacion.
+- conexion no destructiva entre Rooming, ocupacion y configuracion de camas.
 
 Todavia no se implementaron las herramientas finales de salida, como rooming
 list imprimible, vouchers, comidas o fichas PAX. El modulo `rooming.js` prepara
@@ -54,7 +59,16 @@ Reservas procesadas
 El modulo [src/business/rooming.js](src/business/rooming.js) transforma las
 reservas procesadas en una lista plana de habitaciones. Cada entrada conserva
 el voucher, la clasificacion, el inventario fisico, los pasajeros, la cantidad
-de pasajeros y las asignaciones de contingente.
+de pasajeros y las asignaciones de contingente. La funcion
+`calculateRoomOccupancy()` calcula informacion derivada sin modificar esa
+entrada.
+
+El modulo [src/business/bedConfiguration.js](src/business/bedConfiguration.js)
+describe las camas fisicamente previstas para cada codigo de habitacion
+(`II`, `X`, `III`, `XI` y `XII`). Todavia no asigna camas a pasajeros ni
+interpreta relaciones entre ellos. La funcion `attachBedConfiguration()` agrega
+esa configuracion y la ocupacion calculada a una copia del Rooming, sin
+redistribuir pasajeros ni asignaciones.
 
 ## Estructura del resultado
 
@@ -115,6 +129,7 @@ node tests/business/testReservation.js
 node tests/business/testClassification.js
 node tests/business/testProcessReservations.js
 node tests/business/testRooming.js
+node tests/business/testBedConfiguration.js
 node tests/hotel/rooms.js
 ```
 
@@ -148,6 +163,8 @@ siendo propuestas y deben confirmarse con nuevos casos reales.
 
 1. Completar validaciones de inconsistencias entre CSV, PAX e inventario.
 2. Definir el modelo de estadia, comidas y titular.
-3. Construir las salidas de rooming a partir de las reservas procesadas.
-4. Agregar casos de prueba anonimizados para situaciones reales.
+3. Definir como se informara una disposicion operativa de camas sin inventar
+	relaciones entre pasajeros.
+4. Construir las salidas de rooming a partir de las reservas procesadas.
+5. Agregar casos de prueba anonimizados para situaciones reales.
 

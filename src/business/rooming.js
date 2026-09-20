@@ -1,3 +1,8 @@
+const {
+    getBedConfiguration
+} = require("./bedConfiguration");
+
+
 /**
  * Construccion del Rooming.
  *
@@ -104,12 +109,109 @@ function getRoomsByPassenger(rooming, numeroDocumento) {
 }
 
 
+function calculateRoomOccupancy(room) {
+
+    if (!room || typeof room !== "object") {
+        throw new TypeError(
+            "calculateRoomOccupancy espera una habitación."
+        );
+    }
+
+    const capacidad = Number.isFinite(room.capacidad)
+        ? room.capacidad
+        : null;
+
+    const cantidadPasajeros = Number.isFinite(room.cantidadPasajeros)
+        ? room.cantidadPasajeros
+        : 0;
+
+    if (capacidad === null) {
+        return {
+            capacidad: null,
+            cantidadPasajeros,
+            plazasLibres: null,
+            porcentajeOcupacion: null,
+            estado: "CAPACIDAD_DESCONOCIDA"
+        };
+    }
+
+    const plazasLibres = capacidad - cantidadPasajeros;
+
+    const porcentajeOcupacion = capacidad > 0
+        ? (cantidadPasajeros / capacidad) * 100
+        : null;
+
+    let estado;
+
+    if (capacidad <= 0) {
+        estado = "CAPACIDAD_INVALIDA";
+    } else if (cantidadPasajeros > capacidad) {
+        estado = "CAPACIDAD_SUPERADA";
+    } else {
+        estado = "OK";
+    }
+
+    return {
+        capacidad,
+        cantidadPasajeros,
+        plazasLibres,
+        porcentajeOcupacion,
+        estado
+    };
+}
+
+
+function attachBedConfiguration(rooming) {
+
+    if (!Array.isArray(rooming)) {
+        throw new TypeError(
+            "attachBedConfiguration espera un array de habitaciones."
+        );
+    }
+
+    return rooming.map(room => {
+
+        const codigoTipo = room.inventario
+            ? room.inventario.codigoTipo
+            : null;
+
+        const configuracion = getBedConfiguration(codigoTipo);
+        const ocupacion = calculateRoomOccupancy(room);
+
+        return {
+            ...room,
+
+            pasajeros: Array.isArray(room.pasajeros)
+                ? [...room.pasajeros]
+                : [],
+
+            asignaciones: Array.isArray(room.asignaciones)
+                ? [...room.asignaciones]
+                : [],
+
+            configuracionCamas: {
+                codigoTipo: configuracion.codigoTipo,
+                camas: configuracion.camas.map(cama => ({ ...cama }))
+            },
+
+            ocupacion: {
+                plazasLibres: ocupacion.plazasLibres,
+                porcentaje: ocupacion.porcentajeOcupacion,
+                estado: ocupacion.estado
+            }
+        };
+    });
+}
+
+
 if (typeof module !== "undefined" && module.exports) {
 
     module.exports = {
         buildRooming,
         countRoomingRooms,
         getRoomsByVoucher,
-        getRoomsByPassenger
+        getRoomsByPassenger,
+        calculateRoomOccupancy,
+        attachBedConfiguration
     };
 }
