@@ -21,10 +21,12 @@ La base funcional implementada incluye:
 - conservacion de asignaciones `A`, `B`, `C` para contingentes;
 - inventario fisico del Hotel 23 de Mayo;
 - integracion entre las habitaciones del CSV y el inventario fisico mediante
-	`getRoom()`.
+	`getRoom()`;
+- construccion de un rooming logico por habitacion, voucher y pasajero.
 
 Todavia no se implementaron las herramientas finales de salida, como rooming
-list imprimible, vouchers, comidas o fichas PAX.
+list imprimible, vouchers, comidas o fichas PAX. El modulo `rooming.js` prepara
+los datos para esas salidas, pero no asigna habitaciones ni decide camas.
 
 ## Flujo de procesamiento
 
@@ -48,6 +50,11 @@ Registros normalizados
 	v
 Reservas procesadas
 ```
+
+El modulo [src/business/rooming.js](src/business/rooming.js) transforma las
+reservas procesadas en una lista plana de habitaciones. Cada entrada conserva
+el voucher, la clasificacion, el inventario fisico, los pasajeros, la cantidad
+de pasajeros y las asignaciones de contingente.
 
 ## Estructura del resultado
 
@@ -107,6 +114,7 @@ node tests/parser/testParser.js
 node tests/business/testReservation.js
 node tests/business/testClassification.js
 node tests/business/testProcessReservations.js
+node tests/business/testRooming.js
 node tests/hotel/rooms.js
 ```
 

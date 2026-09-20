@@ -1,195 +1,702 @@
-No necesitamos reescribir processReservations(). Actualmente hace exactamente tres cosas: agrupa por voucher, clasifica y construye una estructura uniforme; además, explícitamente todavía no procesa habitaciones.
+🎯 ¿Qué debe hacer Rooming?
 
-Eso nos permite hacer la siguiente evolución de manera limpia.
+Por ahora solamente organizar la información.
 
-🧱 Vamos a incorporar las habitaciones
+No debe:
 
-Actualmente el resultado es:
+decidir qué habitación asignar;
+cambiar una habitación;
+redistribuir pasajeros;
+decidir camas;
+juntar reservas distintas;
+interpretar A/B/C como habitaciones.
 
-{
-    voucher,
-    pasajeros,
-    cantidadPasajeros,
-    clasificacion
+Debe decirnos claramente:
+
+Para cada reserva, ¿qué pasajeros están en qué habitación y qué sabemos físicamente de esa habitación?
+
+1. La estructura que propongo
+
+Crear:
+
+mkdir -p src/business
+nano src/business/rooming.js
+
+Con:
+
+/**
+ * Construcción del Rooming
+ *
+ * Responsabilidad:
+ * - Recibir reservas ya procesadas.
+ * - Organizar pasajeros por habitación.
+ * - Conservar información del inventario físico.
+ * - Conservar asignaciones A/B/C cuando correspondan.
+ *
+ * IMPORTANTE:
+ * Este módulo NO:
+ * - asigna habitaciones;
+ * - cambia habitaciones;
+ * - decide disposición de camas;
+ * - optimiza ocupación;
+ * - interpreta las letras A/B/C;
+ * - modifica las reservas originales.
+ */
+
+
+/**
+ * Construye el rooming a partir de reservas procesadas.
+ *
+ * Una entrada del rooming representa una habitación
+ * dentro de una reserva.
+ */
+function buildRooming(reservas) {
+
+    if (!Array.isArray(reservas)) {
+        throw new TypeError(
+            "buildRooming espera un array de reservas."
+        );
+    }
+
+
+    const habitaciones = [];
+
+
+    for (const reserva of reservas) {
+
+        if (!Array.isArray(reserva.habitaciones)) {
+            continue;
+        }
+
+
+        for (const habitacion of reserva.habitaciones) {
+
+            habitaciones.push({
+
+                voucher: reserva.voucher,
+
+                clasificacion:
+                    reserva.clasificacion
+                        ? reserva.clasificacion.tipo
+                        : null,
+
+                numero:
+                    habitacion.numero,
+
+                inventario:
+                    habitacion.inventario
+                        ? { ...habitacion.inventario }
+                        : null,
+
+                capacidad:
+                    habitacion.inventario
+                        ? habitacion.inventario.capacidad
+                        : null,
+
+                pasajeros:
+                    Array.isArray(habitacion.pasajeros)
+                        ? [...habitacion.pasajeros]
+                        : [],
+
+                cantidadPasajeros:
+                    Array.isArray(habitacion.pasajeros)
+                        ? habitacion.pasajeros.length
+                        : 0,
+
+                asignaciones:
+                    Array.isArray(habitacion.asignaciones)
+                        ? [...habitacion.asignaciones]
+                        : []
+            });
+        }
+    }
+
+
+    return habitaciones;
 }
 
-Queremos agregar:
 
-{
-    voucher,
-    pasajeros,
-    cantidadPasajeros,
+/**
+ * Devuelve la cantidad total de habitaciones
+ * incluidas en el rooming.
+ */
+function countRoomingRooms(rooming) {
 
-    clasificacion,
+    if (!Array.isArray(rooming)) {
+        throw new TypeError(
+            "countRoomingRooms espera un array."
+        );
+    }
 
-    habitaciones: [...]
+    return rooming.length;
 }
 
-Y para obtener esas habitaciones ya tenemos una función que hemos probado:
 
-groupByRoom(records, esContingente)
+/**
+ * Devuelve las habitaciones de un determinado voucher.
+ */
+function getRoomsByVoucher(rooming, voucher) {
 
-Por lo tanto, processReservations() será el lugar natural para orquestarla.
+    if (!Array.isArray(rooming)) {
+        throw new TypeError(
+            "getRoomsByVoucher espera un array."
+        );
+    }
 
-La lógica
+    return rooming.filter(
+        room => room.voucher === voucher
+    );
+}
 
-Para cada voucher:
 
-group
- │
- ├── pasajeros
- │
- ├── clasificación
- │
- └── habitaciones
-         │
-         └── groupByRoom(
-                 pasajeros,
-                 ¿es contingente?
-             )
+/**
+ * Devuelve las habitaciones ocupadas por un
+ * determinado pasajero/documento.
+ *
+ * Por ahora es una búsqueda simple.
+ * Más adelante podremos incorporar otras reglas.
+ */
+function getRoomsByPassenger(rooming, numeroDocumento) {
 
-La ventaja es que no vamos a duplicar lógica.
+    if (!Array.isArray(rooming)) {
+        throw new TypeError(
+            "getRoomsByPassenger espera un array."
+        );
+    }
 
-Paso 1 — modificar el test primero
+    return rooming.filter(room =>
+        room.pasajeros.some(
+            pasajero =>
+                pasajero.pax &&
+                pasajero.pax.numeroDocumento ===
+                    numeroDocumento
+        )
+    );
+}
 
-Esto es importante. Antes de tocar processReservations.js, hagamos que el test exija la nueva funcionalidad.
 
-En tests/business/testProcessReservations.js, en el test de la reserva individual, después de:
+if (typeof module !== "undefined" && module.exports) {
 
-assert(
-    reservasIndividual[0].clasificacion.consistente ===
-        true,
-    "La reserva debería ser consistente"
+    module.exports = {
+        buildRooming,
+        countRoomingRooms,
+        getRoomsByVoucher,
+        getRoomsByPassenger
+    };
+}
+2. ¿Qué obtenemos?
+
+Si tenemos nuestra reserva de ejemplo:
+
+238 A → GOMEZ
+238 B → ALBA
+238 C → INES
+
+el Rooming tendrá conceptualmente:
+
+{
+    voucher: "30243135",
+
+    clasificacion: "CONTINGENTE",
+
+    numero: "238",
+
+    inventario: {
+        piso: 2,
+        codigoTipo: "III",
+        tipo: "TRIPLE INDIVIDUAL",
+        capacidad: 3
+    },
+
+    capacidad: 3,
+
+    cantidadPasajeros: 3,
+
+    asignaciones: [
+        "A",
+        "B",
+        "C"
+    ],
+
+    pasajeros: [
+        ...
+    ]
+}
+
+Y una reserva individual:
+
+109
+GOMEZ
+PEREZ
+
+tendrá:
+
+{
+    voucher: "...",
+
+    clasificacion: "INDIVIDUAL",
+
+    numero: "109",
+
+    inventario: {
+        piso: 1,
+        codigoTipo: "X",
+        tipo: "DOBLE MATRIMONIAL",
+        capacidad: 2
+    },
+
+    cantidadPasajeros: 2,
+
+    asignaciones: []
+}
+
+Eso respeta perfectamente la regla que establecimos:
+
+CONTINGENTE
+→ puede tener A/B/C
+
+INDIVIDUAL
+→ no tiene A/B/C
+3. Y ahora hacemos las pruebas
+
+Creamos:
+
+nano tests/business/testRooming.js
+
+Pegá:
+
+/**
+ * Tests del Rooming
+ */
+
+const {
+    buildRooming,
+    countRoomingRooms,
+    getRoomsByVoucher,
+    getRoomsByPassenger
+} = require("../../src/business/rooming");
+
+
+function assert(condition, message) {
+
+    if (!condition) {
+        throw new Error(
+            `❌ TEST FALLIDO: ${message}`
+        );
+    }
+}
+
+
+console.log(
+    "\n=== Tests del Rooming ===\n"
 );
 
-agregá:
+
+// ---------------------------------------------------------
+// Datos simulados
+// ---------------------------------------------------------
+
+const reservas = [
+
+    {
+        voucher: "V001",
+
+        clasificacion: {
+            tipo: "INDIVIDUAL"
+        },
+
+        habitaciones: [
+
+            {
+                numero: "109",
+
+                inventario: {
+                    piso: 1,
+                    codigoTipo: "X",
+                    tipo: "DOBLE MATRIMONIAL",
+                    capacidad: 2
+                },
+
+                pasajeros: [
+
+                    {
+                        pax: {
+                            numeroDocumento: "11111111",
+                            nombre: "GOMEZ JUAN"
+                        }
+                    },
+
+                    {
+                        pax: {
+                            numeroDocumento: "22222222",
+                            nombre: "PEREZ MARIA"
+                        }
+                    }
+                ],
+
+                asignaciones: []
+            }
+        ]
+    },
+
+
+    {
+        voucher: "V002",
+
+        clasificacion: {
+            tipo: "CONTINGENTE"
+        },
+
+        habitaciones: [
+
+            {
+                numero: "238",
+
+                inventario: {
+                    piso: 2,
+                    codigoTipo: "III",
+                    tipo: "TRIPLE INDIVIDUAL",
+                    capacidad: 3
+                },
+
+                pasajeros: [
+
+                    {
+                        pax: {
+                            numeroDocumento: "33333333",
+                            nombre: "GOMEZ GRACIELA"
+                        }
+                    },
+
+                    {
+                        pax: {
+                            numeroDocumento: "44444444",
+                            nombre: "ALBA LAUTARO"
+                        }
+                    },
+
+                    {
+                        pax: {
+                            numeroDocumento: "55555555",
+                            nombre: "INES PEREZ"
+                        }
+                    }
+                ],
+
+                asignaciones: [
+                    "A",
+                    "B",
+                    "C"
+                ]
+            }
+        ]
+    }
+];
+
+
+// ---------------------------------------------------------
+// buildRooming()
+// ---------------------------------------------------------
+
+console.log(
+    "Probando buildRooming()..."
+);
+
+const rooming =
+    buildRooming(reservas);
+
 
 assert(
-    Array.isArray(
-        reservasIndividual[0].habitaciones
-    ),
-    "La reserva debería contener habitaciones"
+    Array.isArray(rooming),
+    "El rooming debería ser un array"
 );
 
 assert(
-    reservasIndividual[0].habitaciones.length === 1,
-    "La reserva individual debería tener una habitación"
+    rooming.length === 2,
+    "El rooming debería contener dos habitaciones"
+);
+
+console.log(
+    "✅ buildRooming() OK"
+);
+
+
+// ---------------------------------------------------------
+// Reserva individual
+// ---------------------------------------------------------
+
+console.log(
+    "Probando habitación individual..."
+);
+
+const individual =
+    rooming.find(
+        room => room.voucher === "V001"
+    );
+
+
+assert(
+    individual.numero === "109",
+    "La habitación individual debería ser la 109"
 );
 
 assert(
-    reservasIndividual[0].habitaciones[0].numero ===
-        "109",
-    "La habitación debería ser la 109"
+    individual.clasificacion === "INDIVIDUAL",
+    "Debería conservar la clasificación INDIVIDUAL"
 );
 
 assert(
-    reservasIndividual[0].habitaciones[0].pasajeros.length ===
-        2,
+    individual.cantidadPasajeros === 2,
     "La habitación debería tener dos pasajeros"
 );
 
 assert(
-    reservasIndividual[0].habitaciones[0].asignaciones.length ===
-        0,
-    "Una reserva individual no debería tener asignaciones"
-);
-
-Esto tiene sentido con nuestros datos actuales: los dos pasajeros del voucher 58000085 están en la habitación 109.
-
-Paso 2 — hacemos lo mismo con el contingente
-
-Después de las validaciones del grupo:
-
-assert(
-    reservasGrupo[0].clasificacion.consistente ===
-        true,
-    "El grupo debería ser consistente"
-);
-
-agregá:
-
-assert(
-    Array.isArray(
-        reservasGrupo[0].habitaciones
-    ),
-    "El contingente debería contener habitaciones"
+    individual.capacidad === 2,
+    "La capacidad debería ser 2"
 );
 
 assert(
-    reservasGrupo[0].habitaciones.length === 1,
-    "El contingente debería tener una habitación"
+    individual.asignaciones.length === 0,
+    "La reserva individual no debería tener asignaciones"
 );
 
+console.log(
+    "✅ Reserva individual OK"
+);
+
+
+// ---------------------------------------------------------
+// Contingente
+// ---------------------------------------------------------
+
+console.log(
+    "Probando habitación de contingente..."
+);
+
+const contingente =
+    rooming.find(
+        room => room.voucher === "V002"
+    );
+
+
 assert(
-    reservasGrupo[0].habitaciones[0].numero ===
-        "238",
+    contingente.numero === "238",
     "La habitación del contingente debería ser la 238"
 );
 
 assert(
-    reservasGrupo[0].habitaciones[0].pasajeros.length ===
-        2,
-    "La habitación debería tener dos pasajeros"
+    contingente.clasificacion === "CONTINGENTE",
+    "Debería conservar la clasificación CONTINGENTE"
 );
 
 assert(
-    reservasGrupo[0].habitaciones[0].asignaciones.length ===
-        2,
-    "El contingente debería conservar las asignaciones"
+    contingente.capacidad === 3,
+    "La habitación 238 debería tener capacidad 3"
 );
 
 assert(
-    reservasGrupo[0].habitaciones[0].asignaciones.join(",") ===
-        "A,B",
-    "Las asignaciones deberían ser A y B"
+    contingente.cantidadPasajeros === 3,
+    "La habitación debería tener tres pasajeros"
 );
 
-Esto reproduce exactamente nuestro caso:
+assert(
+    contingente.asignaciones.join(",") ===
+        "A,B,C",
+    "Las asignaciones A/B/C deberían conservarse"
+);
 
-238 A → GOMEZ GRACIELA
-238 B → ALBA LAUTARO
+console.log(
+    "✅ Contingente OK"
+);
 
-que actualmente está en el test del contingente.
 
-🧪 Ahora viene algo interesante
+// ---------------------------------------------------------
+// countRoomingRooms()
+// ---------------------------------------------------------
 
-No modifiques todavía processReservations.js.
+console.log(
+    "Probando countRoomingRooms()..."
+);
 
-Guardá el test y ejecutá:
+assert(
+    countRoomingRooms(rooming) === 2,
+    "Debería haber dos habitaciones en el rooming"
+);
 
-node tests/business/testProcessReservations.js
+console.log(
+    "✅ countRoomingRooms() OK"
+);
 
-Y esperamos que falle.
 
-Eso es bueno.
+// ---------------------------------------------------------
+// getRoomsByVoucher()
+// ---------------------------------------------------------
 
-Deberíamos obtener algo parecido a:
+console.log(
+    "Probando getRoomsByVoucher()..."
+);
 
-❌ TEST FALLIDO:
-La reserva debería contener habitaciones
+const roomsV002 =
+    getRoomsByVoucher(
+        rooming,
+        "V002"
+    );
 
-¿Por qué queremos que falle?
 
-Porque acabamos de expresar mediante un test la nueva capacidad que queremos construir.
+assert(
+    roomsV002.length === 1,
+    "V002 debería tener una habitación"
+);
 
-Después modificamos processReservations.js para hacer que pase.
+assert(
+    roomsV002[0].numero === "238",
+    "V002 debería corresponder a la habitación 238"
+);
 
-Y ahí sí tendremos:
+console.log(
+    "✅ getRoomsByVoucher() OK"
+);
 
-CSV
- ↓
-parser
- ↓
-registros
- ↓
-groupByVoucher
- ↓
-classifyReservation
- ↓
-groupByRoom
- ↓
-RESERVA PROCESADA
 
-Ese es el siguiente ladrillo importante de nuestra arquitectura.
+// ---------------------------------------------------------
+// getRoomsByPassenger()
+// ---------------------------------------------------------
 
-Hagamos primero fallar el test. Después escribimos la mínima cantidad de código necesaria para ponerlo nuevamente en verde.
+console.log(
+    "Probando getRoomsByPassenger()..."
+);
+
+const roomsPassenger =
+    getRoomsByPassenger(
+        rooming,
+        "44444444"
+    );
+
+
+assert(
+    roomsPassenger.length === 1,
+    "El pasajero debería aparecer en una habitación"
+);
+
+assert(
+    roomsPassenger[0].numero === "238",
+    "El pasajero debería estar en la habitación 238"
+);
+
+console.log(
+    "✅ getRoomsByPassenger() OK"
+);
+
+
+// ---------------------------------------------------------
+// Validaciones
+// ---------------------------------------------------------
+
+console.log(
+    "Probando validaciones..."
+);
+
+let errorDetectado = false;
+
+try {
+
+    buildRooming("no es un array");
+
+} catch (error) {
+
+    errorDetectado = true;
+}
+
+
+assert(
+    errorDetectado,
+    "buildRooming() debería validar la entrada"
+);
+
+
+errorDetectado = false;
+
+try {
+
+    countRoomingRooms("no es un array");
+
+} catch (error) {
+
+    errorDetectado = true;
+}
+
+
+assert(
+    errorDetectado,
+    "countRoomingRooms() debería validar la entrada"
+);
+
+console.log(
+    "✅ Validaciones OK"
+);
+
+
+console.log(
+    "\n🎉 Todos los tests del Rooming pasaron.\n"
+);
+4. La prueba
+
+Ejecutá:
+
+node tests/business/testRooming.js
+
+Si todo está bien, deberíamos terminar con:
+
+=== Tests del Rooming ===
+
+Probando buildRooming()...
+✅ buildRooming() OK
+Probando habitación individual...
+✅ Reserva individual OK
+Probando habitación de contingente...
+✅ Contingente OK
+Probando countRoomingRooms()...
+✅ countRoomingRooms() OK
+Probando getRoomsByVoucher()...
+✅ getRoomsByVoucher() OK
+Probando getRoomsByPassenger()...
+✅ getRoomsByPassenger() OK
+Probando validaciones...
+✅ Validaciones OK
+
+🎉 Todos los tests del Rooming pasaron.
+🍚 Y una decisión importante
+
+Todavía no estamos haciendo esto:
+
+238 → cama 1 → GOMEZ
+238 → cama 2 → ALBA
+238 → cama 3 → INES
+
+Eso viene después.
+
+Primero construimos el rooming lógico:
+
+238
+ ├── capacidad: 3
+ ├── pasajeros: 3
+ ├── A
+ ├── B
+ └── C
+
+Luego, con la composición de los pasajeros, podremos construir la disposición de camas.
+
+Y ahí sí podremos representar casos como:
+
+TRIPLE
+├── matrimonio
+└── hijo/a
+
+o:
+
+TRIPLE
+├── amiga
+├── amiga
+└── amiga
+
+sin confundir tipo de habitación, cantidad de pasajeros y disposición de camas.
