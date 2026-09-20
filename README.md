@@ -23,11 +23,10 @@ La base funcional implementada incluye:
 - integracion entre las habitaciones del CSV y el inventario fisico mediante
 	`getRoom()`;
 - construccion de un rooming logico por habitacion, voucher y pasajero;
-- calculo independiente de plazas libres, porcentaje de ocupacion y estado de
-- capacidad;
-- catalogo explicito de configuraciones fisicas de camas por tipo de
-	habitacion.
-- conexion no destructiva entre Rooming, ocupacion y configuracion de camas.
+- calculo independiente de plazas libres, porcentaje de ocupacion y estado de capacidad;
+- catalogo explicito de configuraciones fisicas de camas por tipo de habitacion;
+- conexion no destructiva entre Rooming, ocupacion y configuracion de camas;
+- agrupacion fisica de habitaciones compartidas por varios vouchers.
 
 Todavia no se implementaron las herramientas finales de salida, como rooming
 list imprimible, vouchers, comidas o fichas PAX. El modulo `rooming.js` prepara
@@ -61,7 +60,9 @@ reservas procesadas en una lista plana de habitaciones. Cada entrada conserva
 el voucher, la clasificacion, el inventario fisico, los pasajeros, la cantidad
 de pasajeros y las asignaciones de contingente. La funcion
 `calculateRoomOccupancy()` calcula informacion derivada sin modificar esa
-entrada.
+entrada. La funcion `groupRoomsForRooming()` ofrece una segunda vista donde
+una habitacion fisica puede contener varias reservas, sin fusionar sus
+vouchers.
 
 El modulo [src/business/bedConfiguration.js](src/business/bedConfiguration.js)
 describe las camas fisicamente previstas para cada codigo de habitacion

@@ -8,6 +8,9 @@ const {
  *
  * Este modulo organiza habitaciones ya procesadas. No asigna habitaciones,
  * redistribuye pasajeros ni decide disposicion de camas.
+ *
+ * Puede ofrecer una vista por reserva o una vista fisica agrupada por
+ * numero de habitacion.
  */
 
 
@@ -62,6 +65,75 @@ function buildRooming(reservas) {
     }
 
     return habitaciones;
+}
+
+
+function groupRoomsForRooming(reservas) {
+
+    if (!Array.isArray(reservas)) {
+        throw new TypeError(
+            "groupRoomsForRooming espera un array de reservas."
+        );
+    }
+
+    const rooms = new Map();
+
+    for (const reserva of reservas) {
+
+        if (!reserva || typeof reserva !== "object") {
+            continue;
+        }
+
+        const habitaciones = Array.isArray(reserva.habitaciones)
+            ? reserva.habitaciones
+            : [];
+
+        for (const habitacion of habitaciones) {
+
+            if (!habitacion || !habitacion.numero) {
+                continue;
+            }
+
+            const numero = String(habitacion.numero);
+
+            if (!rooms.has(numero)) {
+                rooms.set(numero, {
+                    numero,
+                    inventario: habitacion.inventario
+                        ? { ...habitacion.inventario }
+                        : null,
+                    capacidad: habitacion.capacidad ??
+                        habitacion.inventario?.capacidad ??
+                        null,
+                    reservas: [],
+                    pasajeros: [],
+                    asignaciones: []
+                });
+            }
+
+            const roomingRoom = rooms.get(numero);
+            const pasajeros = Array.isArray(habitacion.pasajeros)
+                ? [...habitacion.pasajeros]
+                : [];
+            const asignaciones = Array.isArray(habitacion.asignaciones)
+                ? [...habitacion.asignaciones]
+                : [];
+
+            roomingRoom.reservas.push({
+                voucher: reserva.voucher ?? null,
+                clasificacion: reserva.clasificacion
+                    ? reserva.clasificacion.tipo
+                    : null,
+                pasajeros,
+                asignaciones
+            });
+
+            roomingRoom.pasajeros.push(...pasajeros);
+            roomingRoom.asignaciones.push(...asignaciones);
+        }
+    }
+
+    return Array.from(rooms.values());
 }
 
 
@@ -208,6 +280,7 @@ if (typeof module !== "undefined" && module.exports) {
 
     module.exports = {
         buildRooming,
+        groupRoomsForRooming,
         countRoomingRooms,
         getRoomsByVoucher,
         getRoomsByPassenger,

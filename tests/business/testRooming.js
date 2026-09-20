@@ -4,7 +4,8 @@ const {
     getRoomsByVoucher,
     getRoomsByPassenger,
     calculateRoomOccupancy,
-    attachBedConfiguration
+    attachBedConfiguration,
+    groupRoomsForRooming
 } = require("../../src/business/rooming");
 
 
@@ -319,4 +320,87 @@ assert(
 );
 
 console.log("OK conexion con configuracion de camas");
+
+
+console.log("Probando habitaciones compartidas entre vouchers...");
+
+const reservaAbuelaNieta = {
+    voucher: "30243142",
+    clasificacion: {
+        tipo: "CONTINGENTE"
+    },
+    habitaciones: [
+        {
+            numero: "238",
+            inventario: {
+                piso: 2,
+                codigoTipo: "III",
+                tipo: "TRIPLE INDIVIDUAL",
+                capacidad: 3
+            },
+            pasajeros: [
+                { nombre: "ABUELA" },
+                { nombre: "NIETA" }
+            ],
+            asignaciones: ["A", "B"]
+        }
+    ]
+};
+
+const reservaAmiga = {
+    voucher: "30243143",
+    clasificacion: {
+        tipo: "CONTINGENTE"
+    },
+    habitaciones: [
+        {
+            numero: "238",
+            inventario: {
+                piso: 2,
+                codigoTipo: "III",
+                tipo: "TRIPLE INDIVIDUAL",
+                capacidad: 3
+            },
+            pasajeros: [
+                { nombre: "AMIGA" }
+            ],
+            asignaciones: ["C"]
+        }
+    ]
+};
+
+const roomingCompartido = groupRoomsForRooming([
+    reservaAbuelaNieta,
+    reservaAmiga
+]);
+
+assert(
+    roomingCompartido.length === 1,
+    "Las dos reservas deberian formar una sola habitacion fisica"
+);
+
+const habitacion238 = roomingCompartido[0];
+
+assert(habitacion238.numero === "238", "La habitacion deberia ser la 238");
+assert(habitacion238.reservas.length === 2, "Deberia conservar dos reservas");
+assert(habitacion238.pasajeros.length === 3, "Deberia contener tres pasajeros");
+assert(
+    habitacion238.reservas[0].voucher === "30243142",
+    "Deberia conservar el voucher de la abuela y la nieta"
+);
+assert(
+    habitacion238.reservas[1].voucher === "30243143",
+    "Deberia conservar el voucher de la amiga"
+);
+assert(
+    habitacion238.asignaciones.join(",") === "A,B,C",
+    "Deberia conservar las asignaciones A/B/C"
+);
+assert(
+    habitacion238.inventario.codigoTipo === "III" &&
+    habitacion238.capacidad === 3,
+    "Deberia conservar el inventario fisico de la habitacion"
+);
+
+console.log("OK habitaciones compartidas entre vouchers");
 console.log("\nTodos los tests del Rooming pasaron.\n");
