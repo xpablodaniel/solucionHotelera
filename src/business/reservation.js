@@ -1,3 +1,8 @@
+const {
+    getRoom
+} = require("../hotel/rooms");
+
+
 /**
  * Agrupa registros por número de voucher.
  *
@@ -94,6 +99,8 @@ function groupByRoom(records, esContingente = false) {
 
             rooms.set(numero, {
                 numero,
+
+                inventario: getRoom(numero),
 
                 capacidad: record.plazas
                     ? record.plazas.cantidad

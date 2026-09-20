@@ -196,6 +196,25 @@ assert(
 
 
 assert(
+    habitaciones[0].inventario.piso === 2,
+    "La habitación 238 debería pertenecer al segundo piso"
+);
+
+
+assert(
+    habitaciones[0].inventario.tipo ===
+        "TRIPLE INDIVIDUAL",
+    "La habitación 238 debería ser triple individual"
+);
+
+
+assert(
+    habitaciones[0].inventario.capacidad === 3,
+    "La capacidad física de la habitación 238 debería ser 3"
+);
+
+
+assert(
     habitaciones[0].pasajeros.length === 2,
     "La habitación 238 debería tener 2 pasajeros"
 );

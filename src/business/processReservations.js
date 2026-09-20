@@ -11,7 +11,6 @@
  * Este módulo NO parsea CSV.
  * Este módulo NO modifica registros originales.
  * Este módulo NO determina titulares.
- * Este módulo NO procesa habitaciones.
  * Este módulo NO calcula comidas.
  */
 
