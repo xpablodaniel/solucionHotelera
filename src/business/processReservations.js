@@ -17,7 +17,8 @@
 
 
 const {
-    groupByVoucher
+    groupByVoucher,
+    groupByRoom
 } = require("./reservation");
 
 
@@ -58,6 +59,12 @@ function processReservations(records) {
         const clasificacion =
             classifyReservation(pasajeros);
 
+        const esContingente =
+            clasificacion.tipo === "CONTINGENTE";
+
+        const habitaciones =
+            groupByRoom(pasajeros, esContingente);
+
 
         return {
 
@@ -77,7 +84,9 @@ function processReservations(records) {
 
                 advertencias:
                     clasificacion.advertencias
-            }
+            },
+
+            habitaciones
         };
     });
 }

@@ -1,155 +1,49 @@
-Ya tenemos groupByRoom() preparado para conservar la información propia de la habitación sin romper lo que ya funcionaba.
+🏨 Y después viene una decisión importante
 
-Ahora viene exactamente la prueba que anunciamos: el caso A/B/C no puede multiplicar la capacidad ni las plazas ocupadas.
+Ya tenemos la información de la habitación. El siguiente paso no debería ser agregar código porque sí.
 
-🔥 Siguiente test: contingente A/B/C
+Tenemos que empezar a construir el resultado operativo final.
 
-Agreguemos a testReservation.js un caso donde las tres filas representan la misma habitación:
+La pregunta que empieza a aparecer es:
 
-console.log(
-    "Probando capacidad de habitación con contingente A/B/C..."
-);
+¿Qué queremos obtener cuando terminamos de procesar un CSV?
 
-const habitacionContingenteCompleta = [
+Por ejemplo:
 
-    {
-        voucher: "30243138",
+Reserva
+│
+├── clasificación
+│   ├── INDIVIDUAL
+│   └── CONTINGENTE
+│
+├── pasajeros
+│
+└── habitaciones
+    ├── 238
+    │   ├── capacidad
+    │   ├── ocupación
+    │   ├── pasajeros
+    │   └── asignaciones
+    │
+    └── 239
+        └── ...
 
-        habitacion: {
-            numero: "238",
-            asignacion: "A"
-        },
+Y ahí aparece el verdadero oro del arcoíris 🌈:
 
-        tipoHabitacion: "TRIPLE A COMPARTIR",
+a partir de esta estructura podremos construir posteriormente las herramientas que motivaron todo el proyecto:
 
-        plazas: {
-            cantidad: 3,
-            ocupadas: 3
-        },
+rooming list
+distribución de habitaciones
+listado de pasajeros
+control de contingentes
+vouchers
+listados para comedor
+información para transporte
+controles de ingreso/egreso
+y eventualmente otras herramientas que hoy hacemos manualmente.
 
-        pax: {
-            nombre: "GOMEZ GRACIELA"
-        }
-    },
+Pero todavía no vamos a construirlas.
 
-    {
-        voucher: "30243138",
+Primero terminemos de construir correctamente el modelo de datos procesados.
 
-        habitacion: {
-            numero: "238",
-            asignacion: "B"
-        },
-
-        tipoHabitacion: "TRIPLE A COMPARTIR",
-
-        plazas: {
-            cantidad: 3,
-            ocupadas: 3
-        },
-
-        pax: {
-            nombre: "ALBA LAUTARO"
-        }
-    },
-
-    {
-        voucher: "30243138",
-
-        habitacion: {
-            numero: "238",
-            asignacion: "C"
-        },
-
-        tipoHabitacion: "TRIPLE A COMPARTIR",
-
-        plazas: {
-            cantidad: 3,
-            ocupadas: 3
-        },
-
-        pax: {
-            nombre: "INES PEREZ RODRIGUEZ"
-        }
-    }
-];
-
-const resultadoContingenteCompleto =
-    groupByRoom(
-        habitacionContingenteCompleta,
-        true
-    );
-
-assert(
-    resultadoContingenteCompleto.length === 1,
-    "A/B/C debería representar una sola habitación"
-);
-
-assert(
-    resultadoContingenteCompleto[0].numero === "238",
-    "La habitación debería ser 238"
-);
-
-assert(
-    resultadoContingenteCompleto[0].capacidad === 3,
-    "La capacidad debería seguir siendo 3"
-);
-
-assert(
-    resultadoContingenteCompleto[0].ocupadasInformadas === 3,
-    "Las ocupadas informadas deberían seguir siendo 3"
-);
-
-assert(
-    resultadoContingenteCompleto[0].pasajeros.length === 3,
-    "Deberían existir 3 pasajeros"
-);
-
-assert(
-    resultadoContingenteCompleto[0].asignaciones.length === 3,
-    "Deberían existir 3 asignaciones"
-);
-
-assert(
-    resultadoContingenteCompleto[0].asignaciones.join(",") === "A,B,C",
-    "Las asignaciones deberían ser A, B y C"
-);
-
-console.log(
-    "✅ Capacidad A/B/C conservada correctamente"
-);
-El objetivo
-
-Queremos blindar esta transformación:
-
-238 A ─┐
-238 B ─┼──► HABITACIÓN 238
-238 C ─┘
-
-con:
-
-capacidad             3
-ocupadasInformadas    3
-pasajerosDetectados   3
-asignaciones          A,B,C
-
-No:
-
-capacidad             9  ❌
-ocupadasInformadas    9  ❌
-
-Y esto además nos deja una separación muy limpia:
-
-El parser descubre que "238 A" significa:
-
-{
-    numero: "238",
-    asignacion: "A"
-}
-
-groupByRoom() decide que los tres registros pertenecen a:
-
-238
-
-y solo si es contingente conserva A/B/C como información operativa.
-
-Ese diseño empieza a parecerse mucho más a una herramienta que puede sobrevivir a los CSV reales del hotel, en lugar de simplemente transformar texto.
+Ese es el siguiente escalón.

@@ -1,0 +1,195 @@
+No necesitamos reescribir processReservations(). Actualmente hace exactamente tres cosas: agrupa por voucher, clasifica y construye una estructura uniforme; además, explícitamente todavía no procesa habitaciones.
+
+Eso nos permite hacer la siguiente evolución de manera limpia.
+
+🧱 Vamos a incorporar las habitaciones
+
+Actualmente el resultado es:
+
+{
+    voucher,
+    pasajeros,
+    cantidadPasajeros,
+    clasificacion
+}
+
+Queremos agregar:
+
+{
+    voucher,
+    pasajeros,
+    cantidadPasajeros,
+
+    clasificacion,
+
+    habitaciones: [...]
+}
+
+Y para obtener esas habitaciones ya tenemos una función que hemos probado:
+
+groupByRoom(records, esContingente)
+
+Por lo tanto, processReservations() será el lugar natural para orquestarla.
+
+La lógica
+
+Para cada voucher:
+
+group
+ │
+ ├── pasajeros
+ │
+ ├── clasificación
+ │
+ └── habitaciones
+         │
+         └── groupByRoom(
+                 pasajeros,
+                 ¿es contingente?
+             )
+
+La ventaja es que no vamos a duplicar lógica.
+
+Paso 1 — modificar el test primero
+
+Esto es importante. Antes de tocar processReservations.js, hagamos que el test exija la nueva funcionalidad.
+
+En tests/business/testProcessReservations.js, en el test de la reserva individual, después de:
+
+assert(
+    reservasIndividual[0].clasificacion.consistente ===
+        true,
+    "La reserva debería ser consistente"
+);
+
+agregá:
+
+assert(
+    Array.isArray(
+        reservasIndividual[0].habitaciones
+    ),
+    "La reserva debería contener habitaciones"
+);
+
+assert(
+    reservasIndividual[0].habitaciones.length === 1,
+    "La reserva individual debería tener una habitación"
+);
+
+assert(
+    reservasIndividual[0].habitaciones[0].numero ===
+        "109",
+    "La habitación debería ser la 109"
+);
+
+assert(
+    reservasIndividual[0].habitaciones[0].pasajeros.length ===
+        2,
+    "La habitación debería tener dos pasajeros"
+);
+
+assert(
+    reservasIndividual[0].habitaciones[0].asignaciones.length ===
+        0,
+    "Una reserva individual no debería tener asignaciones"
+);
+
+Esto tiene sentido con nuestros datos actuales: los dos pasajeros del voucher 58000085 están en la habitación 109.
+
+Paso 2 — hacemos lo mismo con el contingente
+
+Después de las validaciones del grupo:
+
+assert(
+    reservasGrupo[0].clasificacion.consistente ===
+        true,
+    "El grupo debería ser consistente"
+);
+
+agregá:
+
+assert(
+    Array.isArray(
+        reservasGrupo[0].habitaciones
+    ),
+    "El contingente debería contener habitaciones"
+);
+
+assert(
+    reservasGrupo[0].habitaciones.length === 1,
+    "El contingente debería tener una habitación"
+);
+
+assert(
+    reservasGrupo[0].habitaciones[0].numero ===
+        "238",
+    "La habitación del contingente debería ser la 238"
+);
+
+assert(
+    reservasGrupo[0].habitaciones[0].pasajeros.length ===
+        2,
+    "La habitación debería tener dos pasajeros"
+);
+
+assert(
+    reservasGrupo[0].habitaciones[0].asignaciones.length ===
+        2,
+    "El contingente debería conservar las asignaciones"
+);
+
+assert(
+    reservasGrupo[0].habitaciones[0].asignaciones.join(",") ===
+        "A,B",
+    "Las asignaciones deberían ser A y B"
+);
+
+Esto reproduce exactamente nuestro caso:
+
+238 A → GOMEZ GRACIELA
+238 B → ALBA LAUTARO
+
+que actualmente está en el test del contingente.
+
+🧪 Ahora viene algo interesante
+
+No modifiques todavía processReservations.js.
+
+Guardá el test y ejecutá:
+
+node tests/business/testProcessReservations.js
+
+Y esperamos que falle.
+
+Eso es bueno.
+
+Deberíamos obtener algo parecido a:
+
+❌ TEST FALLIDO:
+La reserva debería contener habitaciones
+
+¿Por qué queremos que falle?
+
+Porque acabamos de expresar mediante un test la nueva capacidad que queremos construir.
+
+Después modificamos processReservations.js para hacer que pase.
+
+Y ahí sí tendremos:
+
+CSV
+ ↓
+parser
+ ↓
+registros
+ ↓
+groupByVoucher
+ ↓
+classifyReservation
+ ↓
+groupByRoom
+ ↓
+RESERVA PROCESADA
+
+Ese es el siguiente ladrillo importante de nuestra arquitectura.
+
+Hagamos primero fallar el test. Después escribimos la mínima cantidad de código necesaria para ponerlo nuevamente en verde.

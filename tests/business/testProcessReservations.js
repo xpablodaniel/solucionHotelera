@@ -108,6 +108,41 @@ assert(
 );
 
 
+assert(
+    Array.isArray(
+        reservasIndividual[0].habitaciones
+    ),
+    "La reserva debería contener habitaciones"
+);
+
+
+assert(
+    reservasIndividual[0].habitaciones.length === 1,
+    "La reserva individual debería tener una habitación"
+);
+
+
+assert(
+    reservasIndividual[0].habitaciones[0].numero ===
+        "109",
+    "La habitación debería ser la 109"
+);
+
+
+assert(
+    reservasIndividual[0].habitaciones[0].pasajeros.length ===
+        2,
+    "La habitación debería tener dos pasajeros"
+);
+
+
+assert(
+    reservasIndividual[0].habitaciones[0].asignaciones.length ===
+        0,
+    "Una reserva individual no debería tener asignaciones"
+);
+
+
 console.log(
     "✅ Reserva individual procesada correctamente"
 );
@@ -205,6 +240,48 @@ assert(
     reservasGrupo[0].clasificacion.consistente ===
         true,
     "El grupo debería ser consistente"
+);
+
+
+assert(
+    Array.isArray(
+        reservasGrupo[0].habitaciones
+    ),
+    "El contingente debería contener habitaciones"
+);
+
+
+assert(
+    reservasGrupo[0].habitaciones.length === 1,
+    "El contingente debería tener una habitación"
+);
+
+
+assert(
+    reservasGrupo[0].habitaciones[0].numero ===
+        "238",
+    "La habitación del contingente debería ser la 238"
+);
+
+
+assert(
+    reservasGrupo[0].habitaciones[0].pasajeros.length ===
+        2,
+    "La habitación debería tener dos pasajeros"
+);
+
+
+assert(
+    reservasGrupo[0].habitaciones[0].asignaciones.length ===
+        2,
+    "El contingente debería conservar las asignaciones"
+);
+
+
+assert(
+    reservasGrupo[0].habitaciones[0].asignaciones.join(",") ===
+        "A,B",
+    "Las asignaciones deberían ser A y B"
 );
 
 
