@@ -1,6 +1,114 @@
-Ese es exactamente el siguiente paso. 🎶🧉
+🗺️ Hoja de ruta — próxima sesión
+0. Arranque
 
-Y con buildRoomingReport() ya probado con 12/12, tenemos una separación muy saludable:
+Primero:
+
+git status
+git log --oneline --decorate -6
+
+Confirmamos que el commit de Rooming PC quedó subido y que paso.txt sigue siendo solamente nuestra bitácora auxiliar.
+
+1. Auditoría de la tercera gran salida: Vouchers
+
+Hasta ahora tenemos:
+
+CSV
+ ↓
+Parser
+ ↓
+Reservas
+ ├── Rooming MAP       🟢
+ └── Rooming PC        🟢
+
+La siguiente pieza histórica es:
+
+VOUCHERS
+
+Pero no vamos a programar inmediatamente.
+
+Primero vamos a comparar el comportamiento del repositorio original:
+
+cómo agrupa por voucher;
+qué datos utiliza;
+cómo determina los pasajeros;
+cómo representa las habitaciones;
+cómo obtiene el representante;
+qué ocurre cuando un voucher ocupa varias habitaciones;
+qué formato tenía la salida;
+y qué reglas especiales existían para los vouchers.
+
+Especial atención a lo que ya descubrimos en la auditoría:
+
+La cantidad de pasajeros del voucher debe corresponder a las filas reales asociadas al voucher.
+
+Y también:
+
+El representante se obtiene del primer pasajero después de ordenar por DNI.
+
+Eso lo vamos a comprobar contra el código original antes de trasladarlo.
+
+2. Separar modelo de salida
+
+Mantendremos la arquitectura que nos está funcionando:
+
+processReservations()
+        │
+        ▼
+   modelo interno
+        │
+        ├──────────────► Rooming MAP
+        │
+        ├──────────────► Rooming PC
+        │
+        └──────────────► Vouchers
+
+No vamos a meter reglas de generación de vouchers dentro de processReservations().
+
+3. Construir primero el reporte
+
+Probablemente terminemos con algo de esta forma:
+
+src/output/voucherReport.js
+tests/output/testVoucherReport.js
+
+Primero:
+
+buildVoucherReport()
+
+Después las pruebas.
+
+Nada de PDF ni HTML todavía.
+
+4. Compatibilidad histórica
+
+Una vez verde:
+
+buildVoucherReport()
+
+hacemos exactamente lo que hicimos con MAP y PC:
+
+reporte
+   ↓
+formato histórico
+   ↓
+comparación
+   ↓
+test de compatibilidad
+5. Exportación
+
+Dependiendo de lo que encontremos en la auditoría original:
+
+exportVoucher...
+        ↓
+writeVoucher...
+
+o, si la salida histórica era directamente HTML/documento, respetamos ese contrato.
+
+No vamos a inventar una salida CSV si el original no la utilizaba.
+
+6. Integración completa
+
+Finalmente:
 
 CSV
  ↓
@@ -8,115 +116,46 @@ parseCSV()
  ↓
 processReservations()
  ↓
-buildRoomingReport()
+buildVoucherReport()
  ↓
-reporte.filas
+salida histórica
  ↓
-exportRoomingCsv()
- ↓
-reservas_ingresan.csv
-El nuevo módulo
+archivo temporal
 
-Crearía:
+Y la misma regla de siempre:
 
-src/output/roomingCsv.js
-tests/output/testRoomingCsv.js
+datos ficticios en los tests; ningún CSV real de pasajeros al repositorio.
 
-con una función pura del estilo:
+📍 Dónde estamos ahora
+PARSER                         🟢
+RESERVATIONS                   🟢
+CLASSIFICATION                 🟢
+INVENTARIO                     🟢
+ROOMING                        🟢
+ROOMING + INVENTARIO           🟢
+CONSUMPTION                    🟢
+                             
+ROOMING MAP                    🟢
+  reporte                      🟢
+  CSV                          🟢
+  compatibilidad               🟢
+  escritura                    🟢
+  integración                  🟢
 
-exportRoomingCsv(filas)
+ROOMING PC                     🟢
+  reporte                      🟢
+  CSV                          🟢
+  compatibilidad               🟢
+  escritura                    🟢
+  integración                  🟢
 
-Su única responsabilidad sería:
+VOUCHERS                       ⏭️ PRÓXIMO
+LISTADOS RESTANTES             ⏳
 
-Recibir reporte.filas.
-Generar la cabecera del CSV.
-Convertir cada fila a CSV.
-Escapar correctamente comas, comillas y saltos de línea.
-Devolver el texto CSV.
+Y algo que me parece particularmente bueno: el objetivo original sigue siendo el centro del proyecto. No estamos construyendo funcionalidades porque sí; estamos reconstruyendo y modernizando las salidas reales de suteba-hotel-tools, conservando compatibilidad y separando las responsabilidades.
 
-No debería:
 
-volver a agrupar pasajeros;
-ordenar habitaciones;
-calcular capacidades;
-consultar inventario;
-modificar reservas;
-decidir quién comparte habitación.
 
-Todo eso ya ocurrió antes.
+Cuando volvamos, arrancamos por la auditoría de Vouchers, no por código.
 
-Contrato
-
-La entrada:
-
-const reporte = buildRoomingReport(reservas);
-
-const csv = exportRoomingCsv(reporte.filas);
-
-La salida sería un string:
-
-Nro. habitación,Fecha de ingreso,Fecha de egreso,...
-238,20/09/2026,27/09/2026,3,...
-238,20/09/2026,27/09/2026,3,...
-238,20/09/2026,27/09/2026,3,...
-
-Y recién después, en una capa todavía más externa, podríamos hacer:
-
-fs.writeFileSync(
-    "reservas_ingresan.csv",
-    csv,
-    "utf8"
-);
-
-Así el módulo de salida no necesita ni siquiera saber dónde se guarda el archivo.
-
-Las pruebas que haría
-
-Como mínimo:
-
-🟢 genera cabecera
-🟢 genera una fila
-🟢 conserva el orden recibido
-🟢 conserva voucher
-🟢 conserva Cantidad plazas
-🟢 escapa comas
-🟢 escapa comillas
-🟢 escapa campos vacíos
-🟢 array vacío
-🟢 valida entrada
-
-Y una prueba particularmente importante:
-
-DUMMY-001
-DUMMY-002
-
-en la misma habitación 238 deben permanecer como vouchers distintos.
-
-Eso nos garantiza que el exportador es realmente un serializador y no vuelve a interpretar el negocio.
-
-Después
-
-Una vez que testRoomingCsv.js quede verde:
-
-buildRoomingReport()
-        ↓
-exportRoomingCsv()
-        ↓
-reservas_ingresan.csv
-
-y podremos comparar la estructura producida con la salida original que recuperamos en la auditoría.
-
-Yo haría ese módulo ahora, antes de tocar Rooming PC o vouchers. Es una etapa pequeña, comprobable y nos deja prácticamente reconstruido el primer producto de salida original. 🌸
-
-## Estado de esta etapa
-
-El exportador CSV ya fue construido:
-
-src/output/roomingCsv.js
-tests/output/testRoomingCsv.js
-
-`exportRoomingCsv(filas)` recibe únicamente las filas del reporte, genera la cabecera compatible y escapa comas, comillas y saltos de línea sin volver a interpretar el negocio.
-
-La prueba enfocada y la suite completa quedaron verdes: 13 tests, 0 fallos.
-
-El siguiente paso es comparar el texto generado con el contrato del listado original y, recién después, evaluar una capa externa que escriba `reservas_ingresan.csv`.
+🎶 Para cerrar la jornada: La Cumparsita, mate amargo y repositorio limpio. 🧉🏨
