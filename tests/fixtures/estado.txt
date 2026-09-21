@@ -1,0 +1,307 @@
+xpablodaniel@PabloDaniel:/mnt/c/Users/xpabl/OneDrive/Escritorio/reversion/solucionHotelera$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   paso.txt
+        modified:   tests/business/testProcessReservationsCsv.js
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        .gitignore
+        tests/fixtures/reservas_contingente.csv
+        tests/fixtures/reservas_individuales.csv
+
+no changes added to commit (use "git add" and/or "git commit -a")
+xpablodaniel@PabloDaniel:/mnt/c/Users/xpabl/OneDrive/Escritorio/reversion/solucionHotelera$ git diff --stat
+ paso.txt                                     | 101 +++++++++++++++++++++++++++------------------
+ tests/business/testProcessReservationsCsv.js | 151 +++++++++++++++++++++++++++++++++++++++++++++++++++----------------
+ 2 files changed, 178 insertions(+), 74 deletions(-)
+xpablodaniel@PabloDaniel:/mnt/c/Users/xpabl/OneDrive/Escritorio/reversion/solucionHotelera$ git diff -- .gitignore tests/business/testProcessReservationsCsv.js paso.txt
+diff --git a/paso.txt b/paso.txt
+index cf44759..aed1d2e 100644
+--- a/paso.txt
++++ b/paso.txt
+@@ -1,40 +1,63 @@
++Ahora sí: incorporamos los dos CSV dummy^M
+
+-Módulo Qué verificamos
+-Parser Campos que produce y transformación del CSV
+-processReservations    Qué información recibe, agrupa y devuelve
+-Rooming        Habitaciones, pasajeros, vouchers y casos A/B/C
+-Vouchers       Datos necesarios para generarlos
+-Listados       Datos necesarios para reservas entrantes
+-Integración    Si el flujo completo puede reemplazar al original
+-
+-Con las categorías:
+-
+-🟢 Compatible
+-🟡 Compatible con cambios
+-🔴 Falta
+-🔵 Mejora propia de la reversión
+-Y hay algo que ya podemos considerar confirmado
+-
+-Por todo lo que construimos y testeamos hasta ahora, no estamos haciendo una copia mecánica del repositorio original.
+-
+-Estamos haciendo una reimplementación con capas:
+-
+-CSV
+- ↓
+-Parser
+- ↓
+-Reservation
+- ↓
+-Classification
+- ↓
+-ProcessReservations
+- ↓
+-Rooming
+- ↓
+-Inventory
+- ↓
+-Outputs
+-    ├── vouchers
+-    └── listados
+-
+-Eso es justamente lo que tenemos que validar ahora: que las capas nuevas sigan proporcionando todos los datos que los dos productos finales necesitan.
+\ No newline at end of file
++El CSV real de Lanús se elimina del workspace y la prueba de integración trabaja con los dos fixtures ficticios. Para no duplicar toda la lógica de lectura y procesamiento, convertimos el test en una prueba de escenarios.^M
++^M
++La estructura quedaría:^M
++^M
++testProcessReservationsCsv.js^M
++^M
++        ├── lanus.csv^M
++        │     47 registros / 36 reservas^M
++        │^M
++        ├── reservas_contingente.csv^M
++        │     3 registros / 2 reservas^M
++        │^M
++        └── reservas_individuales.csv^M
++              3 registros / 2 reservas^M
++^M
++Y cada escenario tendrá sus propias expectativas.^M
++^M
++Para el contingente esperamos^M
++3 registros^M
++2 vouchers^M
++1 habitación física^M
++3 pasajeros^M
++^M
++Y especialmente:^M
++^M
++238^M
++├── DUMMY-001 → 2 pasajeros^M
++└── DUMMY-002 → 1 pasajero^M
++^M
++Esto comprobará que los vouchers siguen separados aunque compartan habitación.^M
++^M
++Para individuales^M
++^M
++Esperamos:^M
++^M
++3 registros^M
++2 vouchers^M
++2 habitaciones^M
++^M
++con:^M
++^M
++109 → 1 pasajero^M
++110 → 2 pasajeros^M
++^M
++Y aquí comprobaremos que el segundo voucher conserva sus dos pasajeros.^M
++^M
++Pero hagamos una cosa antes de editar^M
++^M
++Quiero que la prueba de integración sea realmente nuestra prueba de contrato entre parser y processReservations.^M
++^M
++Por eso el siguiente paso es modificar testProcessReservationsCsv.js para tener una pequeña función:^M
++^M
++testScenario(nombre, archivo, expectativas)^M
++^M
++y ejecutar los dos escenarios dummy.^M
++^M
++No vamos a tocar parseCSV() ni processReservations(). Si los tests fallan, serán ellos los que nos indiquen qué incompatibilidad existe.^M
++^M
++Si estás de acuerdo, en el próximo paso te doy el testProcessReservationsCsv.js completo para reemplazar el actual y lo ejecutamos. 🧉🎶^M
++^M
++Los dos escenarios dummy y el resto de la suite siguen verdes.
+\ No newline at end of file
+diff --git a/tests/business/testProcessReservationsCsv.js b/tests/business/testProcessReservationsCsv.js
+index be38c0d..8774cad 100644
+--- a/tests/business/testProcessReservationsCsv.js
++++ b/tests/business/testProcessReservationsCsv.js
+@@ -18,55 +18,136 @@ function assert(condition, message) {
+ }
+
+
+-console.log(
+-    "\n=== Integracion CSV -> reservas procesadas ===\n"
+-);
++function testScenario(nombre, archivo, expectativas) {
++
++    console.log(`Probando escenario: ${nombre}`);
++
++    const csvPath = path.join(
++        __dirname,
++        "../fixtures",
++        archivo
++    );
++
++    const csv = fs.readFileSync(csvPath, "utf8");
++    const records = parseCSV(csv);
++    const reservas = processReservations(records);
++
++    assert(
++        records.length === expectativas.registros,
++        `${nombre}: deberia producir ${expectativas.registros} registros`
++    );
++
++    assert(
++        reservas.length === expectativas.reservas,
++        `${nombre}: deberia producir ${expectativas.reservas} reservas`
++    );
++
++    assert(
++        reservas.every(reserva =>
++            Array.isArray(reserva.habitaciones) &&
++            reserva.habitaciones.length > 0
++        ),
++        `${nombre}: cada reserva deberia conservar al menos una habitacion`
++    );
++
++    if (expectativas.habitaciones) {
++
++        assert(
++            new Set(
++                reservas.flatMap(reserva =>
++                    reserva.habitaciones.map(habitacion => habitacion.numero)
++                )
++            ).size === expectativas.habitaciones,
++            `${nombre}: deberia conservar ${expectativas.habitaciones} habitaciones`
++        );
++    }
+
++    if (expectativas.pasajerosPorVoucher) {
+
+-const csvPath = path.join(
+-    __dirname,
+-    "../../lanus.csv"
+-);
++        for (const [voucher, cantidad] of Object.entries(
++            expectativas.pasajerosPorVoucher
++        )) {
+
+-const csv = fs.readFileSync(csvPath, "utf8");
+-const records = parseCSV(csv);
+-const reservas = processReservations(records);
++            const reserva = reservas.find(
++                reservaActual => reservaActual.voucher === voucher
++            );
+
++            assert(
++                reserva && reserva.cantidadPasajeros === cantidad,
++                `${nombre}: el voucher ${voucher} deberia conservar ${cantidad} pasajeros`
++            );
++        }
++    }
+
+-assert(
+-    records.length === 47,
+-    "lanus.csv deberia producir 47 registros"
+-);
++    if (expectativas.pasajerosPorHabitacion) {
++
++        for (const [numero, cantidad] of Object.entries(
++            expectativas.pasajerosPorHabitacion
++        )) {
++
++            const habitaciones = reservas.flatMap(
++                reserva => reserva.habitaciones
++            ).filter(
++                habitacion => habitacion.numero === numero
++            );
++
++            assert(
++                habitaciones.length > 0 &&
++                habitaciones.reduce(
++                    (total, habitacion) => total + habitacion.pasajeros.length,
++                    0
++                ) === cantidad,
++                `${nombre}: la habitacion ${numero} deberia conservar ${cantidad} pasajeros`
++            );
++        }
++    }
+
+-assert(
+-    reservas.length === 36,
+-    "lanus.csv deberia producir 36 reservas"
+-);
++    console.log(`OK ${nombre}`);
++}
+
+-assert(
+-    reservas.every(reserva =>
+-        Array.isArray(reserva.habitaciones) &&
+-        reserva.habitaciones.length > 0
+-    ),
+-    "Cada reserva deberia conservar al menos una habitacion"
+-);
+
+-assert(
+-    reservas[0].voucher === "30243127",
+-    "La primera reserva deberia conservar su voucher"
++console.log(
++    "\n=== Integracion CSV -> reservas procesadas ===\n"
+ );
+
+-assert(
+-    reservas[0].cantidadPasajeros === 1,
+-    "La primera reserva deberia conservar su cantidad de pasajeros"
++
++testScenario(
++    "contingente",
++    "reservas_contingente.csv",
++    {
++        registros: 3,
++        reservas: 2,
++        habitaciones: 1,
++        pasajerosPorVoucher: {
++            "DUMMY-001": 2,
++            "DUMMY-002": 1
++        },
++        pasajerosPorHabitacion: {
++            "238": 3
++        }
++    }
+ );
+
+-assert(
+-    reservas[0].habitaciones[0].numero === "227",
+-    "La primera reserva deberia conservar su habitacion"
++
++testScenario(
++    "individuales",
++    "reservas_individuales.csv",
++    {
++        registros: 3,
++        reservas: 2,
++        habitaciones: 2,
++        pasajerosPorVoucher: {
++            "DUMMY-101": 1,
++            "DUMMY-102": 2
++        },
++        pasajerosPorHabitacion: {
++            "109": 1,
++            "110": 2
++        }
++    }
+ );
+
+
+ console.log(
+-    "OK CSV procesado y convertido en reservas"
++    "OK todos los escenarios CSV procesados y convertidos en reservas"
+ );

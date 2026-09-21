@@ -18,55 +18,136 @@ function assert(condition, message) {
 }
 
 
+function testScenario(nombre, archivo, expectativas) {
+
+    console.log(`Probando escenario: ${nombre}`);
+
+    const csvPath = path.join(
+        __dirname,
+        "../fixtures",
+        archivo
+    );
+
+    const csv = fs.readFileSync(csvPath, "utf8");
+    const records = parseCSV(csv);
+    const reservas = processReservations(records);
+
+    assert(
+        records.length === expectativas.registros,
+        `${nombre}: deberia producir ${expectativas.registros} registros`
+    );
+
+    assert(
+        reservas.length === expectativas.reservas,
+        `${nombre}: deberia producir ${expectativas.reservas} reservas`
+    );
+
+    assert(
+        reservas.every(reserva =>
+            Array.isArray(reserva.habitaciones) &&
+            reserva.habitaciones.length > 0
+        ),
+        `${nombre}: cada reserva deberia conservar al menos una habitacion`
+    );
+
+    if (expectativas.habitaciones) {
+
+        assert(
+            new Set(
+                reservas.flatMap(reserva =>
+                    reserva.habitaciones.map(habitacion => habitacion.numero)
+                )
+            ).size === expectativas.habitaciones,
+            `${nombre}: deberia conservar ${expectativas.habitaciones} habitaciones`
+        );
+    }
+
+    if (expectativas.pasajerosPorVoucher) {
+
+        for (const [voucher, cantidad] of Object.entries(
+            expectativas.pasajerosPorVoucher
+        )) {
+
+            const reserva = reservas.find(
+                reservaActual => reservaActual.voucher === voucher
+            );
+
+            assert(
+                reserva && reserva.cantidadPasajeros === cantidad,
+                `${nombre}: el voucher ${voucher} deberia conservar ${cantidad} pasajeros`
+            );
+        }
+    }
+
+    if (expectativas.pasajerosPorHabitacion) {
+
+        for (const [numero, cantidad] of Object.entries(
+            expectativas.pasajerosPorHabitacion
+        )) {
+
+            const habitaciones = reservas.flatMap(
+                reserva => reserva.habitaciones
+            ).filter(
+                habitacion => habitacion.numero === numero
+            );
+
+            assert(
+                habitaciones.length > 0 &&
+                habitaciones.reduce(
+                    (total, habitacion) => total + habitacion.pasajeros.length,
+                    0
+                ) === cantidad,
+                `${nombre}: la habitacion ${numero} deberia conservar ${cantidad} pasajeros`
+            );
+        }
+    }
+
+    console.log(`OK ${nombre}`);
+}
+
+
 console.log(
     "\n=== Integracion CSV -> reservas procesadas ===\n"
 );
 
 
-const csvPath = path.join(
-    __dirname,
-    "../../lanus.csv"
+testScenario(
+    "contingente",
+    "reservas_contingente.csv",
+    {
+        registros: 3,
+        reservas: 2,
+        habitaciones: 1,
+        pasajerosPorVoucher: {
+            "DUMMY-001": 2,
+            "DUMMY-002": 1
+        },
+        pasajerosPorHabitacion: {
+            "238": 3
+        }
+    }
 );
 
-const csv = fs.readFileSync(csvPath, "utf8");
-const records = parseCSV(csv);
-const reservas = processReservations(records);
 
-
-assert(
-    records.length === 47,
-    "lanus.csv deberia producir 47 registros"
-);
-
-assert(
-    reservas.length === 36,
-    "lanus.csv deberia producir 36 reservas"
-);
-
-assert(
-    reservas.every(reserva =>
-        Array.isArray(reserva.habitaciones) &&
-        reserva.habitaciones.length > 0
-    ),
-    "Cada reserva deberia conservar al menos una habitacion"
-);
-
-assert(
-    reservas[0].voucher === "30243127",
-    "La primera reserva deberia conservar su voucher"
-);
-
-assert(
-    reservas[0].cantidadPasajeros === 1,
-    "La primera reserva deberia conservar su cantidad de pasajeros"
-);
-
-assert(
-    reservas[0].habitaciones[0].numero === "227",
-    "La primera reserva deberia conservar su habitacion"
+testScenario(
+    "individuales",
+    "reservas_individuales.csv",
+    {
+        registros: 3,
+        reservas: 2,
+        habitaciones: 2,
+        pasajerosPorVoucher: {
+            "DUMMY-101": 1,
+            "DUMMY-102": 2
+        },
+        pasajerosPorHabitacion: {
+            "109": 1,
+            "110": 2
+        }
+    }
 );
 
 
 console.log(
-    "OK CSV procesado y convertido en reservas"
+    "OK todos los escenarios CSV procesados y convertidos en reservas"
 );
