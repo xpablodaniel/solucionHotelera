@@ -63,6 +63,16 @@ const ROOM_TYPES = Object.freeze({
         "CUADRUPLE",
         4,
         [
+            { tipo: "MATRIMONIAL", cantidad: 1 },
+            { tipo: "INDIVIDUAL", cantidad: 2 }
+        ]
+    ),
+
+    IIII: freezeConfiguration(
+        "IIII",
+        "CUADRUPLE INDIVIDUAL",
+        4,
+        [
             { tipo: "INDIVIDUAL", cantidad: 4 }
         ]
     )
@@ -80,12 +90,17 @@ function getBedConfiguration(codigoTipo) {
     const configuracion = ROOM_TYPES[codigoTipo];
 
     if (!configuracion) {
-        throw new Error(
+        throw new TypeError(
             `Codigo de tipo de habitacion desconocido: ${codigoTipo}`
         );
     }
 
-    return configuracion;
+    return {
+        codigoTipo: configuracion.codigoTipo,
+        tipo: configuracion.tipo,
+        capacidad: configuracion.capacidad,
+        camas: configuracion.camas.map(cama => ({ ...cama }))
+    };
 }
 
 

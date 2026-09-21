@@ -66,6 +66,16 @@ assertBedConfiguration(
     "XII",
     "CUADRUPLE",
     4,
+    [
+        { tipo: "MATRIMONIAL", cantidad: 1 },
+        { tipo: "INDIVIDUAL", cantidad: 2 }
+    ]
+);
+
+assertBedConfiguration(
+    "IIII",
+    "CUADRUPLE INDIVIDUAL",
+    4,
     [{ tipo: "INDIVIDUAL", cantidad: 4 }]
 );
 
@@ -91,7 +101,7 @@ console.log("Probando integridad del catalogo...");
 const catalogo = getAllBedConfigurations();
 
 assert(Array.isArray(catalogo), "El catalogo deberia ser un array");
-assert(catalogo.length === 5, "El catalogo deberia contener cinco tipos");
+assert(catalogo.length === 6, "El catalogo deberia contener seis tipos");
 assert(Object.isFrozen(catalogo), "El catalogo deberia estar congelado");
 assert(Object.isFrozen(catalogo[0]), "Cada configuracion deberia estar congelada");
 assert(Object.isFrozen(catalogo[0].camas), "Las camas deberian estar congeladas");
@@ -120,8 +130,16 @@ assert(
     "La configuracion de camas no deberia modificarse"
 );
 assert(
-    getBedConfiguration("XII").camas.length === 1,
+    getBedConfiguration("XII").camas.length === 2,
     "La lista de camas no deberia modificarse"
+);
+
+const copia = getBedConfiguration("II");
+copia.camas.push({ tipo: "MATRIMONIAL", cantidad: 1 });
+
+assert(
+    getBedConfiguration("II").camas.length === 1,
+    "La configuracion devuelta deberia ser una copia independiente"
 );
 
 console.log("OK integridad del catalogo");

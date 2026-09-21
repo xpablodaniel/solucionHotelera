@@ -87,6 +87,23 @@ assert(
     "El tipo deberia ser triple matrimonial"
 );
 
+assert(
+    room238.camas.length === 2,
+    "XI deberia exponer dos unidades de cama"
+);
+
+assert(
+    room238.camas[0].tipo === "MATRIMONIAL" &&
+        room238.camas[0].cantidad === 1,
+    "XI deberia incluir una cama matrimonial"
+);
+
+assert(
+    room238.camas[1].tipo === "INDIVIDUAL" &&
+        room238.camas[1].cantidad === 1,
+    "XI deberia incluir una cama individual"
+);
+
 console.log(
     "OK createRoom()"
 );

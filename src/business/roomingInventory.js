@@ -9,7 +9,7 @@
 /**
  * Valida las habitaciones del Rooming contra su capacidad fisica.
  */
-function validateRoomingInventory(rooming) {
+function validateRoomingInventory(rooming, inventario) {
 
     if (!Array.isArray(rooming)) {
 
@@ -19,13 +19,15 @@ function validateRoomingInventory(rooming) {
     }
 
 
+    if (!Array.isArray(inventario)) {
+
+        throw new TypeError(
+            "validateRoomingInventory espera un inventario en formato array."
+        );
+    }
+
+
     return rooming.map(room => {
-
-        const capacidad =
-            Number.isFinite(room.capacidad)
-                ? room.capacidad
-                : null;
-
 
         const pasajeros =
             Array.isArray(room.pasajeros)
@@ -36,10 +38,37 @@ function validateRoomingInventory(rooming) {
         const cantidadPasajeros = pasajeros.length;
 
 
+        const habitacionInventario = inventario.find(
+            item => String(item.numero) === String(room.numero)
+        );
+
+
+        if (!habitacionInventario) {
+
+            return {
+                ...room,
+
+                cantidadPasajeros,
+
+                plazasLibres: null,
+
+                estado: "INVENTARIO_DESCONOCIDO"
+            };
+        }
+
+
+        const capacidad =
+            Number.isFinite(habitacionInventario.capacidad)
+                ? habitacionInventario.capacidad
+                : null;
+
+
         if (capacidad === null) {
 
             return {
                 ...room,
+
+                inventario: { ...habitacionInventario },
 
                 cantidadPasajeros,
 
@@ -72,6 +101,8 @@ function validateRoomingInventory(rooming) {
 
         return {
             ...room,
+
+            inventario: { ...habitacionInventario },
 
             cantidadPasajeros,
 

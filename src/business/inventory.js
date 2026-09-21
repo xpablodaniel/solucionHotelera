@@ -5,33 +5,21 @@
  * no modifica el Rooming y no decide que habitacion corresponde a una reserva.
  */
 
-const ROOM_TYPES = {
+const {
+    ROOM_TYPES: BED_ROOM_TYPES,
+    getBedConfiguration
+} = require("./bedConfiguration");
 
-    II: {
-        nombre: "DOBLE INDIVIDUAL",
-        capacidad: 2
-    },
 
-    X: {
-        nombre: "DOBLE MATRIMONIAL",
-        capacidad: 2
-    },
-
-    III: {
-        nombre: "TRIPLE INDIVIDUAL",
-        capacidad: 3
-    },
-
-    XI: {
-        nombre: "TRIPLE MATRIMONIAL",
-        capacidad: 3
-    },
-
-    XII: {
-        nombre: "CUADRUPLE",
-        capacidad: 4
-    }
-};
+const ROOM_TYPES = Object.fromEntries(
+    Object.entries(BED_ROOM_TYPES).map(([codigo, configuracion]) => [
+        codigo,
+        {
+            nombre: configuracion.tipo,
+            capacidad: configuracion.capacidad
+        }
+    ])
+);
 
 
 function createRoom(numero, codigo) {
@@ -50,14 +38,15 @@ function createRoom(numero, codigo) {
     }
 
 
-    const tipo = ROOM_TYPES[codigo];
+    const configuracion = getBedConfiguration(codigo);
 
 
     return {
         numero: String(numero),
         codigo,
-        tipo: tipo.nombre,
-        capacidad: tipo.capacidad
+        tipo: configuracion.tipo,
+        capacidad: configuracion.capacidad,
+        camas: configuracion.camas
     };
 }
 

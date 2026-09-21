@@ -1,6 +1,9 @@
 const {
     validateRoomingInventory
 } = require("../../src/business/roomingInventory");
+const {
+    createRoom
+} = require("../../src/business/inventory");
 
 
 function assert(condition, message) {
@@ -16,6 +19,18 @@ console.log(
 );
 
 
+const inventario = [
+    createRoom("238", "XI"),
+    createRoom("239", "II"),
+    createRoom("240", "XII"),
+    {
+        numero: "241",
+        tipo: "SIN CAPACIDAD",
+        capacidad: null
+    }
+];
+
+
 // ---------------------------------------------------------
 // Habitacion correcta
 // ---------------------------------------------------------
@@ -28,8 +43,6 @@ const roomingOK = [
 
     {
         numero: "238",
-
-        capacidad: 3,
 
         pasajeros: [
             { nombre: "ABUELA" },
@@ -57,7 +70,7 @@ const roomingOK = [
 
 
 const resultadoOK =
-    validateRoomingInventory(roomingOK);
+    validateRoomingInventory(roomingOK, inventario);
 
 
 assert(
@@ -78,8 +91,46 @@ assert(
 );
 
 
+assert(
+    resultadoOK[0].inventario,
+    "La habitacion deberia conservar el inventario"
+);
+
+
+assert(
+    resultadoOK[0].inventario.codigo === "XI",
+    "La habitacion 238 deberia tener codigo XI"
+);
+
+
+assert(
+    Array.isArray(resultadoOK[0].inventario.camas),
+    "El inventario deberia conservar la configuracion de camas"
+);
+
+
+assert(
+    resultadoOK[0].inventario.camas.length === 2,
+    "XI deberia tener dos unidades de cama"
+);
+
+
+assert(
+    resultadoOK[0].inventario.camas[0].tipo === "MATRIMONIAL" &&
+        resultadoOK[0].inventario.camas[0].cantidad === 1,
+    "XI deberia tener una cama matrimonial"
+);
+
+
+assert(
+    resultadoOK[0].inventario.camas[1].tipo === "INDIVIDUAL" &&
+        resultadoOK[0].inventario.camas[1].cantidad === 1,
+    "XI deberia tener una cama individual"
+);
+
+
 console.log(
-    "OK habitacion dentro de capacidad"
+    "OK habitacion, capacidad e inventario de camas"
 );
 
 
@@ -94,9 +145,7 @@ console.log(
 const roomingLibre = [
 
     {
-        numero: "109",
-
-        capacidad: 4,
+        numero: "240",
 
         pasajeros: [
             { nombre: "PASAJERO" }
@@ -106,7 +155,7 @@ const roomingLibre = [
 
 
 const resultadoLibre =
-    validateRoomingInventory(roomingLibre);
+    validateRoomingInventory(roomingLibre, inventario);
 
 
 assert(
@@ -139,8 +188,6 @@ const roomingExcedido = [
     {
         numero: "238",
 
-        capacidad: 3,
-
         pasajeros: [
             {},
             {},
@@ -152,7 +199,7 @@ const roomingExcedido = [
 
 
 const resultadoExcedido =
-    validateRoomingInventory(roomingExcedido);
+    validateRoomingInventory(roomingExcedido, inventario);
 
 
 assert(
@@ -181,7 +228,7 @@ let errorDetectado = false;
 
 try {
 
-    validateRoomingInventory(null);
+    validateRoomingInventory(null, inventario);
 
 } catch (error) {
 
@@ -211,7 +258,7 @@ console.log(
 const roomingSinCapacidad = [
 
     {
-        numero: "999",
+        numero: "241",
 
         pasajeros: [
             { nombre: "PASAJERO" }
@@ -221,7 +268,7 @@ const roomingSinCapacidad = [
 
 
 const resultadoSinCapacidad =
-    validateRoomingInventory(roomingSinCapacidad);
+    validateRoomingInventory(roomingSinCapacidad, inventario);
 
 
 assert(
@@ -245,6 +292,56 @@ assert(
 
 console.log(
     "OK capacidad desconocida detectada"
+);
+
+
+// ---------------------------------------------------------
+// Inventario desconocido
+// ---------------------------------------------------------
+
+console.log(
+    "Probando inventario desconocido..."
+);
+
+const roomingSinInventario = [
+
+    {
+        numero: "999",
+
+        pasajeros: [
+            {},
+            {},
+            {}
+        ]
+    }
+];
+
+
+const resultadoSinInventario =
+    validateRoomingInventory(roomingSinInventario, inventario);
+
+
+assert(
+    resultadoSinInventario[0].estado ===
+        "INVENTARIO_DESCONOCIDO",
+    "Deberia detectar inventario desconocido"
+);
+
+
+assert(
+    resultadoSinInventario[0].cantidadPasajeros === 3,
+    "Deberia contar pasajeros sin inventario"
+);
+
+
+assert(
+    resultadoSinInventario[0].plazasLibres === null,
+    "No deberia calcular plazas libres sin inventario"
+);
+
+
+console.log(
+    "OK inventario desconocido detectado"
 );
 
 
