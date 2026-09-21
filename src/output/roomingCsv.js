@@ -34,6 +34,9 @@ const ROOMING_FIELDS = [
 ];
 
 
+const ROOMING_SEPARATOR = ";";
+
+
 function escapeCsvValue(value) {
 
     if (value === null || value === undefined) {
@@ -42,7 +45,7 @@ function escapeCsvValue(value) {
 
     const text = String(value);
 
-    if (/[",\n\r]/.test(text)) {
+    if (/[;",\n\r]/.test(text)) {
         return `"${text.replace(/"/g, '""')}"`;
     }
 
@@ -59,7 +62,7 @@ function exportRoomingCsv(filas) {
     }
 
     const lines = [
-        ROOMING_HEADERS.map(escapeCsvValue).join(",")
+        ROOMING_HEADERS.map(escapeCsvValue).join(ROOMING_SEPARATOR)
     ];
 
     for (const fila of filas) {
@@ -71,7 +74,7 @@ function exportRoomingCsv(filas) {
         lines.push(
             ROOMING_FIELDS
                 .map(campo => escapeCsvValue(fila[campo]))
-                .join(",")
+                .join(ROOMING_SEPARATOR)
         );
     }
 
@@ -85,6 +88,7 @@ if (typeof module !== "undefined" && module.exports) {
         exportRoomingCsv,
         escapeCsvValue,
         ROOMING_HEADERS,
-        ROOMING_FIELDS
+        ROOMING_FIELDS,
+        ROOMING_SEPARATOR
     };
 }

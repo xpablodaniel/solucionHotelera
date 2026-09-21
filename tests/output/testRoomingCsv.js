@@ -57,12 +57,12 @@ const lineas = csv.split("\n");
 
 assert(
     lineas[0] ===
-        "Nro. habitación,Fecha de ingreso,Fecha de egreso,Cantidad plazas,Tipo documento,Nro. doc.,Apellido y nombre,Edad,Voucher,Servicio,Estado,Paquete,Sede,Observación habitación",
+        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Servicio;Estado;Paquete;Sede;Observación habitación",
     "Deberia generar la cabecera en el orden del contrato"
 );
 
 assert(
-    lineas[1].startsWith("238,20/09/2026,27/09/2026,3,DNI,DUMMY001,ABUELA DEMO,70,DUMMY-001"),
+    lineas[1].startsWith("238;20/09/2026;27/09/2026;3;DNI;DUMMY001;ABUELA DEMO;70;DUMMY-001"),
     "Deberia conservar la primera fila y su voucher"
 );
 
@@ -94,7 +94,7 @@ assert(
 );
 
 assert(
-    csvVacio.startsWith("Nro. habitación,"),
+    csvVacio.startsWith("Nro. habitación;"),
     "Un array vacio deberia conservar la cabecera"
 );
 
