@@ -50,6 +50,7 @@ assert(
 assert(
     mapHtml.includes("Voucher de Comidas") &&
         mapHtml.includes("Favor de brindar servicio de Cena") &&
+        mapHtml.includes("<h1 class=\"h1-container\">") &&
         mapHtml.includes("Almuerzo") === false &&
         mapHtml.includes("Cena"),
     "MAP deberia mostrar solamente Cena"
@@ -88,6 +89,13 @@ assert(
 assert(
     (pcHtml.match(/class="day-box"/g) || []).length === 2,
     "Una estadia null deberia representarse visualmente como un dia"
+);
+
+assert(
+    pcHtml.includes("font: bold 20px") &&
+        pcHtml.includes("justify-content: flex-start") &&
+        pcHtml.includes("text-align: left"),
+    "PC deberia resaltar el titulo y alinear las comidas a la izquierda"
 );
 
 console.log("OK PC y duracion visual uno");

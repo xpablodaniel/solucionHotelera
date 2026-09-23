@@ -1,161 +1,272 @@
-🗺️ Hoja de ruta — próxima sesión
-0. Arranque
+Y con el logo ya tenemos una pieza importante. Yo no rediseñaría el voucher. Para este caso la prioridad es que el personal siga viendo e imprimiendo prácticamente el mismo formulario que conoce.
 
-Primero:
+La estrategia queda definitivamente así:
 
-git status
-git log --oneline --decorate -6
+             PLANTILLA VISUAL HISTÓRICA
+                       │
+                       ▼
+             PDF de fondo / plantilla
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+     positions.json            datos reales
+          │                         │
+          └────────────┬────────────┘
+                       ▼
+                 overlay PDF
+                       │
+                       ▼
+             VOUCHER PARA IMPRIMIR
+📌 Instrucciones para el agente
 
-Confirmamos que el commit de Rooming PC quedó subido y que paso.txt sigue siendo solamente nuestra bitácora auxiliar.
+Le daría este bloque exacto:
 
-1. Auditoría de la tercera gran salida: Vouchers
+Vamos a implementar el nuevo módulo "Voucher de Comida Diario".
 
-Hasta ahora tenemos:
+IMPORTANTE:
+No rediseñar el voucher.
+La plantilla debe conservar visualmente el formulario histórico que utiliza el hotel.
+La imagen suministrada en la conversación es la referencia visual oficial.
 
-CSV
- ↓
-Parser
- ↓
-Reservas
- ├── Rooming MAP       🟢
- └── Rooming PC        🟢
+El nuevo módulo es una funcionalidad MANUAL e independiente.
+NO utilizar:
+- processReservations()
+- buildVoucherReport()
+- CSV
+- Rooming
+- reservas
+- persistencia
 
-La siguiente pieza histórica es:
+Objetivo:
 
-VOUCHERS
+El operador ingresa manualmente:
 
-Pero no vamos a programar inmediatamente.
+- Apellido y nombre
+- DNI
+- Fecha de la cena
+- Habitación
+- Cantidad de personas
 
-Primero vamos a comparar el comportamiento del repositorio original:
+y obtiene un PDF del mismo voucher histórico, completado mediante overlay.
 
-cómo agrupa por voucher;
-qué datos utiliza;
-cómo determina los pasajeros;
-cómo representa las habitaciones;
-cómo obtiene el representante;
-qué ocurre cuando un voucher ocupa varias habitaciones;
-qué formato tenía la salida;
-y qué reglas especiales existían para los vouchers.
+La plantilla debe funcionar como fondo y los datos deben escribirse encima mediante coordenadas.
 
-Especial atención a lo que ya descubrimos en la auditoría:
+NO reconstruir el diseño con HTML/CSS.
+NO cambiar textos, distribución, bordes ni campos del formulario salvo que sea imprescindible técnicamente.
 
-La cantidad de pasajeros del voucher debe corresponder a las filas reales asociadas al voucher.
+La estructura propuesta es:
 
-Y también:
+src/business/mealVoucher.js
+src/output/mealVoucherPdf.js
+client/mealVoucher.html
+client/js/mealVoucher.js
+python/mealVoucher/positions.json
+python/mealVoucher/VOUCHER_DE_COMIDAS_DIARIO.pdf
 
-El representante se obtiene del primer pasajero después de ordenar por DNI.
+Además, agregar los tests correspondientes.
 
-Eso lo vamos a comprobar contra el código original antes de trasladarlo.
+--------------------------------------------------
+ETAPA 1 — PLANTILLA
+--------------------------------------------------
 
-2. Separar modelo de salida
+Crear una plantilla PDF a partir de la imagen histórica.
 
-Mantendremos la arquitectura que nos está funcionando:
+La plantilla debe conservar:
+- título "VOUCHER DE COMIDAS DIARIO"
+- texto descriptivo
+- Apellido y Nombre
+- DNI
+- Hotel
+- Fecha
+- Habitación Nº
+- Cantidad de personas
+- Firma
+- texto aclaratorio inferior
+- bordes y distribución general
 
-processReservations()
-        │
-        ▼
-   modelo interno
-        │
-        ├──────────────► Rooming MAP
-        │
-        ├──────────────► Rooming PC
-        │
-        └──────────────► Vouchers
+Incorporar el logo SUTEBA suministrado.
 
-No vamos a meter reglas de generación de vouchers dentro de processReservations().
+IMPORTANTE:
+El logo de la imagen original aparece como una imagen rota.
+Debe sustituirse por el logo SUTEBA suministrado, sin modificar el resto del diseño.
 
-3. Construir primero el reporte
+No modificar visualmente la plantilla para "modernizarla".
 
-Probablemente terminemos con algo de esta forma:
+Si la imagen de referencia tiene resolución insuficiente para una impresión aceptable:
+NO inventar un nuevo diseño.
+Generar inicialmente una plantilla PDF basada en la imagen y documentar la limitación para una posterior sustitución por el PDF original de mayor calidad.
 
-src/output/voucherReport.js
-tests/output/testVoucherReport.js
+--------------------------------------------------
+ETAPA 2 — POSICIONES
+--------------------------------------------------
 
-Primero:
+Crear:
 
-buildVoucherReport()
+python/mealVoucher/positions.json
 
-Después las pruebas.
+Las posiciones deben estar expresadas en milímetros.
 
-Nada de PDF ni HTML todavía.
+Definir inicialmente:
 
-4. Compatibilidad histórica
+{
+  "nombre": {...},
+  "dni": {...},
+  "hotel": {...},
+  "fecha": {...},
+  "habitacion": {...},
+  "cantidadPersonas": {...}
+}
 
-Una vez verde:
+NO adivinar silenciosamente las coordenadas.
 
-buildVoucherReport()
+Las coordenadas deben documentarse y ajustarse mediante pruebas visuales sobre la plantilla.
 
-hacemos exactamente lo que hicimos con MAP y PC:
+--------------------------------------------------
+ETAPA 3 — MODELO Y VALIDACIÓN
+--------------------------------------------------
 
-reporte
-   ↓
-formato histórico
-   ↓
-comparación
-   ↓
-test de compatibilidad
-5. Exportación
+Crear:
 
-Dependiendo de lo que encontremos en la auditoría original:
+src/business/mealVoucher.js
 
-exportVoucher...
-        ↓
-writeVoucher...
+El modelo debe validar:
 
-o, si la salida histórica era directamente HTML/documento, respetamos ese contrato.
+- nombre obligatorio
+- DNI obligatorio y numérico
+- fecha válida
+- habitación obligatoria
+- cantidadPersonas entero mayor que cero
 
-No vamos a inventar una salida CSV si el original no la utilizaba.
+La función debe ser pura y no escribir archivos.
 
-6. Integración completa
+No modificar reservas ni ninguna estructura existente.
 
-Finalmente:
+--------------------------------------------------
+ETAPA 4 — GENERACIÓN PDF
+--------------------------------------------------
 
-CSV
- ↓
-parseCSV()
- ↓
-processReservations()
- ↓
-buildVoucherReport()
- ↓
-salida histórica
- ↓
-archivo temporal
+Crear:
 
-Y la misma regla de siempre:
+src/output/mealVoucherPdf.js
 
-datos ficticios en los tests; ningún CSV real de pasajeros al repositorio.
+Responsabilidad exclusiva:
 
-📍 Dónde estamos ahora
-PARSER                         🟢
-RESERVATIONS                   🟢
-CLASSIFICATION                 🟢
-INVENTARIO                     🟢
-ROOMING                        🟢
-ROOMING + INVENTARIO           🟢
-CONSUMPTION                    🟢
-                             
-ROOMING MAP                    🟢
-  reporte                      🟢
-  CSV                          🟢
-  compatibilidad               🟢
-  escritura                    🟢
-  integración                  🟢
+datos validados
+    +
+plantilla PDF
+    +
+positions.json
+    ↓
+PDF final
 
-ROOMING PC                     🟢
-  reporte                      🟢
-  CSV                          🟢
-  compatibilidad               🟢
-  escritura                    🟢
-  integración                  🟢
+Utilizar el mecanismo técnico de overlay existente cuando sea reutilizable,
+pero NO reutilizar directamente fichaPax.pdf ni su positions.json.
 
-VOUCHERS                       ⏭️ PRÓXIMO
-LISTADOS RESTANTES             ⏳
+El generador debe recibir los datos y devolver/generar el PDF correspondiente.
 
-Y algo que me parece particularmente bueno: el objetivo original sigue siendo el centro del proyecto. No estamos construyendo funcionalidades porque sí; estamos reconstruyendo y modernizando las salidas reales de suteba-hotel-tools, conservando compatibilidad y separando las responsabilidades.
+--------------------------------------------------
+ETAPA 5 — TESTS
+--------------------------------------------------
 
+Crear tests para:
 
+- datos válidos
+- nombre vacío
+- DNI inválido
+- fecha inválida
+- habitación vacía
+- cantidad 0
+- cantidad negativa
+- cantidad decimal
+- caracteres especiales en nombre
+- generación del nombre de archivo
+- existencia de plantilla
+- existencia de positions.json
+- generación correcta del PDF
 
-Cuando volvamos, arrancamos por la auditoría de Vouchers, no por código.
+Los tests no deben utilizar datos reales de pasajeros.
 
-🎶 Para cerrar la jornada: La Cumparsita, mate amargo y repositorio limpio. 🧉🏨
+--------------------------------------------------
+ETAPA 6 — INTERFAZ
+--------------------------------------------------
+
+Crear una nueva card en el index, independiente de las cards
+de procesamiento de CSV y fichaPax.
+
+La card debe llevar a:
+
+client/mealVoucher.html
+
+Formulario manual:
+
+Apellido y nombre
+DNI
+Fecha
+Habitación
+Cantidad de personas
+
+Botón:
+"Generar voucher"
+
+No agregar CSV ni búsqueda de reservas en esta primera versión.
+
+--------------------------------------------------
+CRITERIO FUNDAMENTAL
+--------------------------------------------------
+
+Este módulo NO forma parte de la reversión de vouchers MAP/PC.
+
+Es una nueva funcionalidad operativa independiente.
+
+Debe convivir con el código existente sin modificar:
+- processReservations.js
+- voucherReport.js
+- roomingReport.js
+- roomingPcReport.js
+
+Primero implementar modelo + plantilla + posiciones + tests.
+Después integrar PDF.
+Después construir la card/interfaz.
+
+No hacer commit todavía.
+Una decisión que ya dejaría tomada
+
+En la plantilla que mostraste aparece “Cantidad de personas” y debajo:
+
+“Contando a todas las personas que tomen la comida”
+
+Así que en nuestro modelo también usaría:
+
+cantidadPersonas
+
+No cantidadCenas.
+
+Eso evita una ambigüedad futura.
+
+Y una cosa más, que para mí es fundamental
+
+No intentaría convertir esta imagen directamente en un PDF "bonito" mediante una recreación automática. La imagen es nuestra referencia visual; la plantilla debe ser tratada como un formulario físico que estamos digitalizando.
+
+La primera versión puede ser:
+
+imagen histórica + logo correcto
+             ↓
+        PDF de fondo
+             ↓
+       coordenadas exactas
+             ↓
+          overlay
+
+Si después conseguimos el PDF original, simplemente sustituimos:
+
+VOUCHER_DE_COMIDAS_DIARIO.pdf
+
+y mantenemos:
+
+positions.json
+mealVoucher.js
+mealVoucherPdf.js
+
+Eso nos da exactamente lo que buscabas: misma apariencia y misma costumbre operativa, pero con el llenado automático de los datos reales del huésped en el momento de solicitar la cena.
+
+Y, muy importante para nuestra metodología: primero construimos y probamos este pequeño módulo aislado; recién después lo conectamos a la nueva card del index. 🌱🧉

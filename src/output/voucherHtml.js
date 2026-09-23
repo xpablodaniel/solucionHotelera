@@ -37,7 +37,7 @@ function renderMealChecks(voucher) {
 
             return `
                 <section class="meal-section">
-                    <h2 class="meal-title">${escapeHtml(meal)}</h2>
+                    <h2 class="meal-title"><strong>${escapeHtml(meal)}</strong></h2>
                     <div class="days-grid">${checks}
                     </div>
                 </section>`;
@@ -107,6 +107,7 @@ function renderVouchersHtml(vouchers) {
 <head>
     <meta charset="UTF-8">
     <title>Vouchers</title>
+    <link rel="stylesheet" href="../src/output/styles.css">
     <style>
         @page { size: A4; margin: 10mm; }
         * { box-sizing: border-box; }
@@ -131,7 +132,7 @@ function renderVouchersHtml(vouchers) {
         }
         .logo-container { grid-column: 4 / -1; grid-row: 1; text-align: right; }
         .logo-container img { width: 120px; }
-        .h1-container { grid-column: 1 / span 4; grid-row: 1; font: 20px "Times New Roman", serif; text-align: center; text-transform: uppercase; }
+        .h1-container { grid-column: 1 / span 4; grid-row: 1; font: bold 20px "Times New Roman", serif; text-align: center; text-transform: uppercase; }
         .p-cena { grid-column: 1 / span 6; grid-row: 2; margin: 0; }
         .passengerName { grid-column: 1 / span 4; grid-row: 3; font-weight: bold; }
         .dni { grid-column: 5 / -1; grid-row: 3; }
@@ -146,8 +147,8 @@ function renderVouchersHtml(vouchers) {
         .check-container { grid-column: 1 / span 6; grid-row: 8; }
         .check-boxes-grid { display: flex; gap: 20px; padding: 8px 0; flex-wrap: wrap; }
         .meal-section { flex: 1; }
-        .meal-title { font-size: 10px; text-align: center; text-decoration: underline; }
-        .days-grid { display: flex; gap: 2mm; justify-content: center; }
+        .meal-title { font-size: 10px; text-align: left; text-decoration: underline; }
+        .days-grid { display: flex; gap: 2mm; justify-content: flex-start; }
         .day-box { display: flex; flex-direction: column; align-items: center; font-size: 8px; }
         .checkbox { width: 4mm; height: 4mm; border: 1px solid #333; }
         @media print {

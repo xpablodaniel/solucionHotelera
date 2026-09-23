@@ -774,21 +774,53 @@ Esto permitirá modificar la presentación sin alterar la interpretación de las
 
 ---
 
-# 27. Próxima etapa
+# 27. Estado de las salidas
 
-Antes de implementar las clases o funciones definitivas, deberán definirse:
+Las capas principales ya implementadas son:
 
-1. Parser del CSV.
-2. Normalización de datos.
-3. Agrupación por voucher.
-4. Agrupación por habitación.
-5. Identificación de reservas individuales.
-6. Identificación de contingentes.
-7. Reglas de titular y acompañantes.
-8. Validaciones.
-9. Reglas de comidas.
-10. Reglas específicas de generación de documentos.
+- Parser y normalización del CSV.
+- Agrupación y procesamiento de reservas.
+- Reportes Rooming MAP y PC.
+- Reporte estructurado de Vouchers MAP/PC.
+- Renderer HTML y writer de Vouchers MAP/PC.
 
-Este documento define el **modelo conceptual inicial** y podrá modificarse a medida que se incorporen nuevos casos reales.
+El contrato del reporte de vouchers es:
+
+```javascript
+{
+    voucher,
+    representante,
+    dni,
+    hotel,
+    fechaIngreso,
+    fechaEgreso,
+    habitaciones,
+    cantidadPasajeros,
+    diasEstadia,
+    cantidadComidas,
+    modo
+}
+```
+
+`buildVoucherReport()` ordena los reportes por habitacion minima, conserva el
+orden de aparicion de las habitaciones y selecciona el representante luego de
+ordenar los pasajeros por DNI. Esta regla de representante visual no cambia
+la regla conceptual del titular de una reserva individual, que conserva el
+orden original del CSV.
+
+`renderVouchersHtml()` solo representa el reporte recibido. MAP muestra Cena;
+PC muestra Almuerzo y Cena. La salida se organiza en paginas de hasta cuatro
+vouchers, escapa los datos externos y usa una duracion visual de un dia cuando
+`diasEstadia` es `null`.
+
+## 28. Próximas etapas
+
+1. Comparación visual final del HTML contra la salida histórica.
+2. Fichas PAX para reservas individuales.
+3. Auditoría del flujo separado de Vouchers Alicante.
+4. Nuevas validaciones con casos anonimizados.
+
+Este documento sigue siendo evolutivo y podrá modificarse a medida que se
+incorporen nuevos casos reales.
 
 **Versión actual: 0.1 — borrador inicial.**

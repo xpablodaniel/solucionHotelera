@@ -1088,6 +1088,60 @@ Las reglas deberán validarse progresivamente mediante:
 
 * ejemplos reales de CSV;
 * documentos generados actualmente;
+
+---
+
+# 36. Salida de Vouchers MAP/PC
+
+La salida de vouchers se genera en capas independientes:
+
+```text
+CSV
+ ↓
+parseCSV()
+ ↓
+processReservations()
+ ↓
+buildVoucherReport()
+ ↓
+renderVouchersHtml()
+ ↓
+writeVoucherHtml()
+```
+
+Cada voucher produce un reporte y un bloque HTML, aunque ocupe varias
+habitaciones. Vouchers distintos que comparten una habitacion no se fusionan.
+
+El reporte conserva la cantidad real de pasajeros asociada al voucher. Para la
+salida historica MAP/PC, el representante visual es el primer pasajero luego
+de ordenar por DNI. Esto es una regla de presentacion y no modifica la regla
+conceptual de titular, que conserva el orden original del CSV.
+
+El reporte se ordena por la habitacion minima de cada voucher y las habitaciones
+internas conservan el orden en que aparecen en sus registros.
+
+## 36.1 Servicios
+
+```text
+MAP → Cena
+PC  → Almuerzo + Cena
+```
+
+La cantidad de comidas se calcula como pasajeros por dias de estadia por el
+multiplicador del modo: `1` para MAP y `2` para PC.
+
+## 36.2 Presentacion e impresion
+
+El HTML muestra nombre, DNI, unidad turistica, ingreso, egreso, habitaciones,
+cantidad de pasajeros y cantidad de comidas. Los valores provenientes del CSV
+se escapan antes de insertarse en HTML.
+
+La pagina imprimible contiene hasta cuatro vouchers. El quinto comienza una
+nueva pagina. Cuando el reporte tiene `diasEstadia === null`, el renderer usa
+una duracion visual de un dia sin modificar el modelo de datos.
+
+El renderer no vuelve a agrupar ni ordenar. El writer solo escribe el HTML
+recibido en UTF-8.
 * funcionamiento operativo del hotel;
 * casos especiales;
 * pruebas de la nueva aplicación.

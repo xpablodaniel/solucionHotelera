@@ -210,6 +210,13 @@ Una misma reserva puede contener:
 * varios PAX;
 * una o varias habitaciones.
 
+En las salidas de Vouchers MAP/PC, todas las filas con el mismo voucher forman
+un unico grupo de salida. La cantidad de pasajeros se obtiene de esas filas
+reales y no de `Cantidad plazas`.
+
+Vouchers distintos que compartan una habitacion fisica deben conservarse como
+grupos independientes.
+
 ---
 
 ## 4.8 Índice 7 — Sede

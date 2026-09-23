@@ -28,9 +28,14 @@ La base funcional implementada incluye:
 - conexion no destructiva entre Rooming, ocupacion y configuracion de camas;
 - agrupacion fisica de habitaciones compartidas por varios vouchers.
 
-Todavia no se implementaron las herramientas finales de salida, como rooming
-list imprimible, vouchers, comidas o fichas PAX. El modulo `rooming.js` prepara
-los datos para esas salidas, pero no asigna habitaciones ni decide camas.
+Tambien se implementaron las salidas de Rooming MAP y Rooming PC, incluyendo
+reportes, CSV, compatibilidad historica, escritura e integracion con fixtures.
+La salida de Vouchers MAP/PC ya cuenta con modelo, renderer HTML, writer e
+integracion completa con fixtures anonimizados.
+
+Todavia no se implementaron fichas PAX ni el flujo separado de Vouchers
+Alicante. El modulo `rooming.js` prepara los datos para las salidas, pero no
+asigna habitaciones ni decide camas.
 
 ## Flujo de procesamiento
 
@@ -53,6 +58,15 @@ Registros normalizados
 	|
 	v
 Reservas procesadas
+```
+
+Salidas
+```text
+Reservas procesadas
+	|
+	+--> buildRoomingReport() --> exportRoomingCsv() --> archivo CSV
+	|
+	+--> buildVoucherReport() --> renderVouchersHtml() --> writeVoucherHtml()
 ```
 
 El modulo [src/business/rooming.js](src/business/rooming.js) transforma las
@@ -132,6 +146,9 @@ node tests/business/testProcessReservations.js
 node tests/business/testRooming.js
 node tests/business/testBedConfiguration.js
 node tests/hotel/rooms.js
+
+# Suite completa
+for test in $(find tests -type f -name '*.js' | sort); do node "$test" || exit 1; done
 ```
 
 Los tests utilizan Node.js y no requieren dependencias externas.
@@ -160,12 +177,49 @@ siendo propuestas y deben confirmarse con nuevos casos reales.
 - advertir ante inconsistencias en lugar de ocultarlas;
 - no publicar CSV reales con datos personales.
 
+## Salidas de Vouchers MAP/PC
+
+El flujo de vouchers esta separado en capas:
+
+```text
+reservas procesadas
+	|
+	v
+buildVoucherReport(reservas, "MAP" | "PC")
+	|
+	v
+renderVouchersHtml(vouchers)
+	|
+	v
+writeVoucherHtml(html, ruta)
+```
+
+`buildVoucherReport()` conserva un voucher por grupo, calcula la cantidad real
+de pasajeros a partir de sus filas y combina las habitaciones sin fusionar
+vouchers diferentes. El representante de la salida historica se obtiene del
+primer pasajero despues de ordenar por DNI. El reporte se ordena por la
+habitacion minima del voucher.
+
+Las reglas de comidas son:
+
+- `MAP`: una comida por dia, correspondiente a la cena;
+- `PC`: dos comidas por dia, correspondientes a almuerzo y cena.
+
+`renderVouchersHtml()` no vuelve a agrupar ni ordenar. Representa los datos que
+recibe, escapa los valores externos y genera una pagina imprimible cada cuatro
+vouchers. Si `diasEstadia` es `null`, la duracion visual historica es un dia;
+el modelo conserva `null` sin inventar datos.
+
+La escritura se realiza unicamente mediante `writeVoucherHtml()`. Los tests de
+integracion usan los fixtures de `tests/fixtures/`, escriben un archivo
+temporal y lo eliminan al finalizar.
+
 ## Proximos pasos
 
-1. Completar validaciones de inconsistencias entre CSV, PAX e inventario.
-2. Definir el modelo de estadia, comidas y titular.
+1. Comparar visualmente el HTML de vouchers con la salida historica.
+2. Completar validaciones de inconsistencias entre CSV, PAX e inventario.
 3. Definir como se informara una disposicion operativa de camas sin inventar
 	relaciones entre pasajeros.
-4. Construir las salidas de rooming a partir de las reservas procesadas.
-5. Agregar casos de prueba anonimizados para situaciones reales.
+4. Implementar fichas PAX para reservas individuales.
+5. Auditar y reconstruir el flujo separado de Vouchers Alicante.
 
