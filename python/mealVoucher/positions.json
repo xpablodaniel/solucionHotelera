@@ -1,0 +1,43 @@
+{
+    "description": "Coordenadas iniciales derivadas de voucherDiario.jpg; revisar visualmente sobre el PDF generado.",
+    "unit": "mm",
+    "page": {
+        "size": "904x346 px at 96 dpi",
+        "orientation": "landscape"
+    },
+    "template": "VOUCHER_DE_COMIDAS_DIARIO.pdf",
+    "fields": {
+        "nombre": {
+            "x_mm": 55.12,
+            "y_top_mm": 40.48,
+            "status": "coordenada inicial"
+        },
+        "dni": {
+            "x_mm": 193.24,
+            "y_top_mm": 40.48,
+            "status": "coordenada inicial"
+        },
+        "hotel": {
+            "x_mm": 81.0,
+            "y_top_mm": 51.0,
+            "width_mm": 128.0,
+            "status": "calibracion visual 2",
+            "align": "center"
+        },
+        "fecha": {
+            "x_mm": 186.36,
+            "y_top_mm": 51.0,
+            "status": "calibracion visual 1"
+        },
+        "habitacion": {
+            "x_mm": 42.07,
+            "y_top_mm": 65.0,
+            "status": "calibracion visual 1"
+        },
+        "cantidadPersonas": {
+            "x_mm": 221.98,
+            "y_top_mm": 65.0,
+            "status": "calibracion visual 1"
+        }
+    }
+}

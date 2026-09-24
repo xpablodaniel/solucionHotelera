@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voucher de Comida Diario</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #eef1f4;
+            color: #20252b;
+        }
+
+        main {
+            width: min(640px, calc(100% - 32px));
+            margin: 40px auto;
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid #d7dce1;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(22, 34, 46, 0.08);
+            padding: 28px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 24px;
+        }
+
+        .intro {
+            margin: 0 0 24px;
+            color: #5d6872;
+        }
+
+        form {
+            display: grid;
+            gap: 16px;
+        }
+
+        label {
+            display: grid;
+            gap: 6px;
+            font-weight: 700;
+        }
+
+        .full-width { grid-column: 1 / -1; }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #b8c0c8;
+            border-radius: 4px;
+            padding: 11px 12px;
+            font: inherit;
+        }
+
+        select {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid #b8c0c8;
+            border-radius: 4px;
+            padding: 11px 12px;
+            font: inherit;
+            background: #fff;
+        }
+
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 4px;
+            padding: 12px 18px;
+            background: #1769aa;
+            color: #fff;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        button:hover { background: #125487; }
+
+        #status {
+            min-height: 24px;
+            margin-top: 18px;
+            color: #1769aa;
+        }
+
+        #status.error { color: #a52727; }
+
+        @media (max-width: 560px) {
+            main { margin: 20px auto; }
+            .card { padding: 20px; }
+            .two-columns { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <section class="card">
+            <h1>Voucher de Comida Diario</h1>
+            <p class="intro">Completa los datos del huésped alojado para generar el voucher de cena.</p>
+
+            <form id="mealVoucherForm">
+                <label>
+                    Apellido y nombre
+                    <input id="nombre" name="nombre" type="text" autocomplete="name" required>
+                </label>
+
+                <div class="two-columns">
+                    <label class="full-width">
+                        Hotel
+                        <select id="hotel" name="hotel">
+                            <option value="23 DE MAYO" selected>23 de Mayo</option>
+                            <option value="31 DE AGOSTO">31 de Agosto</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        DNI
+                        <input id="dni" name="dni" type="text" inputmode="numeric" autocomplete="off" required>
+                    </label>
+
+                    <label>
+                        Habitación
+                        <input id="habitacion" name="habitacion" type="text" autocomplete="off" required>
+                    </label>
+                </div>
+
+                <div class="two-columns">
+                    <label>
+                        Fecha
+                        <input id="fecha" name="fecha" type="date" required>
+                    </label>
+
+                    <label>
+                        Cantidad de personas
+                        <input id="cantidadPersonas" name="cantidadPersonas" type="number" min="1" step="1" value="1" required>
+                    </label>
+                </div>
+
+                <button type="submit">Generar voucher</button>
+            </form>
+            <p id="status" role="status" aria-live="polite"></p>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="js/mealVoucher.js"></script>
+</body>
+</html>
