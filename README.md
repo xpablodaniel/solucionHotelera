@@ -33,9 +33,13 @@ reportes, CSV, compatibilidad historica, escritura e integracion con fixtures.
 La salida de Vouchers MAP/PC ya cuenta con modelo, renderer HTML, writer e
 integracion completa con fixtures anonimizados.
 
-Todavia no se implementaron fichas PAX ni el flujo separado de Vouchers
-Alicante. El modulo `rooming.js` prepara los datos para las salidas, pero no
-asigna habitaciones ni decide camas.
+El modulo independiente Voucher de Comida Diario tambien esta terminado. Usa
+una plantilla PDF historica, un overlay calibrado, seleccion de hotel entre
+`23 DE MAYO` y `31 DE AGOSTO`, y una card manual sin CSV ni persistencia.
+
+Todavia no se implementaron fichas PAX dentro de este repositorio ni el flujo
+separado de Vouchers Alicante/Balneario. El modulo `rooming.js` prepara los
+datos para las salidas, pero no asigna habitaciones ni decide camas.
 
 ## Flujo de procesamiento
 
@@ -214,12 +218,51 @@ La escritura se realiza unicamente mediante `writeVoucherHtml()`. Los tests de
 integracion usan los fixtures de `tests/fixtures/`, escriben un archivo
 temporal y lo eliminan al finalizar.
 
+## Voucher de Comida Diario
+
+Es una funcionalidad manual e independiente del procesamiento de CSV:
+
+```text
+client/mealVoucher.html
+	|
+	v
+validacion manual
+	|
+	v
+plantilla PDF + positions.json
+	|
+	v
+PDF descargable
+```
+
+La card permite completar apellido y nombre, hotel, DNI, fecha, habitacion y
+cantidad de personas. El hotel predeterminado es `23 DE MAYO`, con opcion
+`31 DE AGOSTO`.
+
+Los recursos del modulo se encuentran en:
+
+```text
+python/mealVoucher/
+├── VOUCHER_DE_COMIDAS_DIARIO.pdf
+├── positions.json
+├── create_template.py
+├── generate_pdf.py
+└── source/
+    ├── voucherDiario.jpg
+    └── voucher de comidas diario.odt
+```
+
+La plantilla conserva el formulario historico y sustituye el logo roto por el
+logo SUTEBA. La card no modifica reservas, CSV, Rooming ni reportes de
+vouchers.
+
 ## Proximos pasos
 
-1. Comparar visualmente el HTML de vouchers con la salida historica.
-2. Completar validaciones de inconsistencias entre CSV, PAX e inventario.
-3. Definir como se informara una disposicion operativa de camas sin inventar
+1. Auditar el flujo historico de Voucher Balneario/Alicante.
+2. Identificar su plantilla, campos, seleccion de titular, habitaciones,
+	fechas y formato de salida.
+3. Construir el modelo especifico de Balneario antes de implementar HTML/PDF.
+4. Completar validaciones de inconsistencias entre CSV, PAX e inventario.
+5. Definir como se informara una disposicion operativa de camas sin inventar
 	relaciones entre pasajeros.
-4. Implementar fichas PAX para reservas individuales.
-5. Auditar y reconstruir el flujo separado de Vouchers Alicante.
 

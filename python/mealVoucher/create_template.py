@@ -10,7 +10,7 @@ from reportlab.pdfgen import canvas
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
-SOURCE_IMAGE = PROJECT_ROOT / "voucherDiario.jpg"
+SOURCE_IMAGE = SCRIPT_DIR / "source" / "voucherDiario.jpg"
 LOGO_IMAGE = PROJECT_ROOT / "assets" / "suteba_logo_3.jpg"
 OUTPUT_PDF = SCRIPT_DIR / "VOUCHER_DE_COMIDAS_DIARIO.pdf"
 
