@@ -33,13 +33,18 @@ reportes, CSV, compatibilidad historica, escritura e integracion con fixtures.
 La salida de Vouchers MAP/PC ya cuenta con modelo, renderer HTML, writer e
 integracion completa con fixtures anonimizados.
 
+El flujo de Voucher Alicante/Balneario desde reservas tambien esta implementado
+y probado. Incluye reporte por voucher, titular por primer PAX del CSV,
+habitaciones visuales sin las asignaciones `A`, `B`, `C`, renderer PDF, writer,
+paginacion de tres vouchers por pagina e integracion completa.
+
 El modulo independiente Voucher de Comida Diario tambien esta terminado. Usa
 una plantilla PDF historica, un overlay calibrado, seleccion de hotel entre
 `23 DE MAYO` y `31 DE AGOSTO`, y una card manual sin CSV ni persistencia.
 
-Todavia no se implementaron fichas PAX dentro de este repositorio ni el flujo
-separado de Vouchers Alicante/Balneario. El modulo `rooming.js` prepara los
-datos para las salidas, pero no asigna habitaciones ni decide camas.
+Todavia no se implementaron fichas PAX dentro de este repositorio. El modulo
+`rooming.js` prepara los datos para las salidas, pero no asigna habitaciones ni
+decide camas.
 
 ## Flujo de procesamiento
 
@@ -256,13 +261,58 @@ La plantilla conserva el formulario historico y sustituye el logo roto por el
 logo SUTEBA. La card no modifica reservas, CSV, Rooming ni reportes de
 vouchers.
 
+## Voucher Alicante/Balneario desde reserva
+
+Este flujo procesa pasajeros alojados a partir de las reservas normalizadas:
+
+```text
+reservas procesadas
+	|
+	v
+buildBalnearioVoucherReport(reservas)
+	|
+	v
+renderBalnearioVoucherPdf(reportes)
+	|
+	v
+writeBalnearioVoucherPdf(buffer, ruta)
+	|
+	v
+PDF Alicante
+```
+
+El reporte conserva un grupo por voucher y utiliza como titular el primer PAX
+en el orden original del CSV, que representa al afiliado que realizo y pago la
+reserva. No selecciona titular por edad ni por DNI.
+
+La cantidad de pasajeros corresponde a la cantidad real de registros del
+voucher. Las habitaciones se deduplican solamente para la presentacion: `238 A`
+y `238 B` se muestran como `238`, sin modificar las asignaciones originales
+del modelo interno.
+
+La plantilla historica es A4 vertical y contiene tres vouchers por pagina.
+Escribe titular, DNI, habitaciones, fechas y cantidad de personas. Los
+casilleros `DIA 1` a `DIA 5` quedan manuales y no forman parte de la logica del
+reporte.
+
+Los recursos del modulo se encuentran en:
+
+```text
+python/balneario/
+├── VOUCHER_ALICANTE.pdf
+├── positions.json
+└── generate_pdf.py
+```
+
+`voucherAlicante.jpg` se conserva como recurso historico para una futura
+emision manual de vouchers para personas no alojadas. Ese flujo sera
+independiente del reporte generado desde reservas.
+
 ## Proximos pasos
 
-1. Auditar el flujo historico de Voucher Balneario/Alicante.
-2. Identificar su plantilla, campos, seleccion de titular, habitaciones,
-	fechas y formato de salida.
-3. Construir el modelo especifico de Balneario antes de implementar HTML/PDF.
-4. Completar validaciones de inconsistencias entre CSV, PAX e inventario.
-5. Definir como se informara una disposicion operativa de camas sin inventar
+1. Construir la card web de Voucher Alicante/Balneario.
+2. Evaluar el flujo manual futuro a partir de `voucherAlicante.jpg`.
+3. Completar validaciones de inconsistencias entre CSV, PAX e inventario.
+4. Definir como se informara una disposicion operativa de camas sin inventar
 	relaciones entre pasajeros.
 

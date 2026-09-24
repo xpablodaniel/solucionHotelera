@@ -68,6 +68,10 @@ Los archivos analizados utilizan una estructura de **28 columnas**, numeradas de
 
 ---
 
+El campo `Descripcion` corresponde en el modelo interno a la unidad turistica
+(`hotel`). Para el reporte de Balneario se conserva como dato de la reserva y
+no se utiliza para seleccionar el titular.
+
 # 3. Principio de interpretación
 
 Una fila del CSV representa información correspondiente a un pasajero y su alojamiento, pero **una fila no necesariamente representa una reserva completa**.

@@ -2,8 +2,8 @@
 
 ## Modelo de objetos JavaScript
 
-**Versión:** 0.1
-**Estado:** Borrador inicial
+**Versión:** 0.2
+**Estado:** Modelo implementado; documentación evolutiva
 
 ---
 
@@ -813,14 +813,66 @@ PC muestra Almuerzo y Cena. La salida se organiza en paginas de hasta cuatro
 vouchers, escapa los datos externos y usa una duracion visual de un dia cuando
 `diasEstadia` es `null`.
 
-## 28. Próximas etapas
+## 28. Voucher Alicante/Balneario
 
-1. Comparación visual final del HTML contra la salida histórica.
-2. Fichas PAX para reservas individuales.
-3. Auditoría del flujo separado de Vouchers Alicante.
+El voucher Alicante generado desde reservas constituye un flujo separado de
+MAP/PC y del Voucher de Comida Diario.
+
+Su contrato de reporte es:
+
+```javascript
+{
+    voucher,
+    titular: {
+        nombre,
+        dni
+    },
+    hotel,
+    habitaciones,
+    fechaIngreso,
+    fechaEgreso,
+    cantidadPasajeros
+}
+```
+
+El titular es el primer pasajero del voucher en el orden original del CSV. Es
+la representación del afiliado que realizo y pago la reserva. Esta regla no
+debe reemplazarse por edad, DNI ni ordenamiento posterior.
+
+Las letras de asignacion de habitacion (`A`, `B`, `C`) se conservan en el
+pasajero original, pero el reporte visual utiliza solamente el numero de
+habitacion y elimina duplicados de presentacion. La cantidad de pasajeros se
+mantiene basada en filas reales, aunque varias asignaciones se representen como
+una sola habitacion visual.
+
+El reporte no calcula dias de uso, asistencias ni campos `dia1` a `dia5`. Esos
+casilleros pertenecen a la plantilla y los completa manualmente recepcion.
+
+La salida PDF se construye mediante:
+
+```text
+buildBalnearioVoucherReport()
+        |
+        v
+renderBalnearioVoucherPdf()
+        |
+        v
+writeBalnearioVoucherPdf()
+```
+
+La plantilla historica es A4 vertical, con tres vouchers por pagina. El hotel
+visible proviene de la plantilla impresa; el campo `hotel` del reporte se
+conserva para trazabilidad y futuras variantes de plantilla.
+
+## 29. Próximas etapas
+
+1. Construir la card web de Voucher Alicante/Balneario.
+2. Implementar, en un flujo separado, el voucher manual para personas no
+   alojadas si aparece la necesidad operativa.
+3. Fichas PAX para reservas individuales.
 4. Nuevas validaciones con casos anonimizados.
 
 Este documento sigue siendo evolutivo y podrá modificarse a medida que se
 incorporen nuevos casos reales.
 
-**Versión actual: 0.1 — borrador inicial.**
+**Versión actual: 0.2 — modelo implementado y probado.**
