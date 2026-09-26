@@ -304,15 +304,22 @@ python/balneario/
 └── generate_pdf.py
 ```
 
-`voucherAlicante.jpg` se conserva como recurso historico para una futura
-emision manual de vouchers para personas no alojadas. Ese flujo sera
-independiente del reporte generado desde reservas.
+`voucherAlicante.jpg` se conserva como referencia visual historica del diseño.
+
+## Voucher Diario de Balneario
+
+Es una funcionalidad manual e independiente del procesamiento de CSV y del
+reporte Alicante generado desde reservas. La card solicita titular, DNI,
+hotel, habitacion opcional, una fecha y cantidad de personas. Genera un PDF
+individual desde la plantilla historica; los casilleros DIA 1 a DIA 5 quedan
+disponibles para completar manualmente.
+
+La card se encuentra en `client/balnearioVoucher.html` y utiliza las posiciones
+de `python/balneario/positions.json`.
 
 ## Proximos pasos
 
-1. Construir la card web de Voucher Alicante/Balneario.
-2. Evaluar el flujo manual futuro a partir de `voucherAlicante.jpg`.
-3. Completar validaciones de inconsistencias entre CSV, PAX e inventario.
-4. Definir como se informara una disposicion operativa de camas sin inventar
+1. Completar validaciones de inconsistencias entre CSV, PAX e inventario.
+2. Definir como se informara una disposicion operativa de camas sin inventar
 	relaciones entre pasajeros.
 

@@ -8,6 +8,24 @@
         "orientation": "portrait",
         "vouchers_per_page": 3
     },
+    "manualVoucher": {
+        "hotel": {
+            "x_mm": 136,
+            "y_from_bottom_mm": 246,
+            "cover": {
+                "x_mm": 104,
+                "y_from_bottom_mm": 243.5,
+                "width_mm": 65,
+                "height_mm": 7
+            }
+        },
+        "pageCrop": {
+            "x_mm": 0,
+            "y_from_bottom_mm": 201,
+            "width_mm": 210,
+            "height_mm": 96
+        }
+    },
     "slots": [
         {
             "nombre": {"x_mm": 27, "y_from_bottom_mm": 257},
