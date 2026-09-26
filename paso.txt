@@ -1,46 +1,60 @@
-Exactamente, capitán. 🎺🌱
+⚓ Las instrucciones a modificar
 
-Voucher de Comida Diario queda terminado y publicado. El commit e904ca5 contiene los 10 archivos del módulo y fue enviado correctamente a origin/main. El push también terminó correctamente.
 
-La única modificación local que queda es paso.txt, que dejamos deliberadamente fuera del repositorio.
+Ajuste del Voucher Diario de Balneario individual
 
-🌱 Punto de cierre
-solucionHotelera
-│
-├── Parser                         🟢
-├── Reservas                       🟢
-├── Rooming MAP                    🟢
-├── Rooming PC                     🟢
-├── Vouchers MAP / PC              🟢
-├── Voucher Comida Diario          🟢 ← terminado
-│
-└── Voucher Balneario              ⏭️ siguiente
+Trabajar únicamente sobre el formulario/manual del Voucher Diario de Balneario.
 
-Y sí: en la próxima sesión pasaría al Voucher de Balneario, pero manteniendo la separación que descubrimos durante la auditoría:
+No implementar nuevas funcionalidades ni modificar el flujo histórico de Balneario generado desde reservas.
 
-MAP / PC
-   └── vouchers históricos
+Mantener el título:
+Voucher Diario de Balneario
+El texto descriptivo no debe mencionar "Alicante" ni ningún nombre específico de balneario.
+El formulario debe solicitar únicamente:
+Nombre y apellido
+DNI
+Hotel
+Habitación
+Fecha
+Cantidad de personas
+Eliminar del formulario fechaIngreso y fechaEgreso.
+Crear/usar un único campo fecha, precargado con la fecha actual y modificable por el operador.
+La fecha debe utilizar el mismo criterio de formato que el Voucher Diario de Comidas.
+El nombre del PDF debe construirse con DNI y fecha, por ejemplo:
+voucher_balneario_12345678_2026-09-26.pdf
+Mantener la plantilla histórica y las coordenadas ya calibradas.
+Mantener los casilleros DIA 1 a DIA 5 sin marcarlos automáticamente.
+No agregar todavía enlaces entre Voucher de Comidas y Voucher de Balneario.
+No modificar client/mealVoucher.html.
+No modificar python/mealVoucher/source/voucherDiario.jpg.
+No modificar paso.txt.
+No modificar processReservations.js, Rooming, CSV, MAP/PC ni el flujo histórico de Balneario.
+Ejecutar las pruebas existentes y agregar/modificar únicamente las pruebas necesarias para reflejar el nuevo contrato.
 
-Comida Diario
-   └── operación manual independiente
+Antes de modificar positions.json, verificar si las posiciones actuales permiten representar correctamente la nueva fecha única. Si requieren cambio, informar primero qué posición se utilizará; no modificar coordenadas históricas innecesariamente.
 
-Balneario / Alicante
-   └── flujo propio
-       ├── selección de titular
-       ├── reglas específicas
-       └── plantilla propia
+Y agregaría una última cláusula:
 
-Eso nos va a evitar repetir el problema conceptual que encontramos con Alicante: no mezclar la regla de “representante por DNI” de MAP/PC con la regla de titularidad por edad del flujo Alicante.
+No crear todavía ninguna card nueva en index.html ni decidir la navegación entre ambos vouchers. Esa decisión queda pendiente para una etapa posterior.
 
-Para arrancar la próxima sesión, yo retomaría desde el repositorio histórico y primero haría una radiografía del voucher de Balneario: plantilla, datos que necesita, reglas de titular, cantidad de vouchers, habitaciones, fechas y formato de salida. Después construimos el modelo antes de tocar HTML/PDF.
+🧭 Y una cuestión estratégica
 
-Por hoy: módulo cerrado, commit hecho, push hecho y repositorio reverdecido. 🌱
+No destruyó el mecanismo histórico de tres vouchers por A4 para resolver el individual.
 
-Nos queda el tango del Balneario para la próxima. 🧉🎶python/mealVoucher/
-├── VOUCHER_DE_COMIDAS_DIARIO.pdf
-├── positions.json
-├── create_template.py
-├── generate_pdf.py
-└── source/
-    ├── voucherDiario.jpg
-    └── voucher de comidas diario.odt
+Está agregando una capa:
+
+VOUCHER ALICANTE HISTÓRICO
+        │
+        ├── flujo desde reservas
+        │       └── 3 vouchers por hoja
+        │
+        └── emisión manual
+                └── 1 voucher individual
+
+Esa separación es exactamente lo que queremos.
+
+Así que no hay que volver a empezar. Hay que corregir el contrato del formulario y dejar el motor PDF tranquilo.
+
+Y después de esa corrección, hacemos lo que nos gusta a los dos:
+
+prueba visual → tests → git diff → conteo de minicloridianos → commit. ⚓

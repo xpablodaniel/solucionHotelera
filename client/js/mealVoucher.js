@@ -72,10 +72,17 @@
                 throw new Error(`No hay posicion calibrada para ${fieldName}.`);
             }
 
-            page.drawText(String(value), {
-                x: position.x_mm * mmToPt,
+            const text = String(value);
+            const fontSize = 10;
+            const textWidth = font.widthOfTextAtSize(text, fontSize);
+            const x = position.align === "center"
+                ? position.x_mm * mmToPt - textWidth / 2
+                : position.x_mm * mmToPt;
+
+            page.drawText(text, {
+                x,
                 y: page.getHeight() - position.y_top_mm * mmToPt,
-                size: fieldName === "cantidadPersonas" ? 10 : 10,
+                size: fontSize,
                 font
             });
         }

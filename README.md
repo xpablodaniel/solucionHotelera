@@ -301,10 +301,13 @@ Los recursos del modulo se encuentran en:
 python/balneario/
 ├── VOUCHER_ALICANTE.pdf
 ├── positions.json
-└── generate_pdf.py
+├── generate_pdf.py
+└── source/
+	└── voucherAlicante.jpg
 ```
 
-`voucherAlicante.jpg` se conserva como referencia visual historica del diseño.
+`source/voucherAlicante.jpg` se conserva como referencia visual historica. El
+renderizador utiliza `VOUCHER_ALICANTE.pdf` como plantilla de salida.
 
 ## Voucher Diario de Balneario
 
