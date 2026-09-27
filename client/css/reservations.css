@@ -122,6 +122,21 @@ h1 {
     line-height: 1.5;
 }
 
+.file-warnings {
+    margin-top: 14px;
+    padding: 12px 15px;
+    border-left: 3px solid #b58a45;
+    background: #f0ede4;
+    color: #514a3d;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.file-warnings p { margin: 0; }
+.file-warnings p + p { margin-top: 5px; }
+.result-warnings { margin: 0 0 18px; }
+.date-empty-message { margin: 0; color: #697572; font-size: 14px; }
+
 .workflow-section,
 .results-section,
 .actions-section {
@@ -229,6 +244,25 @@ select {
     font: inherit;
 }
 
+#manual-arrival-date {
+    min-height: 44px;
+    border: 1px solid #b8c0c8;
+    border-radius: 2px;
+    padding: 0 11px;
+    background: #fff;
+    color: #1d2928;
+    font: inherit;
+}
+
+.no-arrivals-message {
+    margin: 0;
+    padding: 16px 0;
+    border-top: 1px solid #d5ddd8;
+    border-bottom: 1px solid #d5ddd8;
+    color: #5b6865;
+    font-size: 14px;
+}
+
 .date-row .button { flex: 0 0 auto; }
 
 .results-section {
@@ -310,6 +344,11 @@ select {
 
 .classification-status { color: #72551e; }
 
+.classification-status {
+    padding-bottom: 13px;
+    border-bottom: 1px solid #d5ddd8;
+}
+
 .list-heading {
     display: flex;
     align-items: baseline;
@@ -347,6 +386,12 @@ td {
     line-height: 1.4;
     vertical-align: top;
 }
+
+td details { margin-top: 7px; color: #5b6865; font-size: 12px; }
+td details:first-child { margin-top: 6px; }
+td summary { cursor: pointer; font-weight: 650; }
+td ul { margin: 5px 0 0; padding-left: 17px; }
+td li + li { margin-top: 3px; }
 
 th {
     background: #e9efeb;

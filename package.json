@@ -1,0 +1,13 @@
+{
+  "name": "solucion-hotelera",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:reservations": "esbuild src/browser/reservations.js --bundle --platform=browser --format=iife --global-name=ReservationsCore --outfile=client/js/reservations-core.js",
+    "test:reservations": "npm run build:reservations && node --test tests/integration/reservations.test.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "jsdom": "^30.1.1"
+  }
+}

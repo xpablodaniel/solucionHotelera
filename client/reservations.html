@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#163b37">
     <title>Reservas | Solución Hotelera</title>
     <link rel="stylesheet" href="css/reservations.css">
+    <script src="js/reservations-core.js" defer></script>
     <script src="js/reservations.js" defer></script>
 </head>
 <body>
@@ -29,7 +30,7 @@
         </section>
 
         <p class="demo-notice" role="note">
-            Prototipo visual. Las fechas, los resúmenes y las reservas mostradas son datos de demostración; el archivo seleccionado no se procesa.
+            El CSV se procesa en este navegador. El archivo original no se modifica ni se envía.
         </p>
 
         <section class="workflow-section" aria-labelledby="upload-title">
@@ -44,6 +45,7 @@
                 <label class="button button-secondary" for="csv-input">Seleccionar CSV</label>
                 <p id="file-status" class="file-status" role="status" aria-live="polite">Ningún archivo seleccionado</p>
             </div>
+            <div class="file-warnings" id="file-warnings" role="status" aria-live="polite" hidden></div>
         </section>
 
         <section class="workflow-section" id="date-section" aria-labelledby="date-title" hidden>
@@ -57,9 +59,10 @@
                 <label class="field-label" for="arrival-date">Selecciona una fecha detectada</label>
                 <select id="arrival-date" name="arrival-date">
                     <option value="">Selecciona una fecha</option>
-                    <option value="2026-09-27">27/09/2026</option>
-                    <option value="2026-09-28">28/09/2026</option>
                 </select>
+                <label class="field-label manual-date-label" id="manual-date-label" for="manual-arrival-date" hidden>Otra fecha de consulta</label>
+                <input id="manual-arrival-date" type="date" hidden>
+                <p class="date-empty-message" id="date-empty-message" hidden>No se encontraron fechas de ingreso en el CSV.</p>
                 <button class="button button-primary" id="process-button" type="button" disabled>Procesar reservas</button>
             </div>
         </section>
@@ -67,10 +70,12 @@
         <section class="results-section" id="results-section" aria-labelledby="results-title" hidden>
             <div class="section-heading results-heading">
                 <div>
-                    <p class="step-label">Resultado de demostración</p>
+                    <p class="step-label">Resultado del procesamiento</p>
                     <h2 id="results-title">Ingresos del <span id="selected-date-label"></span></h2>
                 </div>
             </div>
+
+            <div class="file-warnings result-warnings" id="result-warnings" role="status" aria-live="polite" hidden></div>
 
             <dl class="overview-metrics" aria-label="Resumen de ingresos">
                 <div class="metric">
@@ -91,12 +96,12 @@
                 <div class="regime-row">
                     <h3>MAP</h3>
                     <p><strong id="map-passenger-count">—</strong> pasajeros · <strong id="map-reservation-count">—</strong> reservas</p>
-                    <p class="regime-meals">Desayuno</p>
+                    <p class="regime-meals">Media pensión · Cena</p>
                 </div>
                 <div class="regime-row">
                     <h3>PC</h3>
                     <p><strong id="pc-passenger-count">—</strong> pasajeros · <strong id="pc-reservation-count">—</strong> reservas</p>
-                    <p class="regime-meals">Desayuno, almuerzo y cena</p>
+                    <p class="regime-meals">Pensión completa · Almuerzo y cena</p>
                 </div>
             </div>
 
@@ -105,8 +110,9 @@
 
             <div class="list-heading">
                 <h2>Reservas encontradas</h2>
-                <p>El titular mostrado es el primer PAX de cada reserva en los datos de demostración.</p>
+                <p>El titular es el primer PAX de cada voucher según el orden original del CSV.</p>
             </div>
+            <p class="no-arrivals-message" id="no-arrivals-message" role="status" hidden>No hay ingresos para la fecha seleccionada.</p>
             <div class="table-scroll" role="region" aria-label="Listado de reservas" tabindex="0">
                 <table>
                     <thead>
@@ -116,7 +122,7 @@
                             <th scope="col">Hotel</th>
                             <th scope="col">Habitación/es</th>
                             <th scope="col">PAX</th>
-                            <th scope="col">Régimen</th>
+                            <th scope="col">Régimen / servicios</th>
                             <th scope="col">Clasificación</th>
                         </tr>
                     </thead>
@@ -125,17 +131,12 @@
             </div>
 
             <section class="actions-section" aria-labelledby="actions-title">
-                <h2 id="actions-title">Acciones posteriores</h2>
-                <div class="action-buttons">
-                    <button class="button button-secondary" type="button" data-action="Vouchers">Vouchers</button>
-                    <button class="button button-secondary" type="button" data-action="Rooming">Rooming</button>
-                    <button class="button button-secondary" type="button" data-action="Balneario">Balneario</button>
-                </div>
-                <p class="action-note" id="action-status" role="status" aria-live="polite">Acciones ilustrativas; todavía no generan archivos.</p>
+                <h2 id="actions-title">Salidas posteriores</h2>
+                <p class="action-note">La generación de vouchers, Rooming y Balneario se incorporará en una etapa posterior.</p>
             </section>
         </section>
     </main>
 
-    <footer>Solución Hotelera · Prototipo de interfaz de Reservas</footer>
+    <footer>Solución Hotelera · Consulta de reservas</footer>
 </body>
 </html>

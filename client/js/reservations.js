@@ -1,75 +1,109 @@
-const demoResultsByDate = {
-    "2026-09-27": {
-        label: "27/09/2026",
-        summary: {
-            passengers: 7,
-            reservations: 4,
-            rooms: 5,
-            mapPassengers: 3,
-            mapReservations: 2,
-            pcPassengers: 3,
-            pcReservations: 1,
-            unclassifiedPassengers: 1,
-            unclassifiedReservations: 1
-        },
-        rows: [
-            ["DEMO-27001", "SOSA, MARTA", "23 de Mayo", "104", "2", "MAP · Desayuno", "Individual"],
-            ["DEMO-27002", "PÉREZ, LUIS", "23 de Mayo", "238, 239", "3", "PC · Desayuno, almuerzo y cena", "Contingente"],
-            ["DEMO-27003", "DÍAZ, ANA", "31 de Agosto", "107", "1", "Sin determinar", "No clasificada"],
-            ["DEMO-27004", "LÓPEZ, RICARDO", "31 de Agosto", "112", "1", "MAP · Desayuno", "Individual"]
-        ]
-    },
-    "2026-09-28": {
-        label: "28/09/2026",
-        summary: {
-            passengers: 2,
-            reservations: 1,
-            rooms: 1,
-            mapPassengers: 0,
-            mapReservations: 0,
-            pcPassengers: 2,
-            pcReservations: 1,
-            unclassifiedPassengers: 0,
-            unclassifiedReservations: 0
-        },
-        rows: [
-            ["DEMO-28001", "FERNÁNDEZ, ELENA", "23 de Mayo", "221", "2", "PC · Desayuno, almuerzo y cena", "Contingente"]
-        ]
-    }
-};
-
-const tableHeaders = [
-    "Voucher",
-    "Titular",
-    "Hotel",
-    "Habitación/es",
-    "PAX",
-    "Régimen",
-    "Clasificación"
-];
+const {
+    parseCSV,
+    parseCSVLine,
+    processReservations,
+    classifyRecord,
+    classifyReservation
+} = window.ReservationsCore;
 
 const csvInput = document.querySelector("#csv-input");
 const fileStatus = document.querySelector("#file-status");
+const fileWarnings = document.querySelector("#file-warnings");
 const dateSection = document.querySelector("#date-section");
 const arrivalDate = document.querySelector("#arrival-date");
 const processButton = document.querySelector("#process-button");
 const resultsSection = document.querySelector("#results-section");
 const reservationRows = document.querySelector("#reservation-rows");
+const dateEmptyMessage = document.querySelector("#date-empty-message");
+const resultWarnings = document.querySelector("#result-warnings");
+const manualDateLabel = document.querySelector("#manual-date-label");
+const manualArrivalDate = document.querySelector("#manual-arrival-date");
+const noArrivalsMessage = document.querySelector("#no-arrivals-message");
+const tableScroll = document.querySelector(".table-scroll");
+
+const CUSTOM_DATE_OPTION = "__custom_date__";
+
+let parsedRecords = [];
+let processedReservations = [];
+let csvWarnings = [];
 
 function resetResults() {
     resultsSection.hidden = true;
     reservationRows.replaceChildren();
-    document.querySelector("#action-status").textContent =
-        "Acciones ilustrativas; todavía no generan archivos.";
+    noArrivalsMessage.hidden = true;
+    tableScroll.hidden = false;
 }
 
-function handleFileSelection() {
-    const file = csvInput.files[0];
+function compareDates(dateA, dateB) {
+    const parseDate = value => {
+        const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (!match) return null;
 
+        const [, day, month, year] = match;
+        const parsed = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+        if (
+            parsed.getUTCDate() !== Number(day) ||
+            parsed.getUTCMonth() !== Number(month) - 1 ||
+            parsed.getUTCFullYear() !== Number(year)
+        ) {
+            return null;
+        }
+
+        return parsed.getTime();
+    };
+
+    const valueA = parseDate(dateA);
+    const valueB = parseDate(dateB);
+    if (valueA !== null && valueB !== null) return valueA - valueB;
+    if (valueA !== null) return -1;
+    if (valueB !== null) return 1;
+    return dateA.localeCompare(dateB, "es", { numeric: true });
+}
+
+function resetFileState() {
+    parsedRecords = [];
+    processedReservations = [];
+    csvWarnings = [];
     resetResults();
     dateSection.hidden = true;
-    arrivalDate.value = "";
+    arrivalDate.replaceChildren(new Option("Selecciona una fecha", ""));
+    arrivalDate.add(new Option("Otra fecha…", CUSTOM_DATE_OPTION));
     processButton.disabled = true;
+    dateEmptyMessage.hidden = true;
+    manualDateLabel.hidden = true;
+    manualArrivalDate.hidden = true;
+    manualArrivalDate.value = "";
+    fileWarnings.hidden = true;
+    fileWarnings.replaceChildren();
+}
+
+function inspectCsv(csvText) {
+    const lines = csvText
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+    const headerCount = lines.length ? parseCSVLine(lines[0]).length : 0;
+    const invalidRowCount = lines.slice(1)
+        .filter(line => parseCSVLine(line).length !== 28)
+        .length;
+
+    return { headerCount, invalidRowCount };
+}
+
+function showMessages(container, messages) {
+    container.replaceChildren();
+    container.hidden = messages.length === 0;
+
+    for (const message of messages) {
+        const paragraph = document.createElement("p");
+        paragraph.textContent = message;
+        container.append(paragraph);
+    }
+}
+
+async function handleFileSelection() {
+    const file = csvInput.files[0];
+    resetFileState();
 
     if (!file) {
         fileStatus.textContent = "Ningún archivo seleccionado";
@@ -81,84 +115,274 @@ function handleFileSelection() {
         return;
     }
 
-    const sizeInKilobytes = Math.max(1, Math.round(file.size / 1024));
-    fileStatus.textContent =
-        `Archivo seleccionado: ${file.name} · ${sizeInKilobytes} KB. Fechas de demostración disponibles.`;
-    dateSection.hidden = false;
+    fileStatus.textContent = `Leyendo ${file.name}…`;
+
+    try {
+        const csvText = await file.text();
+        const { headerCount, invalidRowCount } = inspectCsv(csvText);
+        parsedRecords = parseCSV(csvText);
+        processedReservations = processReservations(parsedRecords);
+
+        const dates = [...new Set(parsedRecords
+            .map(record => record.estadia.ingreso)
+            .filter(Boolean))]
+            .sort(compareDates);
+        const recordsWithoutVoucher = parsedRecords.filter(record => !record.voucher).length;
+        const recordsWithoutDate = parsedRecords.filter(record => !record.estadia.ingreso).length;
+        const recordsWithoutService = parsedRecords.filter(record => !record.servicios).length;
+
+        if (headerCount !== 28) {
+            csvWarnings.push(`La cabecera tiene ${headerCount} columnas; se esperaban 28.`);
+        }
+        if (invalidRowCount > 0) {
+            csvWarnings.push(`${invalidRowCount} fila(s) tienen una cantidad de columnas distinta de 28 y el parser no las incluyó.`);
+        }
+        if (recordsWithoutVoucher > 0) {
+            csvWarnings.push(`${recordsWithoutVoucher} pasajero(s) no tienen voucher y no pueden agruparse como reserva.`);
+        }
+        if (recordsWithoutDate > 0) {
+            csvWarnings.push(`${recordsWithoutDate} pasajero(s) no tienen fecha de ingreso y no aparecen en una consulta por fecha.`);
+        }
+        if (recordsWithoutService > 0) {
+            csvWarnings.push(`${recordsWithoutService} pasajero(s) no tienen servicio informado; se conservan sin régimen.`);
+        }
+        if (parsedRecords.length === 0) {
+            csvWarnings.push("El parser no encontró filas válidas de 28 columnas.");
+        }
+
+        arrivalDate.replaceChildren(new Option("Selecciona una fecha", ""));
+        for (const date of dates) arrivalDate.add(new Option(date, date));
+        arrivalDate.add(new Option("Otra fecha…", CUSTOM_DATE_OPTION));
+        dateEmptyMessage.hidden = dates.length > 0;
+        dateSection.hidden = false;
+
+        const sizeInKilobytes = Math.max(1, Math.round(file.size / 1024));
+        fileStatus.textContent = `Archivo cargado: ${file.name} · ${sizeInKilobytes} KB · ${parsedRecords.length} pasajeros válidos · ${processedReservations.length} reservas agrupadas.`;
+        showMessages(fileWarnings, csvWarnings);
+    } catch (error) {
+        resetFileState();
+        fileStatus.textContent = `No se pudo procesar el CSV: ${error.message}`;
+    }
 }
 
-function appendCell(row, value, isHeader = false) {
-    const cell = document.createElement(isHeader ? "th" : "td");
-    cell.textContent = value;
+function normalizeService(value) {
+    return String(value || "")
+        .trim()
+        .toUpperCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
 
-    if (isHeader) {
-        cell.scope = "col";
+function getMealRegime(service) {
+    const normalized = normalizeService(service);
+    if (normalized === "PENSION COMPLETA") return "PC";
+    if (normalized === "MEDIA PENSION") return "MAP";
+    return null;
+}
+
+function getDistinctValues(values) {
+    return [...new Set(values.filter(Boolean))];
+}
+
+function getServiceLabel(passengers) {
+    const services = getDistinctValues(passengers.map(passenger => passenger.servicios));
+    if (passengers.some(passenger => !passenger.servicios)) {
+        services.push("Desayuno · servicio no informado en origen");
+    }
+    return services.join(" · ") || "Sin servicio informado";
+}
+
+function formatDateInput(value) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+}
+
+function getSelectedDate() {
+    if (arrivalDate.value === CUSTOM_DATE_OPTION) {
+        return manualArrivalDate.value ? formatDateInput(manualArrivalDate.value) : "";
+    }
+    return arrivalDate.value;
+}
+
+function summarizeArrivals(reservations, incoming, date) {
+    const mapPassengers = incoming.filter(record => getMealRegime(record.servicios) === "MAP");
+    const pcPassengers = incoming.filter(record => getMealRegime(record.servicios) === "PC");
+    const mapVouchers = new Set(reservations
+        .filter(reservation => reservation.pasajeros.some(passenger =>
+            passenger.estadia.ingreso === date && getMealRegime(passenger.servicios) === "MAP"))
+        .map(reservation => reservation.voucher));
+    const pcVouchers = new Set(reservations
+        .filter(reservation => reservation.pasajeros.some(passenger =>
+            passenger.estadia.ingreso === date && getMealRegime(passenger.servicios) === "PC"))
+        .map(reservation => reservation.voucher));
+    const rooms = new Set(incoming
+        .filter(record => record.hotel && record.habitacion.numero)
+        .map(record => `${record.hotel || ""}|${record.habitacion.numero}`));
+    const classificationCounts = {
+        INDIVIDUAL: 0,
+        CONTINGENTE: 0,
+        NO_CLASIFICADA: 0
+    };
+
+    for (const reservation of reservations) {
+        const type = reservation.clasificacion.tipo;
+        if (classificationCounts[type] !== undefined) classificationCounts[type]++;
     }
 
-    row.append(cell);
+    return {
+        passengers: incoming.length,
+        reservations: reservations.length,
+        rooms: rooms.size,
+        mapPassengers: mapPassengers.length,
+        mapReservations: mapVouchers.size,
+        pcPassengers: pcPassengers.length,
+        pcReservations: pcVouchers.size,
+        classificationCounts
+    };
 }
 
 function renderSummary(summary) {
-    const values = {
-        "#passenger-count": summary.passengers,
-        "#reservation-count": summary.reservations,
-        "#room-count": summary.rooms,
-        "#map-passenger-count": summary.mapPassengers,
-        "#map-reservation-count": summary.mapReservations,
-        "#pc-passenger-count": summary.pcPassengers,
-        "#pc-reservation-count": summary.pcReservations
-    };
+    document.querySelector("#passenger-count").textContent = String(summary.passengers);
+    document.querySelector("#reservation-count").textContent = String(summary.reservations);
+    document.querySelector("#room-count").textContent = String(summary.rooms);
+    document.querySelector("#map-passenger-count").textContent = String(summary.mapPassengers);
+    document.querySelector("#map-reservation-count").textContent = String(summary.mapReservations);
+    document.querySelector("#pc-passenger-count").textContent = String(summary.pcPassengers);
+    document.querySelector("#pc-reservation-count").textContent = String(summary.pcReservations);
 
-    for (const [selector, value] of Object.entries(values)) {
-        document.querySelector(selector).textContent = String(value);
-    }
-
-    const mapStatus = document.querySelector("#map-status");
-    mapStatus.textContent = summary.mapReservations > 0
-        ? `Hay ${summary.mapPassengers} pasajeros en ${summary.mapReservations} reservas MAP para esta fecha.`
+    document.querySelector("#map-status").textContent = summary.mapReservations > 0
+        ? `Hay ingresos MAP: ${summary.mapPassengers} pasajeros en ${summary.mapReservations} reservas.`
         : "No hay ingresos MAP para la fecha seleccionada.";
 
-    const classificationStatus = document.querySelector("#classification-status");
-    classificationStatus.textContent = summary.unclassifiedReservations > 0
-        ? `${summary.unclassifiedReservations} reserva(s) y ${summary.unclassifiedPassengers} pasajero(s) sin clasificación; se incluyen en el listado.`
-        : "No hay reservas sin clasificación para esta fecha.";
+    const counts = summary.classificationCounts;
+    document.querySelector("#classification-status").textContent =
+        `Clasificación del motor: ${counts.INDIVIDUAL} individuales · ${counts.CONTINGENTE} contingentes · ${counts.NO_CLASIFICADA} no clasificadas.`;
 }
 
-function renderReservations(rows) {
+function appendCell(row, value) {
+    const cell = document.createElement("td");
+    cell.textContent = value;
+    row.append(cell);
+    return cell;
+}
+
+function addDetails(cell, label, entries) {
+    if (entries.length === 0) return;
+
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = label;
+    details.append(summary);
+    const list = document.createElement("ul");
+    for (const entry of entries) {
+        const item = document.createElement("li");
+        item.textContent = entry;
+        list.append(item);
+    }
+    details.append(list);
+    cell.append(details);
+}
+
+function getRoomLabels(passengers) {
+    return getDistinctValues(passengers.map(passenger => {
+        const room = passenger.habitacion;
+        if (!room?.numero) return null;
+        return room.asignacion ? `${room.numero} ${room.asignacion}` : room.numero;
+    }));
+}
+
+function renderReservationRow(reservation, date) {
+    const arrivals = reservation.pasajeros.filter(passenger => passenger.estadia.ingreso === date);
+    const firstPassenger = reservation.pasajeros[0];
+    const row = document.createElement("tr");
+    const hotels = getDistinctValues(arrivals.map(passenger => passenger.hotel));
+
+    appendCell(row, reservation.voucher || "Sin voucher");
+    appendCell(row, firstPassenger?.pax?.nombre || "Sin dato");
+    appendCell(row, hotels.join(", ") || "Sin dato");
+    appendCell(row, getRoomLabels(arrivals).join(", ") || "Sin dato");
+    appendCell(row, String(arrivals.length));
+    appendCell(row, getServiceLabel(arrivals));
+    const classificationCell = appendCell(row, reservation.clasificacion.tipo);
+    const signals = getDistinctValues(reservation.pasajeros.flatMap(passenger => classifyRecord(passenger).razones));
+    addDetails(classificationCell, "Señales", signals);
+    addDetails(classificationCell, "Advertencias", reservation.clasificacion.advertencias);
+    return row;
+}
+
+function renderUnassignedRow(passenger) {
+    const row = document.createElement("tr");
+    appendCell(row, "Sin voucher");
+    appendCell(row, passenger.pax.nombre || "Sin dato");
+    appendCell(row, passenger.hotel || "Sin dato");
+    appendCell(row, getRoomLabels([passenger]).join(", ") || "Sin dato");
+    appendCell(row, "1");
+    appendCell(row, getServiceLabel([passenger]));
+    const classificationCell = appendCell(row, classifyReservation([passenger]).tipo);
+    const signals = getDistinctValues(classifyRecord(passenger).razones);
+    addDetails(classificationCell, "Señales", signals);
+    addDetails(classificationCell, "Advertencias", ["No agrupada: falta el número de voucher."]);
+    return row;
+}
+
+function processReservationsForDate() {
+    const date = getSelectedDate();
+    if (!date) return;
+
+    const incoming = parsedRecords.filter(record => record.estadia.ingreso === date);
+    const incomingVouchers = new Set(incoming.map(record => record.voucher).filter(Boolean));
+    const matchingReservations = processedReservations.filter(reservation => incomingVouchers.has(reservation.voucher));
+    const unassignedPassengers = incoming.filter(record => !record.voucher);
+    const summary = summarizeArrivals(matchingReservations, incoming, date);
+    const messages = [...csvWarnings];
+    const missingHotel = incoming.filter(record => !record.hotel).length;
+    const missingRoom = incoming.filter(record => !record.habitacion.numero).length;
+    if (missingHotel > 0) messages.push(`${missingHotel} pasajero(s) sin hotel informado.`);
+    if (missingRoom > 0) messages.push(`${missingRoom} pasajero(s) sin habitación informada.`);
+
+    for (const reservation of matchingReservations) {
+        const dates = getDistinctValues(reservation.pasajeros.map(passenger => passenger.estadia.ingreso));
+        if (dates.length > 1) {
+            messages.push(`El voucher ${reservation.voucher} contiene más de una fecha de ingreso; se cuentan solo los pasajeros que ingresan el ${date}.`);
+        }
+        if (getDistinctValues(reservation.pasajeros.map(passenger => passenger.servicios)).length > 1) {
+            messages.push(`El voucher ${reservation.voucher} contiene servicios distintos entre pasajeros; se conservan sin unificar.`);
+        }
+        if (getDistinctValues(reservation.pasajeros.map(passenger => passenger.hotel)).length > 1) {
+            messages.push(`El voucher ${reservation.voucher} contiene hoteles distintos entre pasajeros; se conservan sin unificar.`);
+        }
+    }
+    showMessages(resultWarnings, getDistinctValues(messages));
+
+    document.querySelector("#selected-date-label").textContent = date;
+    renderSummary(summary);
     reservationRows.replaceChildren();
-
-    for (const values of rows) {
-        const row = document.createElement("tr");
-        values.forEach(value => appendCell(row, value));
-        reservationRows.append(row);
+    for (const reservation of matchingReservations) {
+        reservationRows.append(renderReservationRow(reservation, date));
     }
-}
-
-function processDemoReservations() {
-    const demoResult = demoResultsByDate[arrivalDate.value];
-
-    if (!demoResult) {
-        return;
+    for (const passenger of unassignedPassengers) {
+        reservationRows.append(renderUnassignedRow(passenger));
+    }
+    if (matchingReservations.length === 0 && unassignedPassengers.length === 0) {
+        noArrivalsMessage.hidden = false;
+        tableScroll.hidden = true;
     }
 
-    document.querySelector("#selected-date-label").textContent = demoResult.label;
-    renderSummary(demoResult.summary);
-    renderReservations(demoResult.rows);
     resultsSection.hidden = false;
 }
 
 csvInput.addEventListener("change", handleFileSelection);
-
 arrivalDate.addEventListener("change", () => {
     resetResults();
-    processButton.disabled = !demoResultsByDate[arrivalDate.value];
+    const customDateSelected = arrivalDate.value === CUSTOM_DATE_OPTION;
+    manualDateLabel.hidden = !customDateSelected;
+    manualArrivalDate.hidden = !customDateSelected;
+    processButton.disabled = customDateSelected
+        ? !manualArrivalDate.value
+        : !arrivalDate.value;
 });
-
-processButton.addEventListener("click", processDemoReservations);
-
-document.querySelectorAll("[data-action]").forEach(button => {
-    button.addEventListener("click", () => {
-        document.querySelector("#action-status").textContent =
-            `Acción de demostración: ${button.dataset.action} todavía no genera archivos.`;
-    });
+manualArrivalDate.addEventListener("change", () => {
+    resetResults();
+    processButton.disabled = !manualArrivalDate.value;
 });
+processButton.addEventListener("click", processReservationsForDate);
