@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#163b37">
+    <title>Reservas | Solución Hotelera</title>
+    <link rel="stylesheet" href="css/reservations.css">
+    <script src="js/reservations.js" defer></script>
+</head>
+<body>
+    <header class="masthead">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true">S</span>
+            <div>
+                <p class="brand-name">Solución Hotelera</p>
+                <p class="brand-context">Herramientas para recepción</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <a class="back-link" href="../index.html">Volver al inicio</a>
+
+        <section class="page-intro" aria-labelledby="page-title">
+            <p class="eyebrow">Procesamiento de reservas</p>
+            <h1 id="page-title">Reservas</h1>
+            <p>Consulta los ingresos por fecha y revisa las reservas del archivo.</p>
+        </section>
+
+        <p class="demo-notice" role="note">
+            Prototipo visual. Las fechas, los resúmenes y las reservas mostradas son datos de demostración; el archivo seleccionado no se procesa.
+        </p>
+
+        <section class="workflow-section" aria-labelledby="upload-title">
+            <div class="section-heading">
+                <div>
+                    <p class="step-label">Paso 1</p>
+                    <h2 id="upload-title">Archivo de reservas</h2>
+                </div>
+            </div>
+            <div class="upload-row">
+                <input class="file-input" id="csv-input" type="file" accept=".csv,text/csv" aria-describedby="file-status">
+                <label class="button button-secondary" for="csv-input">Seleccionar CSV</label>
+                <p id="file-status" class="file-status" role="status" aria-live="polite">Ningún archivo seleccionado</p>
+            </div>
+        </section>
+
+        <section class="workflow-section" id="date-section" aria-labelledby="date-title" hidden>
+            <div class="section-heading">
+                <div>
+                    <p class="step-label">Paso 2</p>
+                    <h2 id="date-title">Fecha de ingreso</h2>
+                </div>
+            </div>
+            <div class="date-row">
+                <label class="field-label" for="arrival-date">Selecciona una fecha detectada</label>
+                <select id="arrival-date" name="arrival-date">
+                    <option value="">Selecciona una fecha</option>
+                    <option value="2026-09-27">27/09/2026</option>
+                    <option value="2026-09-28">28/09/2026</option>
+                </select>
+                <button class="button button-primary" id="process-button" type="button" disabled>Procesar reservas</button>
+            </div>
+        </section>
+
+        <section class="results-section" id="results-section" aria-labelledby="results-title" hidden>
+            <div class="section-heading results-heading">
+                <div>
+                    <p class="step-label">Resultado de demostración</p>
+                    <h2 id="results-title">Ingresos del <span id="selected-date-label"></span></h2>
+                </div>
+            </div>
+
+            <dl class="overview-metrics" aria-label="Resumen de ingresos">
+                <div class="metric">
+                    <dt>Pasajeros</dt>
+                    <dd id="passenger-count">—</dd>
+                </div>
+                <div class="metric">
+                    <dt>Reservas</dt>
+                    <dd id="reservation-count">—</dd>
+                </div>
+                <div class="metric">
+                    <dt>Habitaciones</dt>
+                    <dd id="room-count">—</dd>
+                </div>
+            </dl>
+
+            <div class="regime-summary" aria-label="Resumen por régimen">
+                <div class="regime-row">
+                    <h3>MAP</h3>
+                    <p><strong id="map-passenger-count">—</strong> pasajeros · <strong id="map-reservation-count">—</strong> reservas</p>
+                    <p class="regime-meals">Desayuno</p>
+                </div>
+                <div class="regime-row">
+                    <h3>PC</h3>
+                    <p><strong id="pc-passenger-count">—</strong> pasajeros · <strong id="pc-reservation-count">—</strong> reservas</p>
+                    <p class="regime-meals">Desayuno, almuerzo y cena</p>
+                </div>
+            </div>
+
+            <p class="map-status" id="map-status" role="status" aria-live="polite"></p>
+            <p class="classification-status" id="classification-status" role="status" aria-live="polite"></p>
+
+            <div class="list-heading">
+                <h2>Reservas encontradas</h2>
+                <p>El titular mostrado es el primer PAX de cada reserva en los datos de demostración.</p>
+            </div>
+            <div class="table-scroll" role="region" aria-label="Listado de reservas" tabindex="0">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Voucher</th>
+                            <th scope="col">Titular</th>
+                            <th scope="col">Hotel</th>
+                            <th scope="col">Habitación/es</th>
+                            <th scope="col">PAX</th>
+                            <th scope="col">Régimen</th>
+                            <th scope="col">Clasificación</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reservation-rows"></tbody>
+                </table>
+            </div>
+
+            <section class="actions-section" aria-labelledby="actions-title">
+                <h2 id="actions-title">Acciones posteriores</h2>
+                <div class="action-buttons">
+                    <button class="button button-secondary" type="button" data-action="Vouchers">Vouchers</button>
+                    <button class="button button-secondary" type="button" data-action="Rooming">Rooming</button>
+                    <button class="button button-secondary" type="button" data-action="Balneario">Balneario</button>
+                </div>
+                <p class="action-note" id="action-status" role="status" aria-live="polite">Acciones ilustrativas; todavía no generan archivos.</p>
+            </section>
+        </section>
+    </main>
+
+    <footer>Solución Hotelera · Prototipo de interfaz de Reservas</footer>
+</body>
+</html>
