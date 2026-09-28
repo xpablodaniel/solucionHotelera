@@ -216,8 +216,11 @@ function summarizeArrivals(reservations, incoming, date) {
             passenger.estadia.ingreso === date && getMealRegime(passenger.servicios) === "PC"))
         .map(reservation => reservation.voucher));
     const rooms = new Set(incoming
-        .filter(record => record.hotel && record.habitacion.numero)
-        .map(record => `${record.hotel || ""}|${record.habitacion.numero}`));
+        .filter(record => record.habitacion?.numero)
+        .map(record => JSON.stringify([
+            record.alojamiento || null,
+            String(record.habitacion.numero)
+        ])));
     const classificationCounts = {
         INDIVIDUAL: 0,
         CONTINGENTE: 0,
@@ -283,12 +286,49 @@ function addDetails(cell, label, entries) {
     cell.append(details);
 }
 
-function getRoomLabels(passengers) {
-    return getDistinctValues(passengers.map(passenger => {
-        const room = passenger.habitacion;
-        if (!room?.numero) return null;
-        return room.asignacion ? `${room.numero} ${room.asignacion}` : room.numero;
-    }));
+function formatRoomLabel(alojamiento, numero, asignaciones = []) {
+    const roomLabel = alojamiento
+        ? `Aloj. ${alojamiento} — Hab. ${numero}`
+        : `Hab. ${numero}`;
+    const assignmentLabel = asignaciones.length
+        ? ` (${asignaciones.join("/")})`
+        : "";
+
+    return `${roomLabel}${assignmentLabel}`;
+}
+
+function getRoomLabels(reservation, date) {
+    const habitaciones = Array.isArray(reservation.habitaciones)
+        ? reservation.habitaciones
+        : [];
+    const labelsByIdentity = new Map();
+
+    for (const habitacion of habitaciones) {
+        if (!habitacion || !habitacion.numero) continue;
+
+        const pasajeros = Array.isArray(habitacion.pasajeros)
+            ? habitacion.pasajeros.filter(passenger =>
+                passenger.estadia.ingreso === date)
+            : [];
+
+        if (pasajeros.length === 0) continue;
+
+        const alojamiento = habitacion.alojamiento ?? null;
+        const numero = String(habitacion.numero);
+        const identity = JSON.stringify([alojamiento, numero]);
+        const asignaciones = getDistinctValues(
+            pasajeros.map(passenger => passenger.habitacion?.asignacion)
+        );
+
+        if (!labelsByIdentity.has(identity)) {
+            labelsByIdentity.set(
+                identity,
+                formatRoomLabel(alojamiento, numero, asignaciones)
+            );
+        }
+    }
+
+    return Array.from(labelsByIdentity.values());
 }
 
 function renderReservationRow(reservation, date) {
@@ -300,7 +340,7 @@ function renderReservationRow(reservation, date) {
     appendCell(row, reservation.voucher || "Sin voucher");
     appendCell(row, firstPassenger?.pax?.nombre || "Sin dato");
     appendCell(row, hotels.join(", ") || "Sin dato");
-    appendCell(row, getRoomLabels(arrivals).join(", ") || "Sin dato");
+    appendCell(row, getRoomLabels(reservation, date).join(", ") || "Sin dato");
     appendCell(row, String(arrivals.length));
     appendCell(row, getServiceLabel(arrivals));
     const classificationCell = appendCell(row, reservation.clasificacion.tipo);
@@ -315,7 +355,15 @@ function renderUnassignedRow(passenger) {
     appendCell(row, "Sin voucher");
     appendCell(row, passenger.pax.nombre || "Sin dato");
     appendCell(row, passenger.hotel || "Sin dato");
-    appendCell(row, getRoomLabels([passenger]).join(", ") || "Sin dato");
+    const room = passenger.habitacion;
+    const roomLabel = room?.numero
+        ? formatRoomLabel(
+            passenger.alojamiento ?? null,
+            room.numero,
+            room.asignacion ? [room.asignacion] : []
+        )
+        : null;
+    appendCell(row, roomLabel || "Sin dato");
     appendCell(row, "1");
     appendCell(row, getServiceLabel([passenger]));
     const classificationCell = appendCell(row, classifyReservation([passenger]).tipo);

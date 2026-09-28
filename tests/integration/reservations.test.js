@@ -198,7 +198,7 @@ test("2. individual MAP reservation with two passengers in one room counts one p
         pcPassengers: 0, pcReservations: 0
     });
     assert.equal(tableRows(dom)[0][1], "SINTETICO-UNO");
-    assert.equal(tableRows(dom)[0][3], "101");
+    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 101");
     assert.equal(tableRows(dom)[0][4], "2");
     closeApp(dom);
 });
@@ -298,14 +298,16 @@ test("8. different services within one voucher stay separate and trigger warning
 test("9. different hotels within one voucher remain visible and trigger a warning", async () => {
     const dom = createApp();
     const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "MIX-HOTEL", room: "227", hotel: "HOTEL 23 DE MAYO" }),
-        makeRecord({ sequence: 2, voucher: "MIX-HOTEL", room: "227", hotel: "HOTEL 31 DE AGOSTO" })
+        makeRecord({ sequence: 1, voucher: "MIX-HOTEL", room: "227", accommodationCode: "900", hotel: "HOTEL 23 DE MAYO" }),
+        makeRecord({ sequence: 2, voucher: "MIX-HOTEL", room: "227", accommodationCode: "901", hotel: "HOTEL 31 DE AGOSTO" })
     ]);
     await uploadCsv(dom, csv);
     processDate(dom, "11/03/2026");
 
     assert.match(tableRows(dom)[0][2], /HOTEL 23 DE MAYO/);
     assert.match(tableRows(dom)[0][2], /HOTEL 31 DE AGOSTO/);
+    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 227, Aloj. 901 — Hab. 227");
+    assert.equal(readSummary(dom).rooms, 2);
     assert.match(textOf(dom, "#result-warnings"), /hoteles distintos/);
     closeApp(dom);
 });
@@ -322,7 +324,7 @@ test("10. mixed-date voucher shows only selected-date passengers and keeps first
     assert.equal(readSummary(dom).passengers, 1);
     assert.equal(readSummary(dom).reservations, 1);
     assert.equal(tableRows(dom)[0][1], "PRIMER-PAX-CSV");
-    assert.equal(tableRows(dom)[0][3], "102");
+    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 102");
     assert.equal(tableRows(dom)[0][4], "1");
     assert.match(textOf(dom, "#result-warnings"), /más de una fecha/);
     closeApp(dom);
@@ -339,20 +341,23 @@ test("11. room assignment suffixes survive while physical room count is one", as
     processDate(dom, "11/03/2026");
 
     assert.equal(readSummary(dom).rooms, 1);
-    assert.equal(tableRows(dom)[0][3], "227 A, 227 B, 227");
+    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 227 (A/B)");
     closeApp(dom);
 });
 
 test("12. same room number in two hotels counts as two physical rooms", async () => {
     const dom = createApp();
     const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "HOTEL-A", room: "227", hotel: "HOTEL 23 DE MAYO" }),
-        makeRecord({ sequence: 2, voucher: "HOTEL-B", room: "227", hotel: "HOTEL 31 DE AGOSTO" })
+        makeRecord({ sequence: 1, voucher: "HOTEL-A", room: "227", accommodationCode: "900", hotel: "HOTEL 23 DE MAYO" }),
+        makeRecord({ sequence: 2, voucher: "HOTEL-B", room: "227", accommodationCode: "901", hotel: "HOTEL 31 DE AGOSTO" })
     ]);
     await uploadCsv(dom, csv);
     processDate(dom, "11/03/2026");
 
     assert.equal(readSummary(dom).rooms, 2);
+    assert.equal(tableRows(dom).length, 2);
+    assert.match(tableRows(dom)[0][3], /Aloj. 900 — Hab. 227|Aloj. 901 — Hab. 227/);
+    assert.match(tableRows(dom)[1][3], /Aloj. 900 — Hab. 227|Aloj. 901 — Hab. 227/);
     closeApp(dom);
 });
 
@@ -361,6 +366,7 @@ test("13. Hotel 31 de Agosto room values 5, 10, 27 and 28 remain ordinary CSV va
     const csv = makeCsv([5, 10, 27, 28].map((room, index) => makeRecord({
         sequence: index + 1,
         voucher: `AGOSTO-${room}`,
+        accommodationCode: "901",
         hotel: "HOTEL 31 DE AGOSTO",
         room: String(room),
         service: "DESAYUNO"
@@ -369,7 +375,12 @@ test("13. Hotel 31 de Agosto room values 5, 10, 27 and 28 remain ordinary CSV va
     processDate(dom, "11/03/2026");
 
     assert.equal(readSummary(dom).rooms, 4);
-    assert.deepEqual(tableRows(dom).map(row => row[3]), ["5", "10", "27", "28"]);
+    assert.deepEqual(tableRows(dom).map(row => row[3]), [
+        "Aloj. 901 — Hab. 5",
+        "Aloj. 901 — Hab. 10",
+        "Aloj. 901 — Hab. 27",
+        "Aloj. 901 — Hab. 28"
+    ]);
     assert.equal(dom.window.document.querySelectorAll("#reservation-rows tr").length, 4);
     closeApp(dom);
 });
@@ -456,7 +467,8 @@ test("18. missing hotel is not inferred and is warned", async () => {
     processDate(dom, "11/03/2026");
 
     assert.equal(tableRows(dom)[0][2], "Sin dato");
-    assert.equal(readSummary(dom).rooms, 0);
+    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 101");
+    assert.equal(readSummary(dom).rooms, 1);
     assert.match(textOf(dom, "#result-warnings"), /sin hotel informado/);
     closeApp(dom);
 });
@@ -470,6 +482,72 @@ test("19. missing room is not inferred and is warned", async () => {
     assert.equal(tableRows(dom)[0][3], "Sin dato");
     assert.equal(readSummary(dom).rooms, 0);
     assert.match(textOf(dom, "#result-warnings"), /sin habitación informada/);
+    closeApp(dom);
+});
+
+test("20. accommodation code and room number appear together in room labels", async () => {
+    const dom = createApp();
+    const csv = makeCsv([
+        makeRecord({ voucher: "ROOM-MIXED", accommodationCode: "900", room: "101" }),
+        makeRecord({ sequence: 2, voucher: "ROOM-MIXED", accommodationCode: "901", hotel: "HOTEL 31 DE AGOSTO", room: "9" })
+    ]);
+    await uploadCsv(dom, csv);
+    processDate(dom, "11/03/2026");
+
+    assert.equal(tableRows(dom).length, 1);
+    assert.equal(
+        tableRows(dom)[0][3],
+        "Aloj. 900 — Hab. 101, Aloj. 901 — Hab. 9"
+    );
+    assert.equal(readSummary(dom).rooms, 2);
+    closeApp(dom);
+});
+
+test("21. same voucher keeps same-number rooms distinct across accommodation codes", async () => {
+    const dom = createApp();
+    const csv = makeCsv([
+        makeRecord({ sequence: 1, voucher: "SAME-VOUCHER", accommodationCode: "900", room: "101" }),
+        makeRecord({ sequence: 2, voucher: "SAME-VOUCHER", accommodationCode: "901", hotel: "HOTEL 31 DE AGOSTO", room: "101" })
+    ]);
+    await uploadCsv(dom, csv);
+    processDate(dom, "11/03/2026");
+
+    assert.equal(tableRows(dom).length, 1);
+    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 101, Aloj. 901 — Hab. 101");
+    assert.equal(readSummary(dom).rooms, 2);
+    closeApp(dom);
+});
+
+test("22. missing accommodation keeps a room label without inventing code 900", async () => {
+    const dom = createApp();
+    const csv = makeCsv([makeRecord({
+        voucher: "NO-ACCOMMODATION",
+        accommodationCode: "",
+        room: "101"
+    })]);
+    await uploadCsv(dom, csv);
+    processDate(dom, "11/03/2026");
+
+    assert.equal(tableRows(dom)[0][3], "Hab. 101");
+    assert.doesNotMatch(tableRows(dom)[0][3], /900/);
+    assert.equal(readSummary(dom).rooms, 1);
+    closeApp(dom);
+});
+
+test("23. separate vouchers sharing 900/101 remain separate rows and one physical room", async () => {
+    const dom = createApp();
+    const csv = makeCsv([
+        makeRecord({ sequence: 1, voucher: "SHARED-A", accommodationCode: "900", room: "101" }),
+        makeRecord({ sequence: 2, voucher: "SHARED-B", accommodationCode: "900", room: "101" })
+    ]);
+    await uploadCsv(dom, csv);
+    processDate(dom, "11/03/2026");
+
+    assert.equal(tableRows(dom).length, 2);
+    assert.deepEqual(tableRows(dom).map(row => row[0]), ["SHARED-A", "SHARED-B"]);
+    assert.equal(readSummary(dom).rooms, 1);
+    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 101");
+    assert.equal(tableRows(dom)[1][3], "Aloj. 900 — Hab. 101");
     closeApp(dom);
 });
 
@@ -547,7 +625,7 @@ function makeStressCsv() {
     return { csv: makeCsv(records), dates };
 }
 
-test("20. seeded 42-PAX mixed CSV has reproducible and manually auditable totals", async () => {
+test("24. seeded 42-PAX mixed CSV has reproducible and manually auditable totals", async () => {
     const dom = createApp();
     const { csv, dates } = makeStressCsv();
     const originalCsv = csv;
@@ -609,7 +687,7 @@ test("20. seeded 42-PAX mixed CSV has reproducible and manually auditable totals
     closeApp(dom);
 });
 
-test("21. integration calls the unchanged engine and does not mutate parsed records", () => {
+test("25. integration calls the unchanged engine and does not mutate parsed records", () => {
     const dom = createApp();
     const csv = makeCsv([
         makeRecord({ sequence: 1, voucher: "IMMUTABLE", transport: "PPJ BUS", package: "PPJ", service: "PENSIÓN COMPLETA" }),
