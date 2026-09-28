@@ -90,8 +90,8 @@ const lineas = csv.split("\n");
 
 assert(
     lineas[0] ===
-        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Observación habitación;Tipo habitación",
-    "La cabecera deberia respetar las 10 columnas historicas"
+        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Observación habitación;Tipo habitación",
+    "La cabecera deberia incluir voucher"
 );
 
 assert(
@@ -109,10 +109,10 @@ assert(
 
 assert(
     lineas[1].startsWith(
-        "249;20/09/2026;25/09/2026;3;DNI;DUMMY-PC-002;ALFA PC;68;"
+        "249;20/09/2026;25/09/2026;3;DNI;DUMMY-PC-002;ALFA PC;68;DUMMY-PC-001;"
     ) &&
         lineas[2].startsWith(
-            "250;20/09/2026;25/09/2026;2;DNI;DUMMY-PC-001;ZETA PC;65;"
+            "250;20/09/2026;25/09/2026;2;DNI;DUMMY-PC-001;ZETA PC;65;DUMMY-PC-001;"
         ),
     "Las filas deberian conservar los campos operativos"
 );
@@ -124,16 +124,16 @@ assert(
 );
 
 assert(
-    lineas.every(linea => linea.split(";").length === 10),
-    "Cada fila deberia conservar 10 columnas"
+    lineas.every(linea => linea.split(";").length === 11),
+    "Cada fila deberia conservar 11 columnas"
 );
 
 assert(
-    !csv.includes("DUMMY-PC-001;PENSION") &&
+    csv.includes("Voucher") &&
+        csv.includes("DUMMY-PC-001") &&
         !csv.includes("NO DEBE APARECER") &&
-        !csv.includes("Voucher") &&
         !csv.includes("Servicio"),
-    "La salida PC no deberia incluir campos MAP ni pasajeros excluidos"
+    "La salida PC deberia incluir voucher sin campos MAP ni pasajeros excluidos"
 );
 
 console.log("OK comparacion de compatibilidad del Rooming PC");

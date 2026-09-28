@@ -39,6 +39,7 @@ function buildPcRoomingReport(reservas) {
 
             filas.push({
                 habitacion: habitacion.numero || null,
+                voucher: reserva.voucher || null,
                 fechaIngreso: pasajero.estadia
                     ? pasajero.estadia.ingreso
                     : null,

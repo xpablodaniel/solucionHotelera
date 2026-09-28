@@ -38,7 +38,7 @@ const header = "Cód. Alojamiento,Descripción,Nro. habitación,Tipo habitación
 const csvEntrada = [
     header,
     "900,HOTEL DEMO,249,TRIPLE A COMPARTIR,,3,DUMMY-PC-002,SECCIONAL DEMO,20/09/2026,25/09/2026,1,DNI,DUMMY-PC-002,ALFA PC,68,SUTEBA,PENSION COMPLETA,PPJ,Sin Transporte,20/09/2026,,,demo@example.com,O,01/01/1958,0,,usuario",
-    "900,HOTEL DEMO,250,DOBLE INDIVIDUAL,PLANTA BAJA,2,DUMMY-PC-001,SECCIONAL DEMO,20/09/2026,25/09/2026,1,DNI,DUMMY-PC-001,ZETA PC,65,SUTEBA,Pensión Completa,PPJ,Sin Transporte,20/09/2026,,,demo@example.com,O,01/01/1961,0,,usuario",
+    "900,HOTEL DEMO,249,TRIPLE A COMPARTIR,PLANTA BAJA,3,DUMMY-PC-001,SECCIONAL DEMO,20/09/2026,25/09/2026,1,DNI,DUMMY-PC-001,ZETA PC,65,SUTEBA,Pensión Completa,PPJ,Sin Transporte,20/09/2026,,,demo@example.com,O,01/01/1961,0,,usuario",
     "900,HOTEL DEMO,251,DOBLE INDIVIDUAL,,2,DUMMY-MAP-001,SECCIONAL DEMO,20/09/2026,25/09/2026,1,DNI,DUMMY-MAP-001,NO DEBE APARECER,60,SUTEBA,MEDIA PENSION,PPJ,Sin Transporte,20/09/2026,,,demo@example.com,O,01/01/1966,0,,usuario"
 ].join("\n");
 
@@ -76,8 +76,11 @@ try {
 
     assert(
         reporte.filas[0].nombre === "ALFA PC" &&
-            reporte.filas[1].nombre === "ZETA PC",
-        "El reporte PC deberia ordenar por habitacion y nombre"
+            reporte.filas[0].voucher === "DUMMY-PC-002" &&
+            reporte.filas[1].nombre === "ZETA PC" &&
+            reporte.filas[1].voucher === "DUMMY-PC-001" &&
+            reporte.filas.every(fila => fila.habitacion === "249"),
+        "El reporte PC deberia conservar vouchers en una habitacion compartida"
     );
 
     assert(
@@ -88,8 +91,10 @@ try {
 
     assert(
         csvSalida.split("\n").length === 3 &&
-            csvSalida.split("\n")[0].split(";").length === 10,
-        "El CSV PC deberia tener cabecera y dos filas de 10 columnas"
+            csvSalida.split("\n")[0].split(";").length === 11 &&
+            csvSalida.includes("DUMMY-PC-001") &&
+            csvSalida.includes("DUMMY-PC-002"),
+        "El CSV PC deberia tener voucher y dos filas de 11 columnas"
     );
 
     assert(

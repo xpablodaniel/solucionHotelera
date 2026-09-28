@@ -26,7 +26,7 @@ const filas = [
         edad: 68,
         observacionHabitacion: "CERCANA; ASCENSOR",
         tipoHabitacion: "TRIPLE A COMPARTIR",
-        voucher: "NO DEBE EXPORTARSE",
+        voucher: "DUMMY-PC-002",
         servicio: "PENSION COMPLETA"
     },
     {
@@ -49,21 +49,21 @@ const lineas = csv.split("\n");
 
 assert(
     lineas[0] ===
-        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Observación habitación;Tipo habitación",
-    "Deberia generar la cabecera historica de 10 columnas"
+        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Observación habitación;Tipo habitación",
+    "Deberia generar la cabecera de 11 columnas con voucher"
 );
 
 assert(
     lineas.length === 3 &&
-        lineas[0].split(";").length === 10 &&
+        lineas[0].split(";").length === 11 &&
         lineas[1].includes("DUMMY-PC-002") &&
         lineas[2].includes("DUMMY-PC-001"),
-    "Deberia generar dos filas con el contrato de 10 columnas"
+    "Deberia generar dos filas con el contrato de 11 columnas"
 );
 
 assert(
     lineas[1].startsWith(
-        "249;20/09/2026;25/09/2026;3;DNI;DUMMY-PC-002;ALFA PC;68;"
+        "249;20/09/2026;25/09/2026;3;DNI;DUMMY-PC-002;ALFA PC;68;DUMMY-PC-002;"
     ),
     "Deberia conservar los campos de la primera fila"
 );
@@ -79,9 +79,9 @@ assert(
 );
 
 assert(
-    !csv.includes("NO DEBE EXPORTARSE") &&
+    csv.includes("DUMMY-PC-002") &&
         !csv.includes("PENSION COMPLETA"),
-    "No deberia exportar campos propios del Rooming MAP"
+    "Deberia exportar voucher sin incluir campos propios del Rooming MAP"
 );
 
 const csvVacio = exportPcRoomingCsv([]);

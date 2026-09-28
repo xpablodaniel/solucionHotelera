@@ -13,6 +13,7 @@ const ROOMING_PC_HEADERS = [
     "Nro. doc.",
     "Apellido y nombre",
     "Edad",
+    "Voucher",
     "Observación habitación",
     "Tipo habitación"
 ];
@@ -27,6 +28,7 @@ const ROOMING_PC_FIELDS = [
     "numeroDocumento",
     "nombre",
     "edad",
+    "voucher",
     "observacionHabitacion",
     "tipoHabitacion"
 ];
