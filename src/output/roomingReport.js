@@ -23,13 +23,18 @@ function buildRoomingReport(reservas) {
 
             const habitacion = pasajero.habitacion || {};
             const pax = pasajero.pax || {};
+            const alojamiento = habitacion.alojamiento ??
+                pasajero.alojamiento ?? null;
             const numeroHabitacion = habitacion.numero || null;
 
             if (numeroHabitacion !== null) {
-                habitaciones.add(String(numeroHabitacion));
+                habitaciones.add(
+                    JSON.stringify([alojamiento, String(numeroHabitacion)])
+                );
             }
 
             filas.push({
+                alojamiento,
                 habitacion: numeroHabitacion,
                 fechaIngreso: pasajero.estadia
                     ? pasajero.estadia.ingreso

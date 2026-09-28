@@ -53,7 +53,7 @@ if (typeof module !== "undefined" && module.exports) {
     };
 }
 /**
- * Agrupa los registros de una reserva por número de habitación.
+ * Agrupa los registros de una reserva por alojamiento y número de habitación.
  *
  * IMPORTANTE:
  * La asignación A/B/C se conserva únicamente como dato
@@ -95,12 +95,18 @@ function groupByRoom(records, esContingente = false) {
             continue;
         }
 
-        if (!rooms.has(numero)) {
+        const alojamiento = record.alojamiento || null;
+        const roomKey = JSON.stringify([alojamiento, numero]);
 
-            rooms.set(numero, {
+        if (!rooms.has(roomKey)) {
+
+            rooms.set(roomKey, {
+                alojamiento,
                 numero,
 
-                inventario: getRoom(numero),
+                inventario: alojamiento
+                    ? getRoom(alojamiento, numero)
+                    : getRoom(numero),
 
                 capacidad: record.plazas
                     ? record.plazas.cantidad
@@ -115,7 +121,7 @@ function groupByRoom(records, esContingente = false) {
             });
         }
 
-        const room = rooms.get(numero);
+        const room = rooms.get(roomKey);
 
         room.pasajeros.push(record);
 

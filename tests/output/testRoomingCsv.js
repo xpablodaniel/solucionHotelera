@@ -25,6 +25,7 @@ const filas = [
         nombre: "ABUELA DEMO",
         edad: 70,
         voucher: "DUMMY-001",
+        alojamiento: "900",
         servicio: "MEDIA PENSION",
         estado: "O",
         paquete: "PPJ",
@@ -41,11 +42,21 @@ const filas = [
         nombre: "AMIGA \"DEMO\"",
         edad: 68,
         voucher: "DUMMY-002",
+        alojamiento: "900",
         servicio: "MEDIA PENSION",
         estado: "O",
         paquete: "PPJ",
         sede: "SECCIONAL DEMO",
         observacionHabitacion: "Línea 1\nLínea 2"
+    },
+    {
+        habitacion: "9",
+        voucher: "DUMMY-003",
+        alojamiento: "901"
+    },
+    {
+        habitacion: "101",
+        voucher: "DUMMY-004"
     }
 ];
 
@@ -57,7 +68,7 @@ const lineas = csv.split("\n");
 
 assert(
     lineas[0] ===
-        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Servicio;Estado;Paquete;Sede;Observación habitación",
+        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Servicio;Estado;Paquete;Sede;Observación habitación;Alojamiento",
     "Deberia generar la cabecera en el orden del contrato"
 );
 
@@ -69,6 +80,14 @@ assert(
 assert(
     lineas[1].includes('"CERCANA, ASCENSOR"'),
     "Deberia escapar campos con comas"
+);
+
+assert(
+    csv.includes('"Línea 1\nLínea 2";900') &&
+        csv.includes("DUMMY-003") &&
+        csv.includes(";901\n") &&
+        csv.endsWith(";"),
+    "Deberia exportar ambos codigos y dejar vacio el alojamiento historico"
 );
 
 assert(

@@ -91,10 +91,11 @@ try {
 
     assert(
         csvSalida.split("\n").length === 3 &&
-            csvSalida.split("\n")[0].split(";").length === 11 &&
+            csvSalida.split("\n")[0].split(";").length === 12 &&
             csvSalida.includes("DUMMY-PC-001") &&
-            csvSalida.includes("DUMMY-PC-002"),
-        "El CSV PC deberia tener voucher y dos filas de 11 columnas"
+            csvSalida.includes("DUMMY-PC-002") &&
+            csvSalida.includes(";900"),
+        "El CSV PC deberia conservar voucher, alojamiento y dos filas de 12 columnas"
     );
 
     assert(

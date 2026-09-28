@@ -39,6 +39,7 @@ function buildRooming(reservas) {
                     ? reserva.clasificacion.tipo
                     : null,
 
+                alojamiento: habitacion.alojamiento ?? null,
                 numero: habitacion.numero,
 
                 inventario: habitacion.inventario
@@ -94,10 +95,13 @@ function groupRoomsForRooming(reservas) {
                 continue;
             }
 
+            const alojamiento = habitacion.alojamiento ?? null;
             const numero = String(habitacion.numero);
+            const roomKey = JSON.stringify([alojamiento, numero]);
 
-            if (!rooms.has(numero)) {
-                rooms.set(numero, {
+            if (!rooms.has(roomKey)) {
+                rooms.set(roomKey, {
+                    alojamiento,
                     numero,
                     inventario: habitacion.inventario
                         ? { ...habitacion.inventario }
@@ -111,7 +115,7 @@ function groupRoomsForRooming(reservas) {
                 });
             }
 
-            const roomingRoom = rooms.get(numero);
+            const roomingRoom = rooms.get(roomKey);
             const pasajeros = Array.isArray(habitacion.pasajeros)
                 ? [...habitacion.pasajeros]
                 : [];

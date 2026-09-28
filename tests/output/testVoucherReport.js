@@ -17,6 +17,7 @@ function passenger({
     dni,
     nombre,
     habitacion,
+    alojamiento = null,
     hotel = "HOTEL DEMO",
     ingreso = "20/09/2026",
     egreso = "25/09/2026"
@@ -24,6 +25,7 @@ function passenger({
 
     return {
         voucher,
+        alojamiento,
         hotel,
         habitacion: {
             numero: habitacion,
@@ -139,6 +141,166 @@ assert(
 );
 
 console.log("OK agrupacion, orden, representante y habitaciones");
+
+
+console.log("Probando identidad de habitaciones multi-hotel...");
+
+const unaHabitacion = buildVoucherReport([
+    {
+        voucher: "IDENTIDAD-900",
+        pasajeros: [passenger({
+            voucher: "IDENTIDAD-900",
+            dni: "10000001",
+            nombre: "PASAJERO 900",
+            alojamiento: "900",
+            hotel: "HOTEL 23 DE MAYO",
+            habitacion: "101"
+        })]
+    }
+], "MAP")[0];
+
+assert(
+    unaHabitacion.habitaciones.length === 1 &&
+        unaHabitacion.habitacionesDetalladas[0].alojamiento === "900" &&
+        unaHabitacion.habitacionesDetalladas[0].numero === "101",
+    "Una habitación 900/101 debería conservar número e identidad"
+);
+
+const mismaHabitacion = buildVoucherReport([
+    {
+        voucher: "IDENTIDAD-DUPLICADA",
+        pasajeros: [
+            passenger({
+                voucher: "IDENTIDAD-DUPLICADA",
+                dni: "10000002",
+                nombre: "PASAJERO A",
+                alojamiento: "900",
+                habitacion: "101"
+            }),
+            passenger({
+                voucher: "IDENTIDAD-DUPLICADA",
+                dni: "10000003",
+                nombre: "PASAJERO B",
+                alojamiento: "900",
+                habitacion: "101"
+            })
+        ]
+    }
+], "MAP")[0];
+
+assert(
+    mismaHabitacion.habitaciones.length === 1 &&
+        mismaHabitacion.habitacionesDetalladas.length === 1,
+    "Dos pasajeros en 900/101 deberían producir una habitación"
+);
+
+const variasHabitaciones = buildVoucherReport([
+    {
+        voucher: "IDENTIDAD-MULTIPLE",
+        pasajeros: [
+            passenger({
+                voucher: "IDENTIDAD-MULTIPLE",
+                dni: "10000004",
+                nombre: "PASAJERO 101",
+                alojamiento: "900",
+                habitacion: "101"
+            }),
+            passenger({
+                voucher: "IDENTIDAD-MULTIPLE",
+                dni: "10000005",
+                nombre: "PASAJERO 102",
+                alojamiento: "900",
+                habitacion: "102"
+            })
+        ]
+    }
+], "MAP")[0];
+
+assert(
+    variasHabitaciones.habitacionesDetalladas.length === 2,
+    "900/101 y 900/102 deberían permanecer como dos habitaciones"
+);
+
+const mismoNumeroHotelesDistintos = buildVoucherReport([
+    {
+        voucher: "IDENTIDAD-DOS-HOTELES",
+        pasajeros: [
+            passenger({
+                voucher: "IDENTIDAD-DOS-HOTELES",
+                dni: "10000006",
+                nombre: "PASAJERO 23",
+                alojamiento: "900",
+                hotel: "HOTEL 23 DE MAYO",
+                habitacion: "101"
+            }),
+            passenger({
+                voucher: "IDENTIDAD-DOS-HOTELES",
+                dni: "10000007",
+                nombre: "PASAJERO 31",
+                alojamiento: "901",
+                hotel: "HOTEL 31 DE AGOSTO",
+                habitacion: "101"
+            })
+        ]
+    }
+], "MAP")[0];
+
+assert(
+    mismoNumeroHotelesDistintos.habitaciones.length === 2 &&
+        mismoNumeroHotelesDistintos.habitacionesDetalladas.length === 2 &&
+        mismoNumeroHotelesDistintos.habitacionesDetalladas[0].alojamiento === "900" &&
+        mismoNumeroHotelesDistintos.habitacionesDetalladas[1].alojamiento === "901",
+    "900/101 y 901/101 deberían permanecer como dos habitaciones distintas"
+);
+
+const vouchersIndependientes = buildVoucherReport([
+    {
+        voucher: "IDENTIDAD-VOUCHER-A",
+        pasajeros: [passenger({
+            voucher: "IDENTIDAD-VOUCHER-A",
+            dni: "10000008",
+            nombre: "VOUCHER A",
+            alojamiento: "900",
+            habitacion: "101"
+        })]
+    },
+    {
+        voucher: "IDENTIDAD-VOUCHER-B",
+        pasajeros: [passenger({
+            voucher: "IDENTIDAD-VOUCHER-B",
+            dni: "10000009",
+            nombre: "VOUCHER B",
+            alojamiento: "900",
+            habitacion: "101"
+        })]
+    }
+], "MAP");
+
+assert(
+    vouchersIndependientes.length === 2 &&
+        vouchersIndependientes[0].voucher !== vouchersIndependientes[1].voucher,
+    "Vouchers diferentes deberían continuar como reportes independientes"
+);
+
+const habitacionHistorica = buildVoucherReport([
+    {
+        voucher: "IDENTIDAD-SIN-CODIGO",
+        pasajeros: [passenger({
+            voucher: "IDENTIDAD-SIN-CODIGO",
+            dni: "10000010",
+            nombre: "SIN CODIGO",
+            habitacion: "101"
+        })]
+    }
+], "MAP")[0];
+
+assert(
+    habitacionHistorica.habitaciones[0] === "101" &&
+        habitacionHistorica.habitacionesDetalladas[0].alojamiento === null,
+    "El reporte histórico debería conservar alojamiento null sin inventar 900"
+);
+
+console.log("OK identidad, deduplicación y compatibilidad histórica");
 
 
 console.log("Probando orden historico por habitacion...");

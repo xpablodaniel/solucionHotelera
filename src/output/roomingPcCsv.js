@@ -15,7 +15,8 @@ const ROOMING_PC_HEADERS = [
     "Edad",
     "Voucher",
     "Observación habitación",
-    "Tipo habitación"
+    "Tipo habitación",
+    "Alojamiento"
 ];
 
 
@@ -30,7 +31,8 @@ const ROOMING_PC_FIELDS = [
     "edad",
     "voucher",
     "observacionHabitacion",
-    "tipoHabitacion"
+    "tipoHabitacion",
+    "alojamiento"
 ];
 
 

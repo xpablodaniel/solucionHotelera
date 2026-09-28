@@ -24,6 +24,7 @@ const filas = [
         numeroDocumento: "DUMMY-PC-002",
         nombre: "ALFA PC",
         edad: 68,
+        alojamiento: "900",
         observacionHabitacion: "CERCANA; ASCENSOR",
         tipoHabitacion: "TRIPLE A COMPARTIR",
         voucher: "DUMMY-PC-002",
@@ -38,6 +39,7 @@ const filas = [
         numeroDocumento: "DUMMY-PC-001",
         nombre: "PASAJERO \"PC\"",
         edad: 65,
+        alojamiento: "901",
         observacionHabitacion: null,
         tipoHabitacion: "DOBLE INDIVIDUAL"
     }
@@ -49,16 +51,16 @@ const lineas = csv.split("\n");
 
 assert(
     lineas[0] ===
-        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Observación habitación;Tipo habitación",
-    "Deberia generar la cabecera de 11 columnas con voucher"
+        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Observación habitación;Tipo habitación;Alojamiento",
+    "Deberia generar la cabecera de 12 columnas con voucher"
 );
 
 assert(
     lineas.length === 3 &&
-        lineas[0].split(";").length === 11 &&
+        lineas[0].split(";").length === 12 &&
         lineas[1].includes("DUMMY-PC-002") &&
         lineas[2].includes("DUMMY-PC-001"),
-    "Deberia generar dos filas con el contrato de 11 columnas"
+    "Deberia generar dos filas con el contrato de 12 columnas"
 );
 
 assert(
@@ -66,6 +68,13 @@ assert(
         "249;20/09/2026;25/09/2026;3;DNI;DUMMY-PC-002;ALFA PC;68;DUMMY-PC-002;"
     ),
     "Deberia conservar los campos de la primera fila"
+);
+
+assert(
+    lineas[1].split(";")[8] === "DUMMY-PC-002" &&
+        lineas[1].endsWith(";900") &&
+        lineas[2].endsWith(";901"),
+    "Deberia conservar Voucher y agregar el alojamiento al final"
 );
 
 assert(
@@ -82,6 +91,15 @@ assert(
     csv.includes("DUMMY-PC-002") &&
         !csv.includes("PENSION COMPLETA"),
     "Deberia exportar voucher sin incluir campos propios del Rooming MAP"
+);
+
+const csvHistorico = exportPcRoomingCsv([
+    { habitacion: "101", voucher: "DUMMY-PC-003" }
+]);
+
+assert(
+    csvHistorico.endsWith(";"),
+    "El alojamiento ausente deberia exportarse como campo vacio"
 );
 
 const csvVacio = exportPcRoomingCsv([]);

@@ -25,6 +25,7 @@ const reservas = [
         pasajeros: [
             {
                 servicios: "Pensión Completa",
+                alojamiento: "900",
                 habitacion: {
                     numero: "250",
                     asignacion: null
@@ -58,6 +59,7 @@ const reservas = [
             },
             {
                 servicios: "PENSION COMPLETA",
+                alojamiento: "901",
                 habitacion: {
                     numero: "249",
                     asignacion: null
@@ -90,7 +92,7 @@ const lineas = csv.split("\n");
 
 assert(
     lineas[0] ===
-        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Observación habitación;Tipo habitación",
+        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Observación habitación;Tipo habitación;Alojamiento",
     "La cabecera deberia incluir voucher"
 );
 
@@ -118,14 +120,14 @@ assert(
 );
 
 assert(
-    lineas[1].endsWith(";TRIPLE A COMPARTIR") &&
-        lineas[2].endsWith("PLANTA BAJA;DOBLE INDIVIDUAL"),
+    lineas[1].endsWith(";TRIPLE A COMPARTIR;901") &&
+        lineas[2].endsWith("PLANTA BAJA;DOBLE INDIVIDUAL;900"),
     "La salida deberia conservar observacion y tipo de habitacion"
 );
 
 assert(
-    lineas.every(linea => linea.split(";").length === 11),
-    "Cada fila deberia conservar 11 columnas"
+    lineas.every(linea => linea.split(";").length === 12),
+    "Cada fila deberia conservar 11 columnas y agregar alojamiento"
 );
 
 assert(

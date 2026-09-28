@@ -85,7 +85,7 @@ try {
 
     assert(
         archivoGenerado.startsWith(
-            "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Servicio;Estado;Paquete;Sede;Observación habitación"
+            "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Servicio;Estado;Paquete;Sede;Observación habitación;Alojamiento"
         ),
         "El archivo deberia contener la cabecera historica"
     );
@@ -101,6 +101,12 @@ try {
         archivoGenerado.includes("DUMMY-001") &&
             archivoGenerado.includes("DUMMY-002"),
         "El archivo deberia conservar los dos vouchers"
+    );
+
+    assert(
+        archivoGenerado.includes(";900") &&
+            archivoGenerado.split("\n").every(linea => linea.split(";").length === 15),
+        "El archivo deberia exportar alojamiento en 15 columnas"
     );
 
     assert(

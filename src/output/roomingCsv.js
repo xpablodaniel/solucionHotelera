@@ -12,7 +12,8 @@ const ROOMING_HEADERS = [
     "Estado",
     "Paquete",
     "Sede",
-    "Observación habitación"
+    "Observación habitación",
+    "Alojamiento"
 ];
 
 
@@ -30,7 +31,8 @@ const ROOMING_FIELDS = [
     "estado",
     "paquete",
     "sede",
-    "observacionHabitacion"
+    "observacionHabitacion",
+    "alojamiento"
 ];
 
 

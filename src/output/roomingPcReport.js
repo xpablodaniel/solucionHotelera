@@ -36,8 +36,11 @@ function buildPcRoomingReport(reservas) {
 
             const habitacion = pasajero.habitacion || {};
             const pax = pasajero.pax || {};
+            const alojamiento = habitacion.alojamiento ??
+                pasajero.alojamiento ?? null;
 
             filas.push({
+                alojamiento,
                 habitacion: habitacion.numero || null,
                 voucher: reserva.voucher || null,
                 fechaIngreso: pasajero.estadia
@@ -83,8 +86,11 @@ function buildPcRoomingReport(reservas) {
             pasajeros: filas.length,
             habitaciones: new Set(
                 filas
-                    .map(fila => fila.habitacion)
-                    .filter(Boolean)
+                    .filter(fila => fila.habitacion)
+                    .map(fila => JSON.stringify([
+                        fila.alojamiento,
+                        String(fila.habitacion)
+                    ]))
             ).size
         }
     };

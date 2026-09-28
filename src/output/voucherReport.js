@@ -65,11 +65,20 @@ function compareDocuments(passengerA, passengerB) {
 }
 
 
-function getRoomNumber(passenger) {
+function getRoom(passenger) {
 
-    return passenger && passenger.habitacion
-        ? passenger.habitacion.numero
-        : null;
+    const habitacion = passenger && passenger.habitacion;
+    const numero = habitacion ? habitacion.numero : null;
+
+    if (!numero) {
+        return null;
+    }
+
+    return {
+        alojamiento: habitacion.alojamiento ??
+            passenger.alojamiento ?? null,
+        numero
+    };
 }
 
 
@@ -118,13 +127,27 @@ function buildVoucherReport(reservas, mode) {
             const representative = pasajeros[0] || {};
             const representativePax = representative.pax || {};
             const representativeStay = representative.estadia || {};
-            const rooms = Array.from(
-                new Set(
-                    pasajerosOriginales
-                        .map(getRoomNumber)
-                        .filter(Boolean)
-                )
-            );
+            const roomsByIdentity = new Map();
+
+            for (const passenger of pasajerosOriginales) {
+
+                const room = getRoom(passenger);
+
+                if (!room) {
+                    continue;
+                }
+
+                const identity = JSON.stringify([
+                    room.alojamiento,
+                    String(room.numero)
+                ]);
+
+                if (!roomsByIdentity.has(identity)) {
+                    roomsByIdentity.set(identity, room);
+                }
+            }
+
+            const rooms = Array.from(roomsByIdentity.values());
             const diasEstadia = getStayDays(pasajeros);
 
             return {
@@ -134,7 +157,8 @@ function buildVoucherReport(reservas, mode) {
                 hotel: representative.hotel || null,
                 fechaIngreso: representativeStay.ingreso || null,
                 fechaEgreso: representativeStay.egreso || null,
-                habitaciones: rooms,
+                habitaciones: rooms.map(room => room.numero),
+                habitacionesDetalladas: rooms,
                 cantidadPasajeros: pasajeros.length,
                 diasEstadia,
                 cantidadComidas: diasEstadia === null

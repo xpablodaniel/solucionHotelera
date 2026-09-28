@@ -6,6 +6,63 @@
  */
 
 
+function normalizeAccommodation(value) {
+
+    if (value === undefined || value === null) {
+        return null;
+    }
+
+    const alojamiento = String(value).trim();
+
+    return alojamiento || null;
+}
+
+
+function findInventoryRoom(room, inventario) {
+
+    const numero = String(room.numero);
+    const matchingRooms = inventario.filter(
+        item => String(item.numero) === numero
+    );
+    const alojamiento = normalizeAccommodation(room.alojamiento);
+
+    if (alojamiento) {
+
+        const exactMatch = matchingRooms.find(
+            item => normalizeAccommodation(item.alojamiento) === alojamiento
+        );
+
+        if (exactMatch) {
+            return exactMatch;
+        }
+
+        return matchingRooms.some(
+            item => normalizeAccommodation(item.alojamiento)
+        )
+            ? null
+            : matchingRooms[0] || null;
+    }
+
+    const inventoryAccommodations = new Set(
+        matchingRooms
+            .map(item => normalizeAccommodation(item.alojamiento))
+            .filter(Boolean)
+    );
+    const hasUnidentifiedRoom = matchingRooms.some(
+        item => !normalizeAccommodation(item.alojamiento)
+    );
+
+    if (
+        inventoryAccommodations.size > 1 ||
+        (inventoryAccommodations.size > 0 && hasUnidentifiedRoom)
+    ) {
+        return null;
+    }
+
+    return matchingRooms[0] || null;
+}
+
+
 /**
  * Valida las habitaciones del Rooming contra su capacidad fisica.
  */
@@ -38,9 +95,7 @@ function validateRoomingInventory(rooming, inventario) {
         const cantidadPasajeros = pasajeros.length;
 
 
-        const habitacionInventario = inventario.find(
-            item => String(item.numero) === String(room.numero)
-        );
+        const habitacionInventario = findInventoryRoom(room, inventario);
 
 
         if (!habitacionInventario) {

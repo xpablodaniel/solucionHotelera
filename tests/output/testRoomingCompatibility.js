@@ -43,7 +43,7 @@ const lineas = salida.split("\n");
 
 assert(
     lineas[0] ===
-        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Servicio;Estado;Paquete;Sede;Observación habitación",
+        "Nro. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas;Tipo documento;Nro. doc.;Apellido y nombre;Edad;Voucher;Servicio;Estado;Paquete;Sede;Observación habitación;Alojamiento",
     "La cabecera deberia respetar el separador del listado original"
 );
 
@@ -70,8 +70,14 @@ assert(
 );
 
 assert(
-    lineas.every(linea => linea.split(";").length === 14),
-    "Cada fila deberia conservar las 14 columnas del contrato original"
+    lineas.every(linea => linea.split(";").length === 15),
+    "Cada fila deberia conservar las 14 columnas originales y agregar alojamiento"
+);
+
+assert(
+    reporte.filas.every(fila => fila.alojamiento === "900") &&
+        lineas.slice(1).every(linea => linea.endsWith(";900")),
+    "Deberia conservar alojamiento en las filas exportadas"
 );
 
 console.log("OK comparacion de compatibilidad del Rooming");
