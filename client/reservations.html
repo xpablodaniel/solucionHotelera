@@ -130,6 +130,42 @@
                 </table>
             </div>
 
+            <section class="related-reservations-section" id="related-reservations-section" aria-labelledby="related-reservations-title" hidden>
+                <div class="section-heading">
+                    <div>
+                        <p class="step-label">Consulta adicional</p>
+                        <h2 id="related-reservations-title">Reservas relacionadas por responsable candidato</h2>
+                    </div>
+                </div>
+
+                <div class="related-query-row">
+                    <label class="field-label" for="related-dni-input">
+                        DNI candidato
+                        <input id="related-dni-input" type="text" inputmode="numeric" autocomplete="off">
+                    </label>
+                    <button class="button button-primary" id="related-dni-button" type="button">Consultar</button>
+                </div>
+
+                <div class="file-warnings related-errors" id="related-errors" role="status" aria-live="polite" hidden></div>
+                <p class="related-empty-message" id="related-empty-message" role="status" hidden>No se encontraron vouchers relacionados para ese DNI candidato.</p>
+
+                <div id="related-results" hidden>
+                    <p class="related-summary" id="related-summary" aria-live="polite"></p>
+                    <div class="table-scroll" role="region" aria-label="Vouchers relacionados" tabindex="0">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Voucher</th>
+                                    <th scope="col">Alojamiento</th>
+                                    <th scope="col">Habitaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="related-reservation-rows"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
             <section class="actions-section" aria-labelledby="actions-title">
                 <h2 id="actions-title">Salidas posteriores</h2>
                 <p class="action-note">La generación de vouchers, Rooming y Balneario se incorporará en una etapa posterior.</p>

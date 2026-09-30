@@ -720,6 +720,233 @@ var ReservationsCore = (() => {
     }
   });
 
+  // src/business/responsibleRelationships.js
+  var require_responsibleRelationships = __commonJS({
+    "src/business/responsibleRelationships.js"(exports, module) {
+      function normalizeResponsibleDni(value) {
+        if (value === void 0 || value === null) {
+          return null;
+        }
+        const text = String(value).trim();
+        return text === "" ? null : text;
+      }
+      function getReservationVoucher(reserva) {
+        if (!reserva || typeof reserva !== "object") {
+          return null;
+        }
+        return reserva.voucher ?? null;
+      }
+      function getResponsibleDni(reserva) {
+        if (!reserva || typeof reserva !== "object") {
+          return null;
+        }
+        const pasajeros = Array.isArray(reserva.pasajeros) ? reserva.pasajeros : [];
+        const primerPasajero = pasajeros[0] || null;
+        if (!primerPasajero || typeof primerPasajero !== "object") {
+          return null;
+        }
+        const pax = primerPasajero.pax || null;
+        if (!pax || typeof pax !== "object") {
+          return null;
+        }
+        return normalizeResponsibleDni(pax.numeroDocumento);
+      }
+      function getVoucherRoomSummary(reserva) {
+        if (!reserva || typeof reserva !== "object") {
+          return {
+            alojamiento: null,
+            habitaciones: []
+          };
+        }
+        const habitaciones = Array.isArray(reserva.habitaciones) ? reserva.habitaciones : [];
+        const numeros = [];
+        const seenNumbers = /* @__PURE__ */ new Set();
+        let alojamiento = null;
+        for (const habitacion of habitaciones) {
+          if (!habitacion || typeof habitacion !== "object") {
+            continue;
+          }
+          const roomNumber = habitacion.numero;
+          const roomAlojamiento = Object.prototype.hasOwnProperty.call(habitacion, "alojamiento") ? habitacion.alojamiento ?? null : null;
+          if (alojamiento === null && roomAlojamiento !== null) {
+            alojamiento = roomAlojamiento;
+          }
+          if (roomNumber === null || roomNumber === void 0 || roomNumber === "") {
+            continue;
+          }
+          const roomLabel = String(roomNumber);
+          if (!seenNumbers.has(roomLabel)) {
+            seenNumbers.add(roomLabel);
+            numeros.push(roomLabel);
+          }
+        }
+        return {
+          alojamiento,
+          habitaciones: numeros
+        };
+      }
+      function buildResponsibleRelationships(reservas) {
+        if (!Array.isArray(reservas)) {
+          throw new TypeError(
+            "buildResponsibleRelationships espera un array de reservas."
+          );
+        }
+        const indexByResponsibleDni = {};
+        const orphanReservations = [];
+        const ignoredReservations = [];
+        for (const [index, reserva] of reservas.entries()) {
+          const voucher = getReservationVoucher(reserva);
+          const pasajeros = Array.isArray(reserva && reserva.pasajeros) ? reserva.pasajeros : [];
+          if (!pasajeros.length) {
+            orphanReservations.push({
+              voucher,
+              motivo: "sinTitularValido"
+            });
+            continue;
+          }
+          const primerPasajero = pasajeros[0];
+          const pax = primerPasajero && typeof primerPasajero === "object" ? primerPasajero.pax || null : null;
+          if (!pax || typeof pax !== "object") {
+            orphanReservations.push({
+              voucher,
+              motivo: "sinTitularValido"
+            });
+            continue;
+          }
+          const dniResponsable = normalizeResponsibleDni(pax.numeroDocumento);
+          if (!dniResponsable) {
+            ignoredReservations.push({
+              voucher,
+              motivo: "dniResponsableNoDisponible"
+            });
+            continue;
+          }
+          if (!indexByResponsibleDni[dniResponsable]) {
+            indexByResponsibleDni[dniResponsable] = {
+              responsableDni: dniResponsable,
+              vouchers: [],
+              cantidadVouchers: 0
+            };
+          }
+          const roomSummary = getVoucherRoomSummary(reserva);
+          const voucherEntry = {
+            voucher,
+            reservaIndex: index,
+            alojamiento: roomSummary.alojamiento,
+            habitaciones: roomSummary.habitaciones
+          };
+          const existingVoucher = indexByResponsibleDni[dniResponsable].vouchers.some((item) => item.voucher === voucher);
+          if (!existingVoucher) {
+            indexByResponsibleDni[dniResponsable].vouchers.push(voucherEntry);
+            indexByResponsibleDni[dniResponsable].cantidadVouchers = indexByResponsibleDni[dniResponsable].vouchers.length;
+          }
+        }
+        return {
+          indexByResponsibleDni,
+          orphanReservations,
+          ignoredReservations
+        };
+      }
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+          buildResponsibleRelationships,
+          getResponsibleDni,
+          normalizeResponsibleDni,
+          getVoucherRoomSummary
+        };
+      }
+    }
+  });
+
+  // src/business/responsibleQueries.js
+  var require_responsibleQueries = __commonJS({
+    "src/business/responsibleQueries.js"(exports, module) {
+      function normalizeQueryDni(value) {
+        if (value === void 0 || value === null) {
+          return null;
+        }
+        const text = String(value).trim();
+        return text === "" ? null : text;
+      }
+      function emptyRelationship(dni) {
+        return {
+          responsableDni: dni,
+          vouchers: [],
+          cantidadVouchers: 0
+        };
+      }
+      function findRelatedReservationsByDni(relations, dni) {
+        const normalizedDni = normalizeQueryDni(dni);
+        const index = relations && relations.indexByResponsibleDni;
+        if (!index || typeof index !== "object" || normalizedDni === null || !Object.prototype.hasOwnProperty.call(index, normalizedDni)) {
+          return emptyRelationship(normalizedDni);
+        }
+        return index[normalizedDni];
+      }
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+          findRelatedReservationsByDni
+        };
+      }
+    }
+  });
+
+  // src/business/responsibleRelationsConsumer.js
+  var require_responsibleRelationsConsumer = __commonJS({
+    "src/business/responsibleRelationsConsumer.js"(exports, module) {
+      var {
+        findRelatedReservationsByDni
+      } = require_responsibleQueries();
+      function snapshotReservation(reserva) {
+        if (!reserva || typeof reserva !== "object") {
+          return null;
+        }
+        return {
+          voucher: reserva.voucher ?? null,
+          cantidadPasajeros: reserva.cantidadPasajeros ?? null,
+          clasificacion: reserva.clasificacion ? {
+            tipo: reserva.clasificacion.tipo ?? null,
+            consistente: reserva.clasificacion.consistente ?? null,
+            advertencias: Array.isArray(reserva.clasificacion.advertencias) ? [...reserva.clasificacion.advertencias] : []
+          } : null,
+          habitaciones: Array.isArray(reserva.habitaciones) ? reserva.habitaciones.map((habitacion) => ({
+            alojamiento: habitacion.alojamiento ?? null,
+            numero: habitacion.numero ?? null,
+            capacidad: habitacion.capacidad ?? null,
+            ocupadasInformadas: habitacion.ocupadasInformadas ?? null,
+            asignaciones: Array.isArray(habitacion.asignaciones) ? [...habitacion.asignaciones] : []
+          })) : []
+        };
+      }
+      function buildResponsibleRelationsView(relations, dni, reservas, options = {}) {
+        const relationship = findRelatedReservationsByDni(relations, dni);
+        const includeDetail = options.includeDetail === true;
+        return {
+          responsableDni: relationship.responsableDni,
+          cantidadVouchers: relationship.cantidadVouchers,
+          vouchers: relationship.vouchers.map((voucherEntry) => {
+            const viewEntry = {
+              voucher: voucherEntry.voucher,
+              alojamiento: voucherEntry.alojamiento,
+              habitaciones: [...voucherEntry.habitaciones],
+              reservaIndex: voucherEntry.reservaIndex
+            };
+            if (includeDetail) {
+              const reserva = Array.isArray(reservas) ? reservas[voucherEntry.reservaIndex] : null;
+              viewEntry.detalle = snapshotReservation(reserva);
+            }
+            return viewEntry;
+          })
+        };
+      }
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+          buildResponsibleRelationsView
+        };
+      }
+    }
+  });
+
   // src/browser/reservations.js
   var require_reservations = __commonJS({
     "src/browser/reservations.js"(exports, module) {
@@ -734,12 +961,24 @@ var ReservationsCore = (() => {
         classifyRecord,
         classifyReservation
       } = require_classification();
+      var {
+        buildResponsibleRelationships
+      } = require_responsibleRelationships();
+      var {
+        findRelatedReservationsByDni
+      } = require_responsibleQueries();
+      var {
+        buildResponsibleRelationsView
+      } = require_responsibleRelationsConsumer();
       module.exports = {
         parseCSV,
         parseCSVLine,
         processReservations,
         classifyRecord,
-        classifyReservation
+        classifyReservation,
+        buildResponsibleRelationships,
+        findRelatedReservationsByDni,
+        buildResponsibleRelationsView
       };
     }
   });

@@ -12,10 +12,25 @@ const {
     classifyReservation
 } = require("../business/classification");
 
+const {
+    buildResponsibleRelationships
+} = require("../business/responsibleRelationships");
+
+const {
+    findRelatedReservationsByDni
+} = require("../business/responsibleQueries");
+
+const {
+    buildResponsibleRelationsView
+} = require("../business/responsibleRelationsConsumer");
+
 module.exports = {
     parseCSV,
     parseCSVLine,
     processReservations,
     classifyRecord,
-    classifyReservation
+    classifyReservation,
+    buildResponsibleRelationships,
+    findRelatedReservationsByDni,
+    buildResponsibleRelationsView
 };

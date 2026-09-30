@@ -3,7 +3,10 @@ const {
     parseCSVLine,
     processReservations,
     classifyRecord,
-    classifyReservation
+    classifyReservation,
+    buildResponsibleRelationships,
+    findRelatedReservationsByDni,
+    buildResponsibleRelationsView
 } = window.ReservationsCore;
 
 const csvInput = document.querySelector("#csv-input");
@@ -20,12 +23,31 @@ const manualDateLabel = document.querySelector("#manual-date-label");
 const manualArrivalDate = document.querySelector("#manual-arrival-date");
 const noArrivalsMessage = document.querySelector("#no-arrivals-message");
 const tableScroll = document.querySelector(".table-scroll");
+const relatedSection = document.querySelector("#related-reservations-section");
+const relatedDniInput = document.querySelector("#related-dni-input");
+const relatedDniButton = document.querySelector("#related-dni-button");
+const relatedErrors = document.querySelector("#related-errors");
+const relatedEmptyMessage = document.querySelector("#related-empty-message");
+const relatedResults = document.querySelector("#related-results");
+const relatedSummary = document.querySelector("#related-summary");
+const relatedReservationRows = document.querySelector("#related-reservation-rows");
 
 const CUSTOM_DATE_OPTION = "__custom_date__";
 
 let parsedRecords = [];
 let processedReservations = [];
+let responsibleRelationships = null;
 let csvWarnings = [];
+
+function resetRelatedResults() {
+    relatedSection.hidden = true;
+    relatedErrors.hidden = true;
+    relatedErrors.replaceChildren();
+    relatedEmptyMessage.hidden = true;
+    relatedResults.hidden = true;
+    relatedSummary.textContent = "";
+    relatedReservationRows.replaceChildren();
+}
 
 function resetResults() {
     resultsSection.hidden = true;
@@ -63,8 +85,10 @@ function compareDates(dateA, dateB) {
 function resetFileState() {
     parsedRecords = [];
     processedReservations = [];
+    responsibleRelationships = null;
     csvWarnings = [];
     resetResults();
+    resetRelatedResults();
     dateSection.hidden = true;
     arrivalDate.replaceChildren(new Option("Selecciona una fecha", ""));
     arrivalDate.add(new Option("Otra fecha…", CUSTOM_DATE_OPTION));
@@ -122,6 +146,7 @@ async function handleFileSelection() {
         const { headerCount, invalidRowCount } = inspectCsv(csvText);
         parsedRecords = parseCSV(csvText);
         processedReservations = processReservations(parsedRecords);
+        responsibleRelationships = buildResponsibleRelationships(processedReservations);
 
         const dates = [...new Set(parsedRecords
             .map(record => record.estadia.ingreso)
@@ -417,6 +442,62 @@ function processReservationsForDate() {
     }
 
     resultsSection.hidden = false;
+    relatedSection.hidden = false;
+}
+
+function renderRelatedReservations() {
+    relatedErrors.hidden = true;
+    relatedErrors.replaceChildren();
+    relatedEmptyMessage.hidden = true;
+    relatedResults.hidden = true;
+    relatedReservationRows.replaceChildren();
+
+    const dni = relatedDniInput.value.trim();
+
+    if (!dni) {
+        relatedErrors.hidden = false;
+        const message = document.createElement("p");
+        message.textContent = "Ingresa un DNI candidato para consultar.";
+        relatedErrors.append(message);
+        return;
+    }
+
+    const relationship = findRelatedReservationsByDni(
+        responsibleRelationships,
+        dni
+    );
+
+    relatedSection.hidden = false;
+
+    if (relationship.vouchers.length === 0) {
+        relatedEmptyMessage.hidden = false;
+        return;
+    }
+
+    const view = buildResponsibleRelationsView(
+        responsibleRelationships,
+        dni
+    );
+
+    relatedSummary.textContent =
+        `Responsable candidato: ${view.responsableDni} · ` +
+        `Vouchers relacionados: ${view.cantidadVouchers}`;
+
+    for (const voucher of view.vouchers) {
+        const row = document.createElement("tr");
+        const voucherCell = document.createElement("td");
+        const accommodationCell = document.createElement("td");
+        const roomsCell = document.createElement("td");
+
+        voucherCell.textContent = voucher.voucher || "—";
+        accommodationCell.textContent = voucher.alojamiento || "—";
+        roomsCell.textContent = voucher.habitaciones.join(", ") || "—";
+
+        row.append(voucherCell, accommodationCell, roomsCell);
+        relatedReservationRows.append(row);
+    }
+
+    relatedResults.hidden = false;
 }
 
 csvInput.addEventListener("change", handleFileSelection);
@@ -434,3 +515,4 @@ manualArrivalDate.addEventListener("change", () => {
     processButton.disabled = !manualArrivalDate.value;
 });
 processButton.addEventListener("click", processReservationsForDate);
+relatedDniButton.addEventListener("click", renderRelatedReservations);

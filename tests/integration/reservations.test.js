@@ -703,3 +703,45 @@ test("25. integration calls the unchanged engine and does not mutate parsed reco
     assert.equal(actual[0].pasajeros[0].pax.nombre, "PASAJERO-SINTETICO-1");
     closeApp(dom);
 });
+
+test("26. related reservations query uses real responsible candidates", async () => {
+    const dom = createApp();
+    const realCsv = fs.readFileSync(path.join(root, "oct31_8.csv"), "utf8");
+
+    await uploadCsv(dom, realCsv, "oct31_8.csv");
+    processDate(dom, "01/10/2026");
+
+    const dniInput = dom.window.document.querySelector("#related-dni-input");
+    const queryButton = dom.window.document.querySelector("#related-dni-button");
+    const relatedRows = () => [...dom.window.document.querySelectorAll(
+        "#related-reservation-rows tr"
+    )].map(row => [...row.cells].map(cell => cell.textContent.trim()));
+
+    dniInput.value = "14885869";
+    queryButton.click();
+
+    assert.equal(
+        textOf(dom, "#related-summary"),
+        "Responsable candidato: 14885869 · Vouchers relacionados: 2"
+    );
+    assert.deepEqual(
+        relatedRows().map(row => row[0]).sort(),
+        ["30252951", "30253015"]
+    );
+
+    dniInput.value = "35656610";
+    queryButton.click();
+    assert.deepEqual(
+        relatedRows().map(row => row[0]).sort(),
+        ["9005042", "9005043"]
+    );
+
+    dniInput.value = "14340128";
+    queryButton.click();
+    assert.equal(
+        textOf(dom, "#related-empty-message"),
+        "No se encontraron vouchers relacionados para ese DNI candidato."
+    );
+    assert.equal(dom.window.document.querySelector("#related-empty-message").hidden, false);
+    closeApp(dom);
+});
