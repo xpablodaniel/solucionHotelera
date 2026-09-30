@@ -137,6 +137,12 @@ assert(
 );
 
 assert(
+    relacionados.indexByResponsibleDni["12345678"].vouchers.some(v => v.voucher === "A" && v.reservaIndex === 0) &&
+    relacionados.indexByResponsibleDni["12345678"].vouchers.some(v => v.voucher === "B" && v.reservaIndex === 1),
+    "Cada voucher debe conservar el índice original dentro del array recibido"
+);
+
+assert(
     relacionados.indexByResponsibleDni["12345678"].vouchers.some(v => v.voucher === "A") &&
     relacionados.indexByResponsibleDni["12345678"].vouchers.some(v => v.voucher === "B"),
     "Debe incluir ambos vouchers del mismo responsable"
@@ -185,6 +191,12 @@ assert(
 assert(
     relacionados.indexByResponsibleDni["44444444"].cantidadVouchers === 2,
     "Un responsable con varios vouchers mantiene todos los vouchers en el mismo grupo"
+);
+
+assert(
+    relacionados.indexByResponsibleDni["44444444"].vouchers.some(item => item.voucher === "E" && item.reservaIndex === 6) &&
+    relacionados.indexByResponsibleDni["44444444"].vouchers.some(item => item.voucher === "F" && item.reservaIndex === 7),
+    "Los índices deben reflejar exactamente la posición original del array"
 );
 
 assert(

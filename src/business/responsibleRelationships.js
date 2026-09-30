@@ -113,7 +113,7 @@ function buildResponsibleRelationships(reservas) {
     const orphanReservations = [];
     const ignoredReservations = [];
 
-    for (const reserva of reservas) {
+    for (const [index, reserva] of reservas.entries()) {
         const voucher = getReservationVoucher(reserva);
         const pasajeros = Array.isArray(reserva && reserva.pasajeros)
             ? reserva.pasajeros
@@ -161,6 +161,7 @@ function buildResponsibleRelationships(reservas) {
         const roomSummary = getVoucherRoomSummary(reserva);
         const voucherEntry = {
             voucher,
+            reservaIndex: index,
             alojamiento: roomSummary.alojamiento,
             habitaciones: roomSummary.habitaciones
         };
