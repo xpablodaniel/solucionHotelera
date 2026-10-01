@@ -6,7 +6,8 @@ const {
     classifyReservation,
     buildResponsibleRelationships,
     findRelatedReservationsByDni,
-    buildResponsibleRelationsView
+    buildResponsibleRelationsView,
+    projectResponsibleReservationDetail
 } = window.ReservationsCore;
 
 const csvInput = document.querySelector("#csv-input");
@@ -31,6 +32,7 @@ const relatedEmptyMessage = document.querySelector("#related-empty-message");
 const relatedResults = document.querySelector("#related-results");
 const relatedSummary = document.querySelector("#related-summary");
 const relatedReservationRows = document.querySelector("#related-reservation-rows");
+const relatedDetailList = document.querySelector("#related-detail-list");
 
 const CUSTOM_DATE_OPTION = "__custom_date__";
 
@@ -47,6 +49,7 @@ function resetRelatedResults() {
     relatedResults.hidden = true;
     relatedSummary.textContent = "";
     relatedReservationRows.replaceChildren();
+    relatedDetailList.replaceChildren();
 }
 
 function resetResults() {
@@ -495,9 +498,100 @@ function renderRelatedReservations() {
 
         row.append(voucherCell, accommodationCell, roomsCell);
         relatedReservationRows.append(row);
+
+        const detail = projectResponsibleReservationDetail(
+            processedReservations,
+            voucher.reservaIndex,
+            view.responsableDni
+        );
+
+        if (detail) {
+            relatedDetailList.append(renderRelatedReservationDetail(detail));
+        }
     }
 
     relatedResults.hidden = false;
+}
+
+function appendDetailField(container, label, value) {
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+
+    term.textContent = label;
+    description.textContent = value;
+    container.append(term, description);
+}
+
+function appendConsolidatedField(container, label, field) {
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+
+    term.textContent = label;
+
+    if (field.uniforme) {
+        description.textContent = field.valor || "—";
+    }
+    else {
+        const title = document.createElement("span");
+        const values = document.createElement("ul");
+
+        title.textContent = "Valores diferentes";
+        for (const value of field.valores) {
+            const item = document.createElement("li");
+            item.textContent = value || "—";
+            values.append(item);
+        }
+
+        description.append(title, values);
+    }
+
+    container.append(term, description);
+}
+
+function renderRelatedReservationDetail(detail) {
+    const article = document.createElement("article");
+    const heading = document.createElement("h3");
+    const identity = document.createElement("dl");
+    const roomsHeading = document.createElement("h4");
+    const roomsTable = document.createElement("table");
+    const roomsHead = document.createElement("thead");
+    const roomsBody = document.createElement("tbody");
+    const roomsHeaderRow = document.createElement("tr");
+
+    article.className = "related-detail";
+    heading.textContent = `Voucher ${detail.voucher || "—"}`;
+    identity.className = "related-detail-fields";
+    appendDetailField(identity, "Responsable candidato", detail.responsableDni || "—");
+    appendDetailField(identity, "Alojamiento", detail.alojamiento || "—");
+    appendDetailField(identity, "Pasajeros", String(detail.cantidadPasajeros));
+    appendDetailField(identity, "Clasificación", detail.clasificacion?.tipo || "—");
+    appendConsolidatedField(identity, "Ingreso", detail.fechaIngreso);
+    appendConsolidatedField(identity, "Egreso", detail.fechaEgreso);
+    appendConsolidatedField(identity, "Servicios", detail.servicios);
+
+    roomsHeading.textContent = "Habitaciones";
+    roomsTable.className = "related-detail-rooms";
+    roomsTable.append(roomsHead, roomsBody);
+    for (const label of ["Habitación", "Capacidad / ocupación"]) {
+        const cell = document.createElement("th");
+        cell.scope = "col";
+        cell.textContent = label;
+        roomsHeaderRow.append(cell);
+    }
+    roomsHead.append(roomsHeaderRow);
+
+    for (const room of detail.habitaciones) {
+        const row = document.createElement("tr");
+        const numberCell = document.createElement("td");
+        const capacityCell = document.createElement("td");
+        numberCell.textContent = room.numero || "—";
+        capacityCell.textContent = `${room.capacidad ?? "—"} / ${room.ocupadasInformadas ?? "—"}`;
+        row.append(numberCell, capacityCell);
+        roomsBody.append(row);
+    }
+
+    article.append(heading, identity, roomsHeading, roomsTable);
+    return article;
 }
 
 csvInput.addEventListener("change", handleFileSelection);

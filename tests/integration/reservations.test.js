@@ -736,6 +736,15 @@ test("26. related reservations query uses real responsible candidates", async ()
         ["9005042", "9005043"]
     );
 
+    dniInput.value = "24973836";
+    queryButton.click();
+    const multiRoomDetail = dom.window.document.querySelector("#related-detail-list").textContent;
+    assert.match(multiRoomDetail, /Voucher 30255244/);
+    for (const room of ["11", "15", "20", "21", "22"]) {
+        assert.match(multiRoomDetail, new RegExp(room));
+    }
+    assert.match(multiRoomDetail, /14/);
+
     dniInput.value = "14340128";
     queryButton.click();
     assert.equal(
@@ -743,5 +752,51 @@ test("26. related reservations query uses real responsible candidates", async ()
         "No se encontraron vouchers relacionados para ese DNI candidato."
     );
     assert.equal(dom.window.document.querySelector("#related-empty-message").hidden, false);
+    closeApp(dom);
+});
+
+test("27. related detail renders multi-room and divergent values", async () => {
+    const dom = createApp();
+    const csv = makeCsv([
+        makeRecord({
+            sequence: 1,
+            voucher: "UI2-DIVERGENT",
+            document: "UI2-CANDIDATE",
+            arrival: "11/03/2026",
+            departure: "14/03/2026",
+            service: "SERVICIO A",
+            room: "101",
+            capacity: "2",
+            occupied: "2"
+        }),
+        makeRecord({
+            sequence: 2,
+            voucher: "UI2-DIVERGENT",
+            document: "UI2-SECOND",
+            arrival: "12/03/2026",
+            departure: "15/03/2026",
+            service: "SERVICIO B",
+            room: "102",
+            capacity: "3",
+            occupied: "3"
+        })
+    ]);
+
+    await uploadCsv(dom, csv);
+    processDate(dom, "11/03/2026");
+
+    const dniInput = dom.window.document.querySelector("#related-dni-input");
+    dniInput.value = "UI2-CANDIDATE";
+    dom.window.document.querySelector("#related-dni-button").click();
+
+    const detailText = dom.window.document.querySelector("#related-detail-list").textContent;
+    assert.match(detailText, /Voucher UI2-DIVERGENT/);
+    assert.match(detailText, /Valores diferentes/);
+    assert.match(detailText, /SERVICIO A/);
+    assert.match(detailText, /SERVICIO B/);
+    assert.match(detailText, /101/);
+    assert.match(detailText, /102/);
+    assert.match(detailText, /2 \/ 2/);
+    assert.match(detailText, /3 \/ 3/);
     closeApp(dom);
 });
