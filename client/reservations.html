@@ -165,6 +165,64 @@
                     </div>
                     <div class="related-detail-list" id="related-detail-list" aria-live="polite"></div>
                 </div>
+
+                <section class="responsible-aggregate-section" id="responsible-aggregate-section" aria-labelledby="responsible-aggregate-title" hidden>
+                    <div class="section-heading">
+                        <div>
+                            <p class="step-label">Vista consolidada</p>
+                            <h3 id="responsible-aggregate-title">Resumen de vouchers relacionados</h3>
+                        </div>
+                    </div>
+
+                    <dl class="overview-metrics responsible-aggregate-summary" aria-label="Resumen del responsable candidato">
+                        <div class="metric aggregate-metric">
+                            <dt>Responsable candidato</dt>
+                            <dd id="aggregate-responsible-dni">—</dd>
+                        </div>
+                        <div class="metric aggregate-metric">
+                            <dt>Vouchers</dt>
+                            <dd id="aggregate-voucher-count">—</dd>
+                        </div>
+                        <div class="metric aggregate-metric">
+                            <dt>PAX registrados</dt>
+                            <dd id="aggregate-pax-count">—</dd>
+                        </div>
+                        <div class="metric aggregate-metric">
+                            <dt>DNI distintos informados</dt>
+                            <dd id="aggregate-document-count">—</dd>
+                        </div>
+                        <div class="metric aggregate-metric">
+                            <dt>Alojamientos</dt>
+                            <dd id="aggregate-accommodations">—</dd>
+                        </div>
+                        <div class="metric aggregate-metric">
+                            <dt>Ingreso mínimo</dt>
+                            <dd id="aggregate-min-arrival">—</dd>
+                        </div>
+                        <div class="metric aggregate-metric">
+                            <dt>Egreso máximo</dt>
+                            <dd id="aggregate-max-departure">—</dd>
+                        </div>
+                    </dl>
+
+                    <div class="table-scroll" id="responsible-aggregate-results" role="region" aria-label="Resumen por voucher" tabindex="0">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Voucher</th>
+                                    <th scope="col">Alojamiento</th>
+                                    <th scope="col">Habitaciones</th>
+                                    <th scope="col">Ingreso</th>
+                                    <th scope="col">Egreso</th>
+                                    <th scope="col">PAX</th>
+                                    <th scope="col">Clasificación</th>
+                                    <th scope="col">Servicios</th>
+                                </tr>
+                            </thead>
+                            <tbody id="responsible-aggregate-rows"></tbody>
+                        </table>
+                    </div>
+                </section>
             </section>
 
             <section class="actions-section" aria-labelledby="actions-title">

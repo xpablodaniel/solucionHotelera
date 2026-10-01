@@ -806,5 +806,125 @@ test("27. related detail renders multi-room and divergent values", async () => {
     assert.match(detailText, /102/);
     assert.match(detailText, /2 \/ 2/);
     assert.match(detailText, /3 \/ 3/);
+
+    const aggregateRow = dom.window.document.querySelector(
+        "#responsible-aggregate-rows tr"
+    );
+    assert.ok(aggregateRow, "UI 3 should render the voucher row");
+    assert.match(aggregateRow.cells[3].textContent, /Valores diferentes/);
+    assert.match(aggregateRow.cells[3].textContent, /11\/03\/2026/);
+    assert.match(aggregateRow.cells[3].textContent, /12\/03\/2026/);
+    assert.match(aggregateRow.cells[4].textContent, /14\/03\/2026/);
+    assert.match(aggregateRow.cells[4].textContent, /15\/03\/2026/);
+    assert.match(aggregateRow.cells[7].textContent, /Valores diferentes/);
+    assert.match(aggregateRow.cells[7].textContent, /SERVICIO A/);
+    assert.match(aggregateRow.cells[7].textContent, /SERVICIO B/);
+    closeApp(dom);
+});
+
+test("28. UI 3 replaces aggregate rows across the three real responsible candidates", async () => {
+    const dom = createApp();
+    const realCsv = fs.readFileSync(path.join(root, "oct31_8.csv"), "utf8");
+
+    await uploadCsv(dom, realCsv, "oct31_8.csv");
+    processDate(dom, "01/10/2026");
+
+    const document = dom.window.document;
+    const dniInput = document.querySelector("#related-dni-input");
+    const queryButton = document.querySelector("#related-dni-button");
+    const relatedRows = () => [...document.querySelectorAll(
+        "#related-reservation-rows tr"
+    )].map(row => row.cells[0].textContent.trim());
+    const aggregateRows = () => [...document.querySelectorAll(
+        "#responsible-aggregate-rows tr"
+    )].map(row => [...row.cells].map(cell => cell.textContent.trim()));
+    const cases = [
+        {
+            dni: "14885869",
+            vouchers: ["30252951", "30253015"],
+            pax: "4",
+            documents: "2",
+            rooms: "23",
+            arrival: "05/10/2026",
+            departure: "08/10/2026"
+        },
+        {
+            dni: "35656610",
+            vouchers: ["9005042", "9005043"],
+            pax: "4",
+            documents: "2",
+            rooms: "14",
+            arrival: "08/10/2026",
+            departure: "12/10/2026"
+        },
+        {
+            dni: "24973836",
+            vouchers: ["30255244"],
+            pax: "14",
+            documents: "14",
+            rooms: "11, 15, 20, 21, 22",
+            arrival: "09/10/2026",
+            departure: "11/10/2026"
+        }
+    ];
+
+    for (const expected of cases) {
+        dniInput.value = expected.dni;
+        queryButton.click();
+
+        const rows = aggregateRows();
+        assert.equal(rows.length, expected.vouchers.length);
+        assert.deepEqual(rows.map(row => row[0]), expected.vouchers);
+        assert.deepEqual(relatedRows(), expected.vouchers);
+        assert.equal(
+            document.querySelectorAll("#related-detail-list .related-detail").length,
+            expected.vouchers.length
+        );
+        assert.equal(document.querySelector("#aggregate-responsible-dni").textContent, expected.dni);
+        assert.equal(document.querySelector("#aggregate-voucher-count").textContent, String(expected.vouchers.length));
+        assert.equal(document.querySelector("#aggregate-pax-count").textContent, expected.pax);
+        assert.equal(document.querySelector("#aggregate-document-count").textContent, expected.documents);
+        assert.equal(document.querySelector("#aggregate-accommodations").textContent, "901");
+        assert.equal(document.querySelector("#aggregate-min-arrival").textContent, expected.arrival);
+        assert.equal(document.querySelector("#aggregate-max-departure").textContent, expected.departure);
+        assert.equal(document.querySelector("#responsible-aggregate-section").hidden, false);
+        assert.doesNotMatch(
+            document.querySelector("#responsible-aggregate-section").textContent,
+            /continuidad|reingreso|cambio de habitación|familia|estancia acumulada|superposición|titular/i
+        );
+    }
+
+    const finalRows = aggregateRows();
+    assert.equal(finalRows.length, 1, "la última consulta debe reemplazar las dos filas anteriores");
+    assert.equal(finalRows[0][0], "30255244");
+    assert.equal(finalRows[0][2], "11, 15, 20, 21, 22");
+
+    for (const dni of ["14340128", "00000000"]) {
+        dniInput.value = dni;
+        queryButton.click();
+
+        assert.equal(aggregateRows().length, 0);
+        assert.equal(document.querySelector("#responsible-aggregate-section").hidden, true);
+        assert.equal(document.querySelector("#aggregate-responsible-dni").textContent, "");
+        assert.deepEqual(relatedRows(), []);
+        assert.equal(
+            document.querySelectorAll("#related-detail-list .related-detail").length,
+            0
+        );
+        assert.equal(document.querySelector("#related-results").hidden, true);
+        assert.equal(document.querySelector("#related-empty-message").hidden, false);
+    }
+
+    dniInput.value = "14885869";
+    queryButton.click();
+    assert.equal(aggregateRows().length, 2);
+    assert.deepEqual(relatedRows(), ["30252951", "30253015"]);
+
+    dniInput.value = "35656610";
+    queryButton.click();
+    const serviceRows = aggregateRows();
+    assert.match(serviceRows[0][7], /DESAYUNO U\.PROPIAS/);
+    assert.match(serviceRows[1][7], /MEDIA PENSION/);
+
     closeApp(dom);
 });

@@ -7,7 +7,8 @@ const {
     buildResponsibleRelationships,
     findRelatedReservationsByDni,
     buildResponsibleRelationsView,
-    projectResponsibleReservationDetail
+    projectResponsibleReservationDetail,
+    buildResponsibleRelationsAggregateView
 } = window.ReservationsCore;
 
 const csvInput = document.querySelector("#csv-input");
@@ -33,6 +34,8 @@ const relatedResults = document.querySelector("#related-results");
 const relatedSummary = document.querySelector("#related-summary");
 const relatedReservationRows = document.querySelector("#related-reservation-rows");
 const relatedDetailList = document.querySelector("#related-detail-list");
+const responsibleAggregateSection = document.querySelector("#responsible-aggregate-section");
+const responsibleAggregateRows = document.querySelector("#responsible-aggregate-rows");
 
 const CUSTOM_DATE_OPTION = "__custom_date__";
 
@@ -50,6 +53,23 @@ function resetRelatedResults() {
     relatedSummary.textContent = "";
     relatedReservationRows.replaceChildren();
     relatedDetailList.replaceChildren();
+}
+
+function resetResponsibleAggregate() {
+    responsibleAggregateSection.hidden = true;
+    responsibleAggregateRows.replaceChildren();
+
+    for (const selector of [
+        "#aggregate-responsible-dni",
+        "#aggregate-voucher-count",
+        "#aggregate-pax-count",
+        "#aggregate-document-count",
+        "#aggregate-accommodations",
+        "#aggregate-min-arrival",
+        "#aggregate-max-departure"
+    ]) {
+        document.querySelector(selector).textContent = "";
+    }
 }
 
 function resetResults() {
@@ -92,6 +112,7 @@ function resetFileState() {
     csvWarnings = [];
     resetResults();
     resetRelatedResults();
+    resetResponsibleAggregate();
     dateSection.hidden = true;
     arrivalDate.replaceChildren(new Option("Selecciona una fecha", ""));
     arrivalDate.add(new Option("Otra fecha…", CUSTOM_DATE_OPTION));
@@ -514,6 +535,72 @@ function renderRelatedReservations() {
     relatedResults.hidden = false;
 }
 
+function appendAggregateField(cell, field) {
+    if (!field) {
+        cell.textContent = "Sin dato";
+        return;
+    }
+
+    if (field.uniforme) {
+        cell.textContent = field.valor || "Sin dato";
+        return;
+    }
+
+    const label = document.createElement("span");
+    const values = document.createElement("ul");
+    label.className = "aggregate-divergence-label";
+    label.textContent = "Valores diferentes";
+
+    for (const value of field.valores) {
+        const item = document.createElement("li");
+        item.textContent = value || "Sin dato";
+        values.append(item);
+    }
+
+    cell.append(label, values);
+}
+
+function renderResponsibleAggregate() {
+    resetResponsibleAggregate();
+
+    const dni = relatedDniInput.value.trim();
+    if (!dni || !responsibleRelationships) return;
+
+    const view = buildResponsibleRelationsAggregateView(
+        responsibleRelationships,
+        dni,
+        processedReservations
+    );
+
+    if (view.vouchers.length === 0) return;
+
+    document.querySelector("#aggregate-responsible-dni").textContent = view.responsableDni || "Sin dato";
+    document.querySelector("#aggregate-voucher-count").textContent = String(view.cantidadVouchers);
+    document.querySelector("#aggregate-pax-count").textContent = String(view.totalPaxRegistrados);
+    document.querySelector("#aggregate-document-count").textContent = String(view.documentosDistintos);
+    document.querySelector("#aggregate-accommodations").textContent = view.alojamientos.join(", ") || "Sin dato";
+    document.querySelector("#aggregate-min-arrival").textContent = view.extremosFechas.ingresoMinimo || "Sin dato";
+    document.querySelector("#aggregate-max-departure").textContent = view.extremosFechas.egresoMaximo || "Sin dato";
+
+    for (const voucher of view.vouchers) {
+        const row = document.createElement("tr");
+        const voucherCell = document.createElement("td");
+
+        voucherCell.textContent = voucher.voucher || "Sin dato";
+        row.append(voucherCell);
+        appendCell(row, voucher.alojamiento || "Sin dato");
+        appendCell(row, voucher.habitaciones.join(", ") || "Sin dato");
+        appendAggregateField(appendCell(row, ""), voucher.fechaIngreso);
+        appendAggregateField(appendCell(row, ""), voucher.fechaEgreso);
+        appendCell(row, String(voucher.cantidadPasajeros));
+        appendCell(row, voucher.clasificacion?.tipo || "Sin dato");
+        appendAggregateField(appendCell(row, ""), voucher.servicios);
+        responsibleAggregateRows.append(row);
+    }
+
+    responsibleAggregateSection.hidden = false;
+}
+
 function appendDetailField(container, label, value) {
     const term = document.createElement("dt");
     const description = document.createElement("dd");
@@ -611,3 +698,4 @@ manualArrivalDate.addEventListener("change", () => {
 });
 processButton.addEventListener("click", processReservationsForDate);
 relatedDniButton.addEventListener("click", renderRelatedReservations);
+relatedDniButton.addEventListener("click", renderResponsibleAggregate);
