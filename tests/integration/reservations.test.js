@@ -752,6 +752,14 @@ test("26. related reservations query uses real responsible candidates", async ()
         "No se encontraron vouchers relacionados para ese DNI candidato."
     );
     assert.equal(dom.window.document.querySelector("#related-empty-message").hidden, false);
+
+    dniInput.value = "14885869";
+    queryButton.click();
+    assert.deepEqual(
+        [...dom.window.document.querySelectorAll("#related-detail-list h3")]
+            .map(heading => heading.textContent),
+        ["Voucher 30252951", "Voucher 30253015"]
+    );
     closeApp(dom);
 });
 

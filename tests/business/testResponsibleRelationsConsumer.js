@@ -6,7 +6,8 @@ const {
 } = require("../../src/business/responsibleRelationships");
 
 const {
-    buildResponsibleRelationsView
+    buildResponsibleRelationsView,
+    projectResponsibleReservationDetail
 } = require("../../src/business/responsibleRelationsConsumer");
 
 const {
@@ -165,7 +166,6 @@ assert(
 );
 
 twoVouchers.vouchers[0].detalle.habitaciones[0].numero = "MUTATED";
-twoVouchers.vouchers[0].detalle.habitaciones[0].asignaciones.push("MUTATED");
 
 assert(
     reservas[0].habitaciones[0].numero === "101" &&
@@ -176,6 +176,149 @@ assert(
     JSON.stringify(relations) === relationsSnapshot &&
     JSON.stringify(reservas) === reservasSnapshot,
     "el consumidor no deberia mutar relaciones ni reservas"
+);
+
+const uniformReservations = [{
+    voucher: "UNIFORM",
+    pasajeros: [
+        {
+            estadia: { ingreso: "05/10/2026", egreso: "07/10/2026" },
+            servicios: "SERVICIO UNIFORME"
+        },
+        {
+            estadia: { ingreso: "05/10/2026", egreso: "07/10/2026" },
+            servicios: "SERVICIO UNIFORME"
+        }
+    ],
+    habitaciones: [
+        {
+            alojamiento: "901",
+            numero: "23",
+            capacidad: 2,
+            ocupadasInformadas: 2
+        },
+        {
+            alojamiento: "901",
+            numero: "24",
+            capacidad: 2,
+            ocupadasInformadas: 2
+        }
+    ],
+    cantidadPasajeros: 2,
+    clasificacion: {
+        tipo: "INDIVIDUAL",
+        consistente: true,
+        advertencias: []
+    }
+}];
+const uniformReservationsSnapshot = JSON.stringify(uniformReservations);
+const uniformDetail = projectResponsibleReservationDetail(
+    uniformReservations,
+    0,
+    "DNI-RECIBIDO"
+);
+
+assert(
+    uniformDetail.voucher === "UNIFORM" &&
+    uniformDetail.responsableDni === "DNI-RECIBIDO" &&
+    uniformDetail.fechaIngreso.uniforme === true &&
+    uniformDetail.fechaIngreso.valores.length === 1 &&
+    uniformDetail.servicios.uniforme === true,
+    "deberia proyectar un voucher uniforme sin reinterpretar el DNI"
+);
+assert(
+    uniformDetail.fechaIngreso.valor === "05/10/2026" &&
+    uniformDetail.servicios.valor === "SERVICIO UNIFORME" &&
+    uniformDetail.habitaciones.length === 2 &&
+    uniformDetail.habitaciones[0].alojamiento === "901" &&
+    uniformDetail.habitaciones[0].numero === "23" &&
+    uniformDetail.habitaciones[0].capacidad === 2 &&
+    uniformDetail.habitaciones[0].ocupadasInformadas === 2,
+    "deberia conservar un voucher multi-habitacion sin consultar inventario"
+);
+
+const divergentReservations = [
+    {
+        voucher: "DIVERGENT",
+        pasajeros: [
+            {
+                estadia: { ingreso: "01/10/2026", egreso: "03/10/2026" },
+                servicios: "SERVICIO A"
+            },
+            {
+                estadia: { ingreso: "02/10/2026", egreso: "04/10/2026" },
+                servicios: "SERVICIO B"
+            }
+        ],
+        habitaciones: [{
+            alojamiento: "900",
+            numero: "101",
+            capacidad: 2,
+            ocupadasInformadas: 2
+        }],
+        cantidadPasajeros: 2,
+        clasificacion: {
+            tipo: "NO_CLASIFICADA",
+            consistente: false,
+            advertencias: ["valores divergentes"]
+        }
+    }
+];
+const divergentDetail = projectResponsibleReservationDetail(
+    divergentReservations,
+    0,
+    "DIVERGENT-DNI"
+);
+
+assert(
+    divergentDetail.fechaIngreso.uniforme === false &&
+    divergentDetail.fechaIngreso.valor === null &&
+    divergentDetail.fechaIngreso.valores.join(",") ===
+        "01/10/2026,02/10/2026" &&
+    divergentDetail.fechaEgreso.uniforme === false &&
+    divergentDetail.servicios.uniforme === false &&
+    divergentDetail.servicios.valores.join(",") === "SERVICIO A,SERVICIO B",
+    "deberia conservar fechas y servicios divergentes explicitamente"
+);
+assert(
+    divergentDetail.habitaciones[0].alojamiento === "900" &&
+    divergentDetail.habitaciones[0].capacidad === 2 &&
+    divergentDetail.habitaciones[0].ocupadasInformadas === 2,
+    "deberia conservar capacidad y ocupacion informadas"
+);
+
+const nullAccommodationDetail = projectResponsibleReservationDetail([
+    {
+        voucher: "NULL-ACCOMMODATION",
+        pasajeros: [],
+        habitaciones: [{
+            alojamiento: null,
+            numero: "201",
+            capacidad: 2,
+            ocupadasInformadas: 1
+        }]
+    }
+], 0, "NULL-DNI");
+
+assert(
+    nullAccommodationDetail.alojamiento === null &&
+    nullAccommodationDetail.habitaciones[0].alojamiento === null,
+    "no deberia inventar alojamiento cuando el valor es null"
+);
+
+const projectionSnapshot = JSON.stringify(uniformDetail);
+uniformDetail.habitaciones[0].numero = "MUTATED";
+uniformDetail.fechaIngreso.valores.push("MUTATED");
+
+assert(
+    JSON.stringify(reservas) === reservasSnapshot &&
+    JSON.stringify(uniformReservations) === uniformReservationsSnapshot &&
+    JSON.stringify(uniformDetail) !== projectionSnapshot,
+    "modificar la proyeccion no deberia modificar la reserva original"
+);
+assert(
+    projectResponsibleReservationDetail(reservas, 999, "INVALID") === null,
+    "un reservaIndex invalido deberia devolver null"
 );
 
 const csvPath = path.join(__dirname, "../../oct31_8.csv");

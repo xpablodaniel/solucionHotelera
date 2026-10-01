@@ -454,6 +454,7 @@ function renderRelatedReservations() {
     relatedEmptyMessage.hidden = true;
     relatedResults.hidden = true;
     relatedReservationRows.replaceChildren();
+    relatedDetailList.replaceChildren();
 
     const dni = relatedDniInput.value.trim();
 
