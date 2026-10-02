@@ -1130,6 +1130,41 @@ var ReservationsCore = (() => {
     }
   });
 
+  // src/business/nonRelatableView.js
+  var require_nonRelatableView = __commonJS({
+    "src/business/nonRelatableView.js"(exports, module) {
+      var MOTIVO_LABELS = Object.freeze({
+        sinTitularValido: "Sin titular identificable",
+        dniResponsableNoDisponible: "Titular sin documento"
+      });
+      var FALLBACK_LABEL = "Motivo no reconocido";
+      function toRow(entry) {
+        const motivo = entry && typeof entry === "object" ? entry.motivo : null;
+        return {
+          voucher: entry && entry.voucher !== void 0 && entry.voucher !== null ? entry.voucher : "\u2014",
+          etiqueta: Object.prototype.hasOwnProperty.call(MOTIVO_LABELS, motivo) ? MOTIVO_LABELS[motivo] : FALLBACK_LABEL
+        };
+      }
+      function buildNonRelatableView(relationships) {
+        const orphans = relationships && Array.isArray(relationships.orphanReservations) ? relationships.orphanReservations : [];
+        const ignored = relationships && Array.isArray(relationships.ignoredReservations) ? relationships.ignoredReservations : [];
+        const filas = [
+          ...orphans.map(toRow),
+          ...ignored.map(toRow)
+        ];
+        return {
+          cantidad: filas.length,
+          filas
+        };
+      }
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+          buildNonRelatableView
+        };
+      }
+    }
+  });
+
   // src/browser/reservations.js
   var require_reservations = __commonJS({
     "src/browser/reservations.js"(exports, module) {
@@ -1159,6 +1194,9 @@ var ReservationsCore = (() => {
       var {
         buildResponsibleRelationsAggregateView
       } = require_responsibleRelationsAggregate();
+      var {
+        buildNonRelatableView
+      } = require_nonRelatableView();
       module.exports = {
         parseCSV,
         parseCSVLine,
@@ -1169,7 +1207,8 @@ var ReservationsCore = (() => {
         findRelatedReservationsByDni,
         buildResponsibleRelationsView,
         projectResponsibleReservationDetail,
-        buildResponsibleRelationsAggregateView
+        buildResponsibleRelationsAggregateView,
+        buildNonRelatableView
       };
     }
   });

@@ -527,6 +527,39 @@ tbody tr:last-child td { border-bottom: 0; }
 
 #responsible-aggregate-results table { min-width: 960px; }
 
+.non-relatable-section {
+    margin-top: 30px;
+    padding-top: 24px;
+    border-top: 1px solid #d5ddd8;
+}
+
+.non-relatable-section h2 {
+    margin: 0;
+    color: #163b37;
+    font-size: 18px;
+    font-weight: 650;
+}
+
+#non-relatable-summary {
+    margin: 14px 0 13px;
+    color: #7a5a1e;
+    font-size: 14px;
+    font-weight: 650;
+}
+
+#non-relatable-summary:empty { margin: 0; }
+
+#non-relatable-results table { min-width: 480px; }
+
+#non-relatable-empty-message {
+    margin: 14px 0 0;
+    padding: 16px 0;
+    border-top: 1px solid #d5ddd8;
+    border-bottom: 1px solid #d5ddd8;
+    color: #5b6865;
+    font-size: 14px;
+}
+
 .aggregate-divergence-label {
     display: block;
     margin-bottom: 4px;

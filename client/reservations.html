@@ -230,6 +230,31 @@
                 <p class="action-note">La generación de vouchers, Rooming y Balneario se incorporará en una etapa posterior.</p>
             </section>
         </section>
+
+        <section class="non-relatable-section" id="non-relatable-section" aria-labelledby="non-relatable-title" hidden>
+            <div class="section-heading">
+                <div>
+                    <p class="step-label">Auditoría de calidad de datos</p>
+                    <h2 id="non-relatable-title">Reservas no relacionables</h2>
+                </div>
+            </div>
+
+            <p id="non-relatable-summary" role="status"></p>
+
+            <div class="table-scroll" id="non-relatable-results" role="region" aria-label="Listado de reservas no relacionables" tabindex="0" hidden>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Voucher</th>
+                            <th scope="col">Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="non-relatable-rows"></tbody>
+                </table>
+            </div>
+
+            <p id="non-relatable-empty-message" hidden>No se encontraron reservas que requieran revisión.</p>
+        </section>
     </main>
 
     <footer>Solución Hotelera · Consulta de reservas</footer>

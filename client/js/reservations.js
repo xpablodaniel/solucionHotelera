@@ -7,7 +7,8 @@ const {
     buildResponsibleRelationships,
     findRelatedReservationsByDni,
     buildResponsibleRelationsView,
-    buildResponsibleRelationsAggregateView
+    buildResponsibleRelationsAggregateView,
+    buildNonRelatableView
 } = window.ReservationsCore;
 
 const csvInput = document.querySelector("#csv-input");
@@ -35,6 +36,11 @@ const relatedReservationRows = document.querySelector("#related-reservation-rows
 const relatedDetailList = document.querySelector("#related-detail-list");
 const responsibleAggregateSection = document.querySelector("#responsible-aggregate-section");
 const responsibleAggregateRows = document.querySelector("#responsible-aggregate-rows");
+const nonRelatableSection = document.querySelector("#non-relatable-section");
+const nonRelatableSummary = document.querySelector("#non-relatable-summary");
+const nonRelatableResults = document.querySelector("#non-relatable-results");
+const nonRelatableRows = document.querySelector("#non-relatable-rows");
+const nonRelatableEmptyMessage = document.querySelector("#non-relatable-empty-message");
 
 const CUSTOM_DATE_OPTION = "__custom_date__";
 
@@ -69,6 +75,14 @@ function resetResponsibleAggregate() {
     ]) {
         document.querySelector(selector).textContent = "";
     }
+}
+
+function resetNonRelatable() {
+    nonRelatableSection.hidden = true;
+    nonRelatableSummary.textContent = "";
+    nonRelatableResults.hidden = true;
+    nonRelatableRows.replaceChildren();
+    nonRelatableEmptyMessage.hidden = true;
 }
 
 function resetResults() {
@@ -112,6 +126,7 @@ function resetFileState() {
     resetResults();
     resetRelatedResults();
     resetResponsibleAggregate();
+    resetNonRelatable();
     dateSection.hidden = true;
     arrivalDate.replaceChildren(new Option("Selecciona una fecha", ""));
     arrivalDate.add(new Option("Otra fecha…", CUSTOM_DATE_OPTION));
@@ -207,6 +222,7 @@ async function handleFileSelection() {
         const sizeInKilobytes = Math.max(1, Math.round(file.size / 1024));
         fileStatus.textContent = `Archivo cargado: ${file.name} · ${sizeInKilobytes} KB · ${parsedRecords.length} pasajeros válidos · ${processedReservations.length} reservas agrupadas.`;
         showMessages(fileWarnings, csvWarnings);
+        renderNonRelatable(buildNonRelatableView(responsibleRelationships));
     } catch (error) {
         resetFileState();
         fileStatus.textContent = `No se pudo procesar el CSV: ${error.message}`;
@@ -466,6 +482,30 @@ function processReservationsForDate() {
 
     resultsSection.hidden = false;
     relatedSection.hidden = false;
+}
+
+function renderNonRelatable(view) {
+    resetNonRelatable();
+
+    nonRelatableSection.hidden = false;
+
+    if (view.cantidad === 0) {
+        nonRelatableEmptyMessage.hidden = false;
+        return;
+    }
+
+    nonRelatableSummary.textContent = view.cantidad === 1
+        ? "1 reserva requiere revisión"
+        : `${view.cantidad} reservas requieren revisión`;
+
+    for (const fila of view.filas) {
+        const row = document.createElement("tr");
+        appendCell(row, fila.voucher);
+        appendCell(row, fila.etiqueta);
+        nonRelatableRows.append(row);
+    }
+
+    nonRelatableResults.hidden = false;
 }
 
 function renderRelatedReservations(dni) {
