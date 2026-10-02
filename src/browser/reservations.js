@@ -32,6 +32,10 @@ const {
     buildResponsibleRelationsAggregateView
 } = require("../business/responsibleRelationsAggregate");
 
+const {
+    buildNonRelatableView
+} = require("../business/nonRelatableView");
+
 module.exports = {
     parseCSV,
     parseCSVLine,
@@ -42,5 +46,6 @@ module.exports = {
     findRelatedReservationsByDni,
     buildResponsibleRelationsView,
     projectResponsibleReservationDetail,
-    buildResponsibleRelationsAggregateView
+    buildResponsibleRelationsAggregateView,
+    buildNonRelatableView
 };
