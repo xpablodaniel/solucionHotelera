@@ -720,16 +720,31 @@ var ReservationsCore = (() => {
     }
   });
 
-  // src/business/responsibleRelationships.js
-  var require_responsibleRelationships = __commonJS({
-    "src/business/responsibleRelationships.js"(exports, module) {
-      function normalizeResponsibleDni(value) {
+  // src/normalizer/textNormalization.js
+  var require_textNormalization = __commonJS({
+    "src/normalizer/textNormalization.js"(exports, module) {
+      function normalizeNonEmptyString(value) {
         if (value === void 0 || value === null) {
           return null;
         }
         const text = String(value).trim();
         return text === "" ? null : text;
       }
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+          normalizeNonEmptyString
+        };
+      }
+    }
+  });
+
+  // src/business/responsibleRelationships.js
+  var require_responsibleRelationships = __commonJS({
+    "src/business/responsibleRelationships.js"(exports, module) {
+      var {
+        normalizeNonEmptyString
+      } = require_textNormalization();
+      var normalizeResponsibleDni = normalizeNonEmptyString;
       function getReservationVoucher(reserva) {
         if (!reserva || typeof reserva !== "object") {
           return null;
@@ -861,13 +876,10 @@ var ReservationsCore = (() => {
   // src/business/responsibleQueries.js
   var require_responsibleQueries = __commonJS({
     "src/business/responsibleQueries.js"(exports, module) {
-      function normalizeQueryDni(value) {
-        if (value === void 0 || value === null) {
-          return null;
-        }
-        const text = String(value).trim();
-        return text === "" ? null : text;
-      }
+      var {
+        normalizeNonEmptyString
+      } = require_textNormalization();
+      var normalizeQueryDni = normalizeNonEmptyString;
       function emptyRelationship(dni) {
         return {
           responsableDni: dni,
@@ -988,19 +1000,9 @@ var ReservationsCore = (() => {
     }
   });
 
-  // src/business/responsibleRelationsAggregate.js
-  var require_responsibleRelationsAggregate = __commonJS({
-    "src/business/responsibleRelationsAggregate.js"(exports, module) {
-      var {
-        buildResponsibleRelationsView
-      } = require_responsibleRelationsConsumer();
-      function normalizeNonEmptyString(value) {
-        if (value === void 0 || value === null) {
-          return null;
-        }
-        const text = String(value).trim();
-        return text === "" ? null : text;
-      }
+  // src/normalizer/dateKeys.js
+  var require_dateKeys = __commonJS({
+    "src/normalizer/dateKeys.js"(exports, module) {
       function parseDateKey(value) {
         if (typeof value !== "string") {
           return null;
@@ -1021,6 +1023,26 @@ var ReservationsCore = (() => {
         }
         return timestamp;
       }
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+          parseDateKey
+        };
+      }
+    }
+  });
+
+  // src/business/responsibleRelationsAggregate.js
+  var require_responsibleRelationsAggregate = __commonJS({
+    "src/business/responsibleRelationsAggregate.js"(exports, module) {
+      var {
+        buildResponsibleRelationsView
+      } = require_responsibleRelationsConsumer();
+      var {
+        normalizeNonEmptyString
+      } = require_textNormalization();
+      var {
+        parseDateKey
+      } = require_dateKeys();
       function getDateExtreme(vouchers, field, direction) {
         const dates = [];
         for (const voucher of vouchers) {

@@ -4,17 +4,11 @@
  * Este módulo no procesa reservas ni vuelve a buscar pasajeros.
  */
 
-function normalizeQueryDni(value) {
+const {
+    normalizeNonEmptyString
+} = require("../normalizer/textNormalization");
 
-    if (value === undefined || value === null) {
-        return null;
-    }
-
-    const text = String(value).trim();
-
-    return text === "" ? null : text;
-}
-
+const normalizeQueryDni = normalizeNonEmptyString;
 
 function emptyRelationship(dni) {
 

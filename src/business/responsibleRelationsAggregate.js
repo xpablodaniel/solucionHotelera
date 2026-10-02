@@ -2,49 +2,13 @@ const {
     buildResponsibleRelationsView
 } = require("./responsibleRelationsConsumer");
 
+const {
+    normalizeNonEmptyString
+} = require("../normalizer/textNormalization");
 
-function normalizeNonEmptyString(value) {
-
-    if (value === undefined || value === null) {
-        return null;
-    }
-
-    const text = String(value).trim();
-
-    return text === "" ? null : text;
-}
-
-
-function parseDateKey(value) {
-
-    if (typeof value !== "string") {
-        return null;
-    }
-
-    const text = value.trim();
-    const dayFirst = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-
-    if (!dayFirst && !iso) {
-        return null;
-    }
-
-    const year = Number(dayFirst ? dayFirst[3] : iso[1]);
-    const month = Number(dayFirst ? dayFirst[2] : iso[2]);
-    const day = Number(dayFirst ? dayFirst[1] : iso[3]);
-    const timestamp = Date.UTC(year, month - 1, day);
-    const parsed = new Date(timestamp);
-
-    if (
-        parsed.getUTCFullYear() !== year ||
-        parsed.getUTCMonth() !== month - 1 ||
-        parsed.getUTCDate() !== day
-    ) {
-        return null;
-    }
-
-    return timestamp;
-}
+const {
+    parseDateKey
+} = require("../normalizer/dateKeys");
 
 
 function getDateExtreme(vouchers, field, direction) {

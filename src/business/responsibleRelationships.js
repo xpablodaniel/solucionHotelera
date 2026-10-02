@@ -8,16 +8,11 @@
  * Solo construye una estructura paralela que relaciona vouchers por responsable.
  */
 
-function normalizeResponsibleDni(value) {
-    if (value === undefined || value === null) {
-        return null;
-    }
+const {
+    normalizeNonEmptyString
+} = require("../normalizer/textNormalization");
 
-    const text = String(value).trim();
-
-    return text === "" ? null : text;
-}
-
+const normalizeResponsibleDni = normalizeNonEmptyString;
 
 function getReservationVoucher(reserva) {
     if (!reserva || typeof reserva !== "object") {

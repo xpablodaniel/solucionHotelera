@@ -7,7 +7,6 @@ const {
     buildResponsibleRelationships,
     findRelatedReservationsByDni,
     buildResponsibleRelationsView,
-    projectResponsibleReservationDetail,
     buildResponsibleRelationsAggregateView
 } = window.ReservationsCore;
 
@@ -469,23 +468,13 @@ function processReservationsForDate() {
     relatedSection.hidden = false;
 }
 
-function renderRelatedReservations() {
+function renderRelatedReservations(dni) {
     relatedErrors.hidden = true;
     relatedErrors.replaceChildren();
     relatedEmptyMessage.hidden = true;
     relatedResults.hidden = true;
     relatedReservationRows.replaceChildren();
     relatedDetailList.replaceChildren();
-
-    const dni = relatedDniInput.value.trim();
-
-    if (!dni) {
-        relatedErrors.hidden = false;
-        const message = document.createElement("p");
-        message.textContent = "Ingresa un DNI candidato para consultar.";
-        relatedErrors.append(message);
-        return;
-    }
 
     const relationship = findRelatedReservationsByDni(
         responsibleRelationships,
@@ -501,7 +490,9 @@ function renderRelatedReservations() {
 
     const view = buildResponsibleRelationsView(
         responsibleRelationships,
-        dni
+        dni,
+        processedReservations,
+        { includeDetail: true }
     );
 
     relatedSummary.textContent =
@@ -521,14 +512,8 @@ function renderRelatedReservations() {
         row.append(voucherCell, accommodationCell, roomsCell);
         relatedReservationRows.append(row);
 
-        const detail = projectResponsibleReservationDetail(
-            processedReservations,
-            voucher.reservaIndex,
-            view.responsableDni
-        );
-
-        if (detail) {
-            relatedDetailList.append(renderRelatedReservationDetail(detail));
+        if (voucher.detalle) {
+            relatedDetailList.append(renderRelatedReservationDetail(voucher.detalle));
         }
     }
 
@@ -560,11 +545,8 @@ function appendAggregateField(cell, field) {
     cell.append(label, values);
 }
 
-function renderResponsibleAggregate() {
+function renderResponsibleAggregate(dni) {
     resetResponsibleAggregate();
-
-    const dni = relatedDniInput.value.trim();
-    if (!dni || !responsibleRelationships) return;
 
     const view = buildResponsibleRelationsAggregateView(
         responsibleRelationships,
@@ -697,5 +679,24 @@ manualArrivalDate.addEventListener("change", () => {
     processButton.disabled = !manualArrivalDate.value;
 });
 processButton.addEventListener("click", processReservationsForDate);
-relatedDniButton.addEventListener("click", renderRelatedReservations);
-relatedDniButton.addEventListener("click", renderResponsibleAggregate);
+function handleRelatedDniQuery() {
+    const dni = relatedDniInput.value.trim();
+
+    if (!dni) {
+        resetRelatedResults();
+        resetResponsibleAggregate();
+        relatedSection.hidden = false;
+        relatedErrors.hidden = false;
+        const message = document.createElement("p");
+        message.textContent = "Ingresa un DNI candidato para consultar.";
+        relatedErrors.append(message);
+        return;
+    }
+
+    if (!responsibleRelationships) return;
+
+    renderRelatedReservations(dni);
+    renderResponsibleAggregate(dni);
+}
+
+relatedDniButton.addEventListener("click", handleRelatedDniQuery);
