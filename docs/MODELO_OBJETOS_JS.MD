@@ -802,11 +802,11 @@ El contrato del reporte de vouchers es:
 }
 ```
 
-`buildVoucherReport()` ordena los reportes por habitacion minima, conserva el
-orden de aparicion de las habitaciones y selecciona el representante luego de
-ordenar los pasajeros por DNI. Esta regla de representante visual no cambia
-la regla conceptual del titular de una reserva individual, que conserva el
-orden original del CSV.
+`buildVoucherReport()` ordena los reportes por habitacion minima y conserva el
+orden de aparicion de las habitaciones. El nombre y DNI del representante se
+obtienen del primer pasajero en el orden original del CSV; si ese pasajero no
+tiene DNI, el campo se deja vacio y no se busca sustituto. La seleccion
+historica por DNI se conserva para hotel y fechas.
 
 `renderVouchersHtml()` solo representa el reporte recibido. MAP muestra Cena;
 PC muestra Almuerzo y Cena. La salida se organiza en paginas de hasta cuatro

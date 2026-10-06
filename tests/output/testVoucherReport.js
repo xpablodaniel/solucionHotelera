@@ -114,9 +114,9 @@ assert(
 );
 
 assert(
-    voucherMap.representante === "GOMEZ UNO" &&
-        voucherMap.dni === "10000000",
-    "El representante deberia ser el pasajero con menor DNI"
+    voucherMap.representante === "PEREZ DOS" &&
+        voucherMap.dni === "30000000",
+    "El representante deberia ser el primer pasajero aunque otro tenga menor DNI"
 );
 
 assert(
@@ -140,7 +140,38 @@ assert(
     "Un voucher vacio no deberia generar un reporte"
 );
 
-console.log("OK agrupacion, orden, representante y habitaciones");
+console.log("OK agrupacion, representante y habitaciones");
+
+
+console.log("Probando representante igual al menor DNI...");
+
+const primerPaxEsMenorDni = buildVoucherReport([
+    {
+        voucher: "PRIMER-PAX-MENOR-DNI",
+        pasajeros: [
+            passenger({
+                voucher: "PRIMER-PAX-MENOR-DNI",
+                dni: "10000000",
+                nombre: "PRIMER PAX",
+                habitacion: "201"
+            }),
+            passenger({
+                voucher: "PRIMER-PAX-MENOR-DNI",
+                dni: "90000000",
+                nombre: "SEGUNDO PAX",
+                habitacion: "202"
+            })
+        ]
+    }
+], "MAP")[0];
+
+assert(
+    primerPaxEsMenorDni.representante === "PRIMER PAX" &&
+        primerPaxEsMenorDni.dni === "10000000",
+    "El primer PAX debe seguir siendo representante cuando también tiene el menor DNI"
+);
+
+console.log("OK primer PAX con menor DNI");
 
 
 console.log("Probando identidad de habitaciones multi-hotel...");
@@ -371,11 +402,51 @@ const reporteDniNoNumerico = buildVoucherReport([
 ], "MAP")[0];
 
 assert(
-    reporteDniNoNumerico.representante === "DNI NO NUMERICO",
-    "El DNI no numerico deberia conservar el orden historico actual"
+    reporteDniNoNumerico.representante === "DNI VALIDO" &&
+        reporteDniNoNumerico.dni === "10000000",
+    "El primer PAX debe ser representante independientemente del DNI de los siguientes"
 );
 
-console.log("OK DNI no numerico");
+const primerPaxSinDni = buildVoucherReport([
+    {
+        voucher: "PRIMER-PAX-SIN-DNI",
+        pasajeros: [
+            passenger({
+                voucher: "PRIMER-PAX-SIN-DNI",
+                dni: null,
+                nombre: "PRIMER PAX SIN DNI",
+                habitacion: "242"
+            }),
+            passenger({
+                voucher: "PRIMER-PAX-SIN-DNI",
+                dni: "12345678",
+                nombre: "SEGUNDO PAX CON DNI",
+                habitacion: "242"
+            })
+        ]
+    }
+], "MAP")[0];
+
+assert(
+    primerPaxSinDni.representante === "PRIMER PAX SIN DNI" &&
+        primerPaxSinDni.dni === "",
+    "Si el primer PAX no tiene DNI, el reporte debe dejarlo vacío sin buscar sustituto"
+);
+
+assert(
+    primerPaxSinDni.voucher === "PRIMER-PAX-SIN-DNI" &&
+        primerPaxSinDni.hotel === "HOTEL DEMO" &&
+        primerPaxSinDni.fechaIngreso === "20/09/2026" &&
+        primerPaxSinDni.fechaEgreso === "25/09/2026" &&
+        primerPaxSinDni.habitaciones.join(",") === "242" &&
+        primerPaxSinDni.cantidadPasajeros === 2 &&
+        primerPaxSinDni.diasEstadia === 5 &&
+        primerPaxSinDni.cantidadComidas === 10 &&
+        primerPaxSinDni.modo === "MAP",
+    "Cambiar el representante no debe alterar los otros datos del reporte"
+);
+
+console.log("OK primer PAX sin DNI y preservacion de los otros datos");
 
 
 console.log("Probando fechas invalidas, ausentes e invertidas...");

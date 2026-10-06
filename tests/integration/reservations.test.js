@@ -86,6 +86,40 @@ function createApp() {
         url: "http://localhost/client/reservations.html"
     });
 
+    const windowSetTimeout = dom.window.setTimeout.bind(dom.window);
+    Object.defineProperty(dom.window, "setTimeout", {
+        configurable: true,
+        value: (callback, delay, ...args) => delay === 60000
+            ? 0
+            : windowSetTimeout(callback, delay, ...args)
+    });
+
+    const createdBlobs = new Map();
+    const openedLinks = [];
+    let nextObjectUrl = 0;
+    Object.defineProperty(dom.window.URL, "createObjectURL", {
+        configurable: true,
+        value: blob => {
+            const objectUrl = `blob:http://localhost/${++nextObjectUrl}`;
+            createdBlobs.set(objectUrl, blob);
+            return objectUrl;
+        }
+    });
+    Object.defineProperty(dom.window.URL, "revokeObjectURL", {
+        configurable: true,
+        value: () => {}
+    });
+    dom.window.__createdBlobs = createdBlobs;
+    dom.window.__openedLinks = openedLinks;
+    dom.window.HTMLAnchorElement.prototype.click = function () {
+        openedLinks.push({
+            href: this.href,
+            download: this.download,
+            target: this.target,
+            rel: this.rel
+        });
+    };
+
     dom.window.eval(bundleSource);
     dom.window.eval(controllerSource);
     assert.ok(dom.window.ReservationsCore, "browser bundle must expose the existing parser and business API");
@@ -158,6 +192,24 @@ function tableRows(dom) {
 
 function textOf(dom, selector) {
     return dom.window.document.querySelector(selector).textContent;
+}
+
+function readBlobText(dom, blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new dom.window.FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsText(blob);
+    });
+}
+
+function readBlobBytes(dom, blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new dom.window.FileReader();
+        reader.onload = () => resolve(new Uint8Array(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsArrayBuffer(blob);
+    });
 }
 
 function closeApp(dom) {
@@ -926,5 +978,155 @@ test("28. UI 3 replaces aggregate rows across the three real responsible candida
     assert.match(serviceRows[0][7], /DESAYUNO U\.PROPIAS/);
     assert.match(serviceRows[1][7], /MEDIA PENSION/);
 
+    closeApp(dom);
+});
+
+test("29. S4.9 opens date-filtered MAP and PC voucher print documents", async () => {
+    const dom = createApp();
+    const csv = makeCsv([
+        makeRecord({
+            sequence: 1,
+            voucher: "OUTPUT-MAP",
+            document: "90000001",
+            name: "MAP-PRIMER-PAX",
+            service: "MEDIA PENSION"
+        }),
+        makeRecord({
+            sequence: 2,
+            voucher: "OUTPUT-MAP",
+            document: "90000002",
+            name: "MAP-SEGUNDO-PAX",
+            service: "MEDIA PENSION",
+            room: "102"
+        }),
+        makeRecord({
+            sequence: 3,
+            voucher: "OUTPUT-PC",
+            service: "PENSION COMPLETA",
+            name: "PC-PAX",
+            package: "PPJ"
+        }),
+        makeRecord({
+            sequence: 4,
+            voucher: "OUTPUT-BREAKFAST",
+            service: "DESAYUNO",
+            name: "NO-DEBE-SALIR"
+        })
+    ]);
+
+    await uploadCsv(dom, csv);
+    processDate(dom, "11/03/2026");
+
+    dom.window.document.querySelector("#voucher-map-button").click();
+    assert.equal(dom.window.__openedLinks.length, 1);
+    const mapLink = dom.window.__openedLinks[0];
+    assert.equal(mapLink.target, "_blank");
+    assert.equal(mapLink.rel, "noopener");
+    const mapBlob = dom.window.__createdBlobs.get(mapLink.href);
+    assert.equal(mapBlob.type, "text/html;charset=utf-8");
+    const mapHtml = await readBlobText(dom, mapBlob);
+    assert.match(mapHtml, /Voucher de Comidas/);
+    assert.match(mapHtml, /MAP-PRIMER-PAX/);
+    assert.doesNotMatch(mapHtml, /MAP-SEGUNDO-PAX/);
+    assert.match(mapHtml, /Cant\. Pax:<\/strong> 2/);
+    assert.match(mapHtml, /<base href="http:\/\/localhost\/client\/reservations\.html">/);
+    assert.doesNotMatch(mapHtml, /PC-PAX|NO-DEBE-SALIR/);
+    assert.match(textOf(dom, "#output-status"), /Vista imprimible de Voucher MAP abierta: 1 voucher/);
+
+    dom.window.document.querySelector("#voucher-pc-button").click();
+    assert.equal(dom.window.__openedLinks.length, 2);
+    const pcLink = dom.window.__openedLinks[1];
+    const pcHtml = await readBlobText(
+        dom,
+        dom.window.__createdBlobs.get(pcLink.href)
+    );
+    assert.match(pcHtml, /Voucher de Comidas PPJ/);
+    assert.match(pcHtml, /PC-PAX/);
+    assert.doesNotMatch(pcHtml, /MAP-PRIMER-PAX|NO-DEBE-SALIR/);
+    closeApp(dom);
+});
+
+test("30. S4.9 downloads MAP/PC Rooming CSV for selected-date passengers only", async () => {
+    const dom = createApp();
+    const csv = makeCsv([
+        makeRecord({
+            sequence: 1,
+            voucher: "ROOMING-MAP",
+            arrival: "11/03/2026",
+            name: "MAP-INGRESA",
+            service: "MEDIA PENSION"
+        }),
+        makeRecord({
+            sequence: 2,
+            voucher: "ROOMING-MAP",
+            arrival: "12/03/2026",
+            name: "MAP-OTRO-DIA",
+            service: "MEDIA PENSION",
+            room: "102"
+        }),
+        makeRecord({
+            sequence: 3,
+            voucher: "ROOMING-PC",
+            arrival: "11/03/2026",
+            name: "PC-INGRESA",
+            service: "PENSION COMPLETA",
+            package: "PPJ"
+        }),
+        makeRecord({
+            sequence: 4,
+            voucher: "ROOMING-BREAKFAST",
+            arrival: "11/03/2026",
+            name: "BREAKFAST-EXCLUIDO",
+            service: "DESAYUNO"
+        })
+    ]);
+
+    await uploadCsv(dom, csv);
+    processDate(dom, "11/03/2026");
+
+    dom.window.document.querySelector("#rooming-map-button").click();
+    assert.equal(dom.window.__openedLinks.length, 1);
+    const mapLink = dom.window.__openedLinks[0];
+    assert.equal(mapLink.download, "rooming_map_2026-03-11.csv");
+    const mapBlob = dom.window.__createdBlobs.get(mapLink.href);
+    assert.equal(mapBlob.type, "text/csv;charset=utf-8");
+    const mapCsv = await readBlobText(dom, mapBlob);
+    const mapCsvBytes = await readBlobBytes(dom, mapBlob);
+    assert.deepEqual([...mapCsvBytes.slice(0, 3)], [0xef, 0xbb, 0xbf]);
+    assert.match(mapCsv, /MAP-INGRESA/);
+    assert.doesNotMatch(mapCsv, /MAP-OTRO-DIA|PC-INGRESA|BREAKFAST-EXCLUIDO/);
+    assert.match(textOf(dom, "#output-status"), /1 pasajero\(s\)/);
+
+    dom.window.document.querySelector("#rooming-pc-button").click();
+    assert.equal(dom.window.__openedLinks.length, 2);
+    const pcLink = dom.window.__openedLinks[1];
+    assert.equal(pcLink.download, "rooming_pc_2026-03-11.csv");
+    const pcCsv = await readBlobText(
+        dom,
+        dom.window.__createdBlobs.get(pcLink.href)
+    );
+    assert.match(pcCsv, /PC-INGRESA/);
+    assert.doesNotMatch(pcCsv, /MAP-INGRESA|MAP-OTRO-DIA|BREAKFAST-EXCLUIDO/);
+    closeApp(dom);
+});
+
+test("31. S4.9 reports empty outputs without creating a download", async () => {
+    const dom = createApp();
+    const csv = makeCsv([
+        makeRecord({
+            sequence: 1,
+            voucher: "ONLY-PC",
+            service: "PENSION COMPLETA",
+            package: "PPJ"
+        })
+    ]);
+
+    await uploadCsv(dom, csv);
+    processDate(dom, "11/03/2026");
+    dom.window.document.querySelector("#voucher-map-button").click();
+    assert.match(textOf(dom, "#output-status"), /No hay vouchers MAP/);
+    dom.window.document.querySelector("#rooming-map-button").click();
+    assert.match(textOf(dom, "#output-status"), /No hay pasajeros Rooming MAP/);
+    assert.equal(dom.window.__openedLinks.length, 0);
     closeApp(dom);
 });

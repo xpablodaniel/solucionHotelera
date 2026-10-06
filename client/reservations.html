@@ -227,7 +227,24 @@
 
             <section class="actions-section" aria-labelledby="actions-title">
                 <h2 id="actions-title">Salidas posteriores</h2>
-                <p class="action-note">La generación de vouchers, Rooming y Balneario se incorporará en una etapa posterior.</p>
+                <p class="action-note">Salidas para los pasajeros que ingresan el <strong id="actions-date-label"></strong>. Voucher y Rooming usan el régimen de cada pasajero; los vouchers con servicios mezclados o fechas inconsistentes requieren revisión.</p>
+                <div class="action-groups">
+                    <section class="action-group" aria-labelledby="voucher-actions-title">
+                        <h3 id="voucher-actions-title">Vouchers de comidas</h3>
+                        <div class="action-buttons">
+                            <button class="button button-primary" id="voucher-map-button" type="button">Generar Voucher MAP</button>
+                            <button class="button button-primary" id="voucher-pc-button" type="button">Generar Voucher PC</button>
+                        </div>
+                    </section>
+                    <section class="action-group" aria-labelledby="rooming-actions-title">
+                        <h3 id="rooming-actions-title">Rooming por pasajero</h3>
+                        <div class="action-buttons">
+                            <button class="button button-secondary" id="rooming-map-button" type="button">Descargar Rooming MAP</button>
+                            <button class="button button-secondary" id="rooming-pc-button" type="button">Descargar Rooming PC</button>
+                        </div>
+                    </section>
+                </div>
+                <div class="file-warnings output-status" id="output-status" role="status" aria-live="polite" hidden></div>
             </section>
         </section>
 

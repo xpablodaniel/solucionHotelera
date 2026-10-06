@@ -8,7 +8,9 @@ const {
     findRelatedReservationsByDni,
     buildResponsibleRelationsView,
     buildResponsibleRelationsAggregateView,
-    buildNonRelatableView
+    buildNonRelatableView,
+    buildVoucherHtmlForDate,
+    buildRoomingCsvForDate
 } = window.ReservationsCore;
 
 const csvInput = document.querySelector("#csv-input");
@@ -41,6 +43,12 @@ const nonRelatableSummary = document.querySelector("#non-relatable-summary");
 const nonRelatableResults = document.querySelector("#non-relatable-results");
 const nonRelatableRows = document.querySelector("#non-relatable-rows");
 const nonRelatableEmptyMessage = document.querySelector("#non-relatable-empty-message");
+const actionsDateLabel = document.querySelector("#actions-date-label");
+const outputStatus = document.querySelector("#output-status");
+const voucherMapButton = document.querySelector("#voucher-map-button");
+const voucherPcButton = document.querySelector("#voucher-pc-button");
+const roomingMapButton = document.querySelector("#rooming-map-button");
+const roomingPcButton = document.querySelector("#rooming-pc-button");
 
 const CUSTOM_DATE_OPTION = "__custom_date__";
 
@@ -90,6 +98,9 @@ function resetResults() {
     reservationRows.replaceChildren();
     noArrivalsMessage.hidden = true;
     tableScroll.hidden = false;
+    actionsDateLabel.textContent = "";
+    outputStatus.hidden = true;
+    outputStatus.replaceChildren();
 }
 
 function compareDates(dateA, dateB) {
@@ -467,6 +478,7 @@ function processReservationsForDate() {
     showMessages(resultWarnings, getDistinctValues(messages));
 
     document.querySelector("#selected-date-label").textContent = date;
+    actionsDateLabel.textContent = date;
     renderSummary(summary);
     reservationRows.replaceChildren();
     for (const reservation of matchingReservations) {
@@ -482,6 +494,114 @@ function processReservationsForDate() {
 
     resultsSection.hidden = false;
     relatedSection.hidden = false;
+}
+
+function showOutputMessages(messages) {
+    outputStatus.replaceChildren();
+    outputStatus.hidden = messages.length === 0;
+
+    for (const message of messages) {
+        const paragraph = document.createElement("p");
+        paragraph.textContent = message;
+        outputStatus.append(paragraph);
+    }
+}
+
+function getReviewMessage(review) {
+    const reason = review.reason === "DIVERGENT_STAY_PERIODS"
+        ? "períodos de ingreso/egreso diferentes entre pasajeros"
+        : "fechas ausentes o inválidas";
+
+    return `Voucher ${review.voucher || "sin número"}: ${reason}.`;
+}
+
+function openPrintableDocument(html) {
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function downloadCsv(csv, filename) {
+    const blob = new Blob(["\ufeff", csv], {
+        type: "text/csv;charset=utf-8"
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function getFilenameDate(date) {
+    const match = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    return match ? `${match[3]}-${match[2]}-${match[1]}` : "fecha";
+}
+
+function handleVoucherGeneration(mode) {
+    try {
+        const date = getSelectedDate();
+        const result = buildVoucherHtmlForDate(
+            processedReservations,
+            date,
+            mode,
+            window.location.href
+        );
+        const messages = [];
+
+        if (result.html) {
+            openPrintableDocument(result.html);
+            messages.push(
+                `Vista imprimible de Voucher ${mode} abierta: ${result.reportes.length} voucher(s).`
+            );
+        } else {
+            messages.push(`No hay vouchers ${mode} para generar en esta fecha.`);
+        }
+
+        if (result.reviewRequired.length > 0) {
+            messages.push(
+                `${result.reviewRequired.length} voucher(s) requieren revisión:`
+            );
+            messages.push(...result.reviewRequired.map(getReviewMessage));
+        }
+
+        showOutputMessages(messages);
+    } catch (error) {
+        showOutputMessages([`No se pudo generar Voucher ${mode}: ${error.message}`]);
+    }
+}
+
+function handleRoomingGeneration(mode) {
+    try {
+        const date = getSelectedDate();
+        const result = buildRoomingCsvForDate(
+            processedReservations,
+            date,
+            mode
+        );
+
+        if (!result.csv) {
+            showOutputMessages([
+                `No hay pasajeros Rooming ${mode} que ingresen en esta fecha.`
+            ]);
+            return;
+        }
+
+        const filename = `rooming_${mode.toLowerCase()}_${getFilenameDate(date)}.csv`;
+        downloadCsv(result.csv, filename);
+        showOutputMessages([
+            `CSV descargado: ${filename} · ${result.estadisticas.pasajeros} pasajero(s) · ${result.estadisticas.habitaciones} habitación(es).`
+        ]);
+    } catch (error) {
+        showOutputMessages([`No se pudo generar Rooming ${mode}: ${error.message}`]);
+    }
 }
 
 function renderNonRelatable(view) {
@@ -719,6 +839,10 @@ manualArrivalDate.addEventListener("change", () => {
     processButton.disabled = !manualArrivalDate.value;
 });
 processButton.addEventListener("click", processReservationsForDate);
+voucherMapButton.addEventListener("click", () => handleVoucherGeneration("MAP"));
+voucherPcButton.addEventListener("click", () => handleVoucherGeneration("PC"));
+roomingMapButton.addEventListener("click", () => handleRoomingGeneration("MAP"));
+roomingPcButton.addEventListener("click", () => handleRoomingGeneration("PC"));
 function handleRelatedDniQuery() {
     const dni = relatedDniInput.value.trim();
 

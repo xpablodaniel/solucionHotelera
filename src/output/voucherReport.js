@@ -121,12 +121,13 @@ function buildVoucherReport(reservas, mode) {
             const pasajerosOriginales = Array.isArray(reserva.pasajeros)
                 ? [...reserva.pasajeros]
                 : [];
-            const pasajeros = [...pasajerosOriginales]
+            const pasajerosPorDocumento = [...pasajerosOriginales]
                 .sort(compareDocuments);
 
-            const representative = pasajeros[0] || {};
+            const representative = pasajerosOriginales[0] || {};
             const representativePax = representative.pax || {};
-            const representativeStay = representative.estadia || {};
+            const metadataRepresentative = pasajerosPorDocumento[0] || {};
+            const metadataStay = metadataRepresentative.estadia || {};
             const roomsByIdentity = new Map();
 
             for (const passenger of pasajerosOriginales) {
@@ -148,22 +149,22 @@ function buildVoucherReport(reservas, mode) {
             }
 
             const rooms = Array.from(roomsByIdentity.values());
-            const diasEstadia = getStayDays(pasajeros);
+            const diasEstadia = getStayDays(pasajerosPorDocumento);
 
             return {
                 voucher: reserva.voucher,
                 representante: representativePax.nombre || null,
-                dni: representativePax.numeroDocumento || null,
-                hotel: representative.hotel || null,
-                fechaIngreso: representativeStay.ingreso || null,
-                fechaEgreso: representativeStay.egreso || null,
+                dni: representativePax.numeroDocumento ?? "",
+                hotel: metadataRepresentative.hotel || null,
+                fechaIngreso: metadataStay.ingreso || null,
+                fechaEgreso: metadataStay.egreso || null,
                 habitaciones: rooms.map(room => room.numero),
                 habitacionesDetalladas: rooms,
-                cantidadPasajeros: pasajeros.length,
+                cantidadPasajeros: pasajerosOriginales.length,
                 diasEstadia,
                 cantidadComidas: diasEstadia === null
                     ? null
-                    : pasajeros.length * diasEstadia * mealMultiplier,
+                    : pasajerosOriginales.length * diasEstadia * mealMultiplier,
                 modo: mode
             };
         });

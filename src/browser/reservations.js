@@ -36,6 +36,14 @@ const {
     buildNonRelatableView
 } = require("../business/nonRelatableView");
 
+const {
+    buildVoucherHtmlForDate
+} = require("../output/voucherHtmlForDate");
+
+const {
+    buildRoomingCsvForDate
+} = require("../output/roomingCsvForDate");
+
 module.exports = {
     parseCSV,
     parseCSVLine,
@@ -47,5 +55,7 @@ module.exports = {
     buildResponsibleRelationsView,
     projectResponsibleReservationDetail,
     buildResponsibleRelationsAggregateView,
-    buildNonRelatableView
+    buildNonRelatableView,
+    buildVoucherHtmlForDate,
+    buildRoomingCsvForDate
 };

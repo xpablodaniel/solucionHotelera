@@ -94,6 +94,14 @@ interpreta relaciones entre ellos. La funcion `attachBedConfiguration()` agrega
 esa configuracion y la ocupacion calculada a una copia del Rooming, sin
 redistribuir pasajeros ni asignaciones.
 
+`buildRoomingCsvForDate()` construye las salidas operativas MAP o PC para una
+fecha. Usa `selectOutputRecords()` para conservar solo pasajeros que ingresan
+ese día, filtra por régimen, y pasa reservas proyectadas a los reportes
+existentes antes de exportar con `exportRoomingCsv()` o
+`exportPcRoomingCsv()`. Conserva una fila por pasajero y los contratos CSV
+actuales; devuelve `csv: null` cuando no hay pasajeros para ese modo y fecha.
+El consumer no descarga el archivo ni está expuesto aún por el bundle browser.
+
 ## Estructura del resultado
 
 `processReservations()` devuelve una reserva con esta forma general:
@@ -205,9 +213,10 @@ writeVoucherHtml(html, ruta)
 
 `buildVoucherReport()` conserva un voucher por grupo, calcula la cantidad real
 de pasajeros a partir de sus filas y combina las habitaciones sin fusionar
-vouchers diferentes. El representante de la salida historica se obtiene del
-primer pasajero despues de ordenar por DNI. El reporte se ordena por la
-habitacion minima del voucher.
+vouchers diferentes. El nombre y DNI del representante se obtienen del primer
+pasajero en el orden original del CSV; si no tiene DNI, el campo queda vacio
+sin buscar sustituto. Hotel y fechas mantienen la seleccion historica por DNI,
+y el reporte se ordena por la habitacion minima del voucher.
 
 Las reglas de comidas son:
 
@@ -218,6 +227,24 @@ Las reglas de comidas son:
 recibe, escapa los valores externos y genera una pagina imprimible cada cuatro
 vouchers. Si `diasEstadia` es `null`, la duracion visual historica es un dia;
 el modelo conserva `null` sin inventar datos.
+
+`buildVoucherHtmlForDate()` compone la seleccion por fecha con el filtro de
+regimen (`MAP` o `PC`), el reporte y el renderer HTML. Incluye el voucher
+completo cuando al menos un pasajero ingresa en la fecha, pero solo si todos
+sus pasajeros tienen un servicio consistente con el regimen solicitado; los
+vouchers de desayuno y los de servicio desconocido o inconsistente quedan
+excluidos. Los vouchers con fechas de ingreso/egreso divergentes, ausentes,
+invalidas o con egreso no posterior al ingreso se devuelven en
+`reviewRequired` y no se generan automaticamente. Solo se generan vouchers
+cuyos pasajeros tienen el mismo periodo valido. Devuelve `html: null` si no
+hay vouchers para generar. El HTML usa una URL base de la pagina de reservas
+para conservar la resolucion de CSS y logo al abrir una copia Blob imprimible.
+El consumer no descarga archivos ni esta expuesto aun por el bundle browser.
+
+El representante visible es el primer PAX original, mientras que la seleccion
+historica por DNI para hotel, ingreso y egreso se conserva en el reporte. Como
+el consumer solo permite periodos uniformes y validos, las fechas impresas y
+los dias usados para calcular comidas corresponden al periodo comun del grupo.
 
 La escritura se realiza unicamente mediante `writeVoucherHtml()`. Los tests de
 integracion usan los fixtures de `tests/fixtures/`, escriben un archivo
@@ -325,4 +352,3 @@ de `python/balneario/positions.json`.
 1. Completar validaciones de inconsistencias entre CSV, PAX e inventario.
 2. Definir como se informara una disposicion operativa de camas sin inventar
 	relaciones entre pasajeros.
-

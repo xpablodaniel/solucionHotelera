@@ -1113,9 +1113,10 @@ Cada voucher produce un reporte y un bloque HTML, aunque ocupe varias
 habitaciones. Vouchers distintos que comparten una habitacion no se fusionan.
 
 El reporte conserva la cantidad real de pasajeros asociada al voucher. Para la
-salida historica MAP/PC, el representante visual es el primer pasajero luego
-de ordenar por DNI. Esto es una regla de presentacion y no modifica la regla
-conceptual de titular, que conserva el orden original del CSV.
+salida MAP/PC, el nombre y DNI del representante visual corresponden al primer
+pasajero en el orden original del CSV. Si ese pasajero no tiene DNI, el campo
+queda vacio y no se reemplaza por el documento de otro pasajero. La seleccion
+historica por DNI se conserva para los metadatos de hotel y fechas.
 
 El reporte se ordena por la habitacion minima de cada voucher y las habitaciones
 internas conservan el orden en que aparecen en sus registros.
