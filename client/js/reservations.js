@@ -209,16 +209,16 @@ async function handleFileSelection() {
             csvWarnings.push(`La cabecera tiene ${headerCount} columnas; se esperaban 28.`);
         }
         if (invalidRowCount > 0) {
-            csvWarnings.push(`${invalidRowCount} fila(s) tienen una cantidad de columnas distinta de 28 y el parser no las incluyó.`);
+            csvWarnings.push(`${formatCount(invalidRowCount, "fila tiene", "filas tienen")} una cantidad de columnas distinta de 28 y el parser no las incluyó.`);
         }
         if (recordsWithoutVoucher > 0) {
-            csvWarnings.push(`${recordsWithoutVoucher} pasajero(s) no tienen voucher y no pueden agruparse como reserva.`);
+            csvWarnings.push(`${formatCount(recordsWithoutVoucher, "pasajero no tiene", "pasajeros no tienen")} voucher y no pueden agruparse como reserva.`);
         }
         if (recordsWithoutDate > 0) {
-            csvWarnings.push(`${recordsWithoutDate} pasajero(s) no tienen fecha de ingreso y no aparecen en una consulta por fecha.`);
+            csvWarnings.push(`${formatCount(recordsWithoutDate, "pasajero no tiene", "pasajeros no tienen")} fecha de ingreso y no aparecen en una consulta por fecha.`);
         }
         if (recordsWithoutService > 0) {
-            csvWarnings.push(`${recordsWithoutService} pasajero(s) no tienen servicio informado; se conservan sin régimen.`);
+            csvWarnings.push(`${formatCount(recordsWithoutService, "pasajero no tiene", "pasajeros no tienen")} servicio informado; se conservan sin régimen.`);
         }
         if (parsedRecords.length === 0) {
             csvWarnings.push("El parser no encontró filas válidas de 28 columnas.");
@@ -231,7 +231,7 @@ async function handleFileSelection() {
         dateSection.hidden = false;
 
         const sizeInKilobytes = Math.max(1, Math.round(file.size / 1024));
-        fileStatus.textContent = `Archivo cargado: ${file.name} · ${sizeInKilobytes} KB · ${parsedRecords.length} pasajeros válidos · ${processedReservations.length} reservas agrupadas.`;
+        fileStatus.textContent = `Archivo cargado: ${file.name} · ${sizeInKilobytes} KB · ${formatCount(parsedRecords.length, "pasajero válido", "pasajeros válidos")} · ${formatCount(processedReservations.length, "reserva agrupada", "reservas agrupadas")}.`;
         showMessages(fileWarnings, csvWarnings);
         renderNonRelatable(buildNonRelatableView(responsibleRelationships));
     } catch (error) {
@@ -246,6 +246,10 @@ function normalizeService(value) {
         .toUpperCase()
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "");
+}
+
+function formatCount(count, singular, plural) {
+    return `${count} ${count === 1 ? singular : plural}`;
 }
 
 function getMealRegime(service) {
@@ -329,12 +333,12 @@ function renderSummary(summary) {
     document.querySelector("#pc-reservation-count").textContent = String(summary.pcReservations);
 
     document.querySelector("#map-status").textContent = summary.mapReservations > 0
-        ? `Hay ingresos MAP: ${summary.mapPassengers} pasajeros en ${summary.mapReservations} reservas.`
+        ? `Hay ingresos MAP: ${formatCount(summary.mapPassengers, "pasajero", "pasajeros")} en ${formatCount(summary.mapReservations, "reserva", "reservas")}.`
         : "No hay ingresos MAP para la fecha seleccionada.";
 
     const counts = summary.classificationCounts;
     document.querySelector("#classification-status").textContent =
-        `Clasificación del motor: ${counts.INDIVIDUAL} individuales · ${counts.CONTINGENTE} contingentes · ${counts.NO_CLASIFICADA} no clasificadas.`;
+        `Clasificación del motor: ${formatCount(counts.INDIVIDUAL, "individual", "individuales")} · ${formatCount(counts.CONTINGENTE, "contingente", "contingentes")} · ${formatCount(counts.NO_CLASIFICADA, "no clasificada", "no clasificadas")}.`;
 }
 
 function appendCell(row, value) {
@@ -460,8 +464,8 @@ function processReservationsForDate() {
     const messages = [...csvWarnings];
     const missingHotel = incoming.filter(record => !record.hotel).length;
     const missingRoom = incoming.filter(record => !record.habitacion.numero).length;
-    if (missingHotel > 0) messages.push(`${missingHotel} pasajero(s) sin hotel informado.`);
-    if (missingRoom > 0) messages.push(`${missingRoom} pasajero(s) sin habitación informada.`);
+    if (missingHotel > 0) messages.push(`${formatCount(missingHotel, "pasajero sin hotel informado", "pasajeros sin hotel informado")}.`);
+    if (missingRoom > 0) messages.push(`${formatCount(missingRoom, "pasajero sin habitación informada", "pasajeros sin habitación informada")}.`);
 
     for (const reservation of matchingReservations) {
         const dates = getDistinctValues(reservation.pasajeros.map(passenger => passenger.estadia.ingreso));
@@ -559,7 +563,7 @@ function handleVoucherGeneration(mode) {
         if (result.html) {
             openPrintableDocument(result.html);
             messages.push(
-                `Vista imprimible de Voucher ${mode} abierta: ${result.reportes.length} voucher(s).`
+                `Vista imprimible de Voucher ${mode} abierta: ${formatCount(result.reportes.length, "voucher", "vouchers")}.`
             );
         } else {
             messages.push(`No hay vouchers ${mode} para generar en esta fecha.`);
@@ -567,7 +571,7 @@ function handleVoucherGeneration(mode) {
 
         if (result.reviewRequired.length > 0) {
             messages.push(
-                `${result.reviewRequired.length} voucher(s) requieren revisión:`
+                `${formatCount(result.reviewRequired.length, "voucher requiere revisión", "vouchers requieren revisión")}:`
             );
             messages.push(...result.reviewRequired.map(getReviewMessage));
         }
@@ -597,7 +601,7 @@ function handleRoomingGeneration(mode) {
         const filename = `rooming_${mode.toLowerCase()}_${getFilenameDate(date)}.csv`;
         downloadCsv(result.csv, filename);
         showOutputMessages([
-            `CSV descargado: ${filename} · ${result.estadisticas.pasajeros} pasajero(s) · ${result.estadisticas.habitaciones} habitación(es).`
+            `CSV descargado: ${filename} · ${formatCount(result.estadisticas.pasajeros, "pasajero", "pasajeros")} · ${formatCount(result.estadisticas.habitaciones, "habitación", "habitaciones")}.`
         ]);
     } catch (error) {
         showOutputMessages([`No se pudo generar Rooming ${mode}: ${error.message}`]);
@@ -657,7 +661,7 @@ function renderRelatedReservations(dni) {
 
     relatedSummary.textContent =
         `Responsable candidato: ${view.responsableDni} · ` +
-        `Vouchers relacionados: ${view.cantidadVouchers}`;
+        `${formatCount(view.cantidadVouchers, "voucher relacionado", "vouchers relacionados")}`;
 
     for (const voucher of view.vouchers) {
         const row = document.createElement("tr");

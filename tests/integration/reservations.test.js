@@ -230,7 +230,25 @@ test("1. individual MAP reservation counts both passengers and one voucher", asy
         mapPassengers: 2, mapReservations: 1,
         pcPassengers: 0, pcReservations: 0
     });
+    assert.match(textOf(dom, "#file-status"), /2 pasajeros válidos · 1 reserva agrupada/);
+    assert.equal(textOf(dom, "#map-status"), "Hay ingresos MAP: 2 pasajeros en 1 reserva.");
     assert.equal(tableRows(dom)[0][1], "SINTETICO-UNO");
+    closeApp(dom);
+});
+
+test("1a. singular counts use singular nouns in reservation summaries", async () => {
+    const dom = createApp();
+    await uploadCsv(dom, makeCsv([
+        makeRecord({ sequence: 1, voucher: "MAP-SINGULAR", name: "SINTETICO-UNO" })
+    ]));
+    processDate(dom, "11/03/2026");
+
+    assert.match(textOf(dom, "#file-status"), /1 pasajero válido · 1 reserva agrupada/);
+    assert.equal(textOf(dom, "#map-status"), "Hay ingresos MAP: 1 pasajero en 1 reserva.");
+    assert.equal(
+        textOf(dom, "#classification-status"),
+        "Clasificación del motor: 1 individual · 0 contingentes · 0 no clasificadas."
+    );
     closeApp(dom);
 });
 
@@ -325,7 +343,7 @@ test("7. passenger without voucher stays visible and is not assigned an invented
     assert.equal(readSummary(dom).reservations, 0);
     assert.equal(tableRows(dom).length, 1);
     assert.equal(tableRows(dom)[0][0], "Sin voucher");
-    assert.match(textOf(dom, "#result-warnings"), /no tienen voucher/);
+    assert.match(textOf(dom, "#result-warnings"), /1 pasajero no tiene voucher/);
     closeApp(dom);
 });
 
@@ -491,8 +509,8 @@ test("16. invalid 27- and 29-column rows are reported while valid rows survive",
     const dom = createApp();
     await uploadCsv(dom, csv);
 
-    assert.match(textOf(dom, "#file-warnings"), /2 fila\(s\).*distinta de 28/);
-    assert.match(textOf(dom, "#file-status"), /1 pasajeros válidos/);
+    assert.match(textOf(dom, "#file-warnings"), /2 filas tienen.*distinta de 28/);
+    assert.match(textOf(dom, "#file-status"), /1 pasajero válido/);
     processDate(dom, "11/03/2026");
     assert.equal(tableRows(dom).length, 1);
     assert.equal(tableRows(dom)[0][0], "VALID-ROW");
@@ -699,7 +717,7 @@ test("24. seeded 42-PAX mixed CSV has reproducible and manually auditable totals
         processDate(dom, date);
         assert.deepEqual(readSummary(dom), expectedByDate[date], date);
         const status = textOf(dom, "#classification-status");
-        const counts = status.match(/(\d+) individuales · (\d+) contingentes · (\d+) no clasificadas/);
+        const counts = status.match(/(\d+) individual(?:es)? · (\d+) contingente(?:s)? · (\d+) no clasificada(?:s)?/);
         assert.ok(counts, status);
         allClassifications.INDIVIDUAL += Number(counts[1]);
         allClassifications.CONTINGENTE += Number(counts[2]);
@@ -774,7 +792,7 @@ test("26. related reservations query uses real responsible candidates", async ()
 
     assert.equal(
         textOf(dom, "#related-summary"),
-        "Responsable candidato: 14885869 · Vouchers relacionados: 2"
+        "Responsable candidato: 14885869 · 2 vouchers relacionados"
     );
     assert.deepEqual(
         relatedRows().map(row => row[0]).sort(),
@@ -1031,7 +1049,10 @@ test("29. S4.9 opens date-filtered MAP and PC voucher print documents", async ()
     assert.match(mapHtml, /Cant\. Pax:<\/strong> 2/);
     assert.match(mapHtml, /<base href="http:\/\/localhost\/client\/reservations\.html">/);
     assert.doesNotMatch(mapHtml, /PC-PAX|NO-DEBE-SALIR/);
-    assert.match(textOf(dom, "#output-status"), /Vista imprimible de Voucher MAP abierta: 1 voucher/);
+    assert.equal(
+        textOf(dom, "#output-status"),
+        "Vista imprimible de Voucher MAP abierta: 1 voucher."
+    );
 
     dom.window.document.querySelector("#voucher-pc-button").click();
     assert.equal(dom.window.__openedLinks.length, 2);
@@ -1043,6 +1064,10 @@ test("29. S4.9 opens date-filtered MAP and PC voucher print documents", async ()
     assert.match(pcHtml, /Voucher de Comidas PPJ/);
     assert.match(pcHtml, /PC-PAX/);
     assert.doesNotMatch(pcHtml, /MAP-PRIMER-PAX|NO-DEBE-SALIR/);
+    assert.equal(
+        textOf(dom, "#output-status"),
+        "Vista imprimible de Voucher PC abierta: 1 voucher."
+    );
     closeApp(dom);
 });
 
@@ -1095,7 +1120,7 @@ test("30. S4.9 downloads MAP/PC Rooming CSV for selected-date passengers only", 
     assert.deepEqual([...mapCsvBytes.slice(0, 3)], [0xef, 0xbb, 0xbf]);
     assert.match(mapCsv, /MAP-INGRESA/);
     assert.doesNotMatch(mapCsv, /MAP-OTRO-DIA|PC-INGRESA|BREAKFAST-EXCLUIDO/);
-    assert.match(textOf(dom, "#output-status"), /1 pasajero\(s\)/);
+    assert.match(textOf(dom, "#output-status"), /1 pasajero · 1 habitación/);
 
     dom.window.document.querySelector("#rooming-pc-button").click();
     assert.equal(dom.window.__openedLinks.length, 2);
