@@ -1080,7 +1080,8 @@ Solucion Hotel Tools v2 seguirá los siguientes principios:
 
 # 35. Estado de esta especificación
 
-Este documento representa la primera versión de la especificación funcional.
+Esta especificación es evolutiva y se actualiza a medida que se validan las
+reglas funcionales y las salidas implementadas.
 
 No todas las reglas están consideradas definitivas.
 
@@ -1088,6 +1089,9 @@ Las reglas deberán validarse progresivamente mediante:
 
 * ejemplos reales de CSV;
 * documentos generados actualmente;
+* funcionamiento operativo del hotel;
+* casos especiales;
+* pruebas de la nueva aplicación.
 
 ---
 
@@ -1143,10 +1147,77 @@ una duracion visual de un dia sin modificar el modelo de datos.
 
 El renderer no vuelve a agrupar ni ordenar. El writer solo escribe el HTML
 recibido en UTF-8.
-* funcionamiento operativo del hotel;
-* casos especiales;
-* pruebas de la nueva aplicación.
 
-Las modificaciones futuras deberán actualizar primero esta especificación cuando impliquen cambios en las reglas de negocio y posteriormente reflejarse en el código.
+# 37. Interfaz actual de Reservas y salidas por fecha
 
-**Versión actual: 0.1 — borrador funcional inicial.**
+La pantalla Reservas procesa el CSV en el navegador y consulta los ingresos
+para una fecha seleccionada. La fecha determina dos selecciones distintas:
+
+- **Voucher afectado:** una reserva/voucher queda seleccionada si al menos un
+  pasajero tiene ingreso en la fecha. Para la salida de vouchers se conserva
+  el voucher completo, con todos sus pasajeros, no solo quienes ingresan ese
+  día.
+- **Pasajeros de Rooming:** se seleccionan únicamente los pasajeros cuyo
+  ingreso coincide con la fecha. El Rooming mantiene una fila por pasajero;
+  no agrupa ni elimina filas por compartir habitación.
+
+## 37.1 Vistas de la interfaz
+
+1. **UI 1 — Reservas por fecha:** muestra los ingresos de la fecha consultada,
+   sus vouchers, titulares, alojamientos, habitaciones, pasajeros y servicios.
+2. **UI 2 — Detalle de vouchers relacionados:** permite consultar los vouchers
+   asociados a un DNI candidato a responsable y revisar el detalle de cada
+   voucher, incluyendo sus valores y divergencias.
+3. **UI 3 — Consolidación por responsable candidato:** presenta una vista
+   agregada de los vouchers relacionados, conservando sus datos por voucher
+   para hacer visibles los valores divergentes; no fusiona reservas.
+4. **UI 4 — Reservas no relacionables:** muestra vouchers que no pudieron
+   vincularse a un DNI candidato por falta de titular identificable o porque el
+   primer PAX no tiene un DNI disponible.
+
+El responsable candidato se determina usando el DNI del primer PAX del voucher
+en el orden original. No se elige a otro pasajero como sustituto. Las relaciones
+son una vista paralela y no alteran las reservas procesadas.
+
+## 37.2 Salidas de Voucher MAP y Voucher PC
+
+Voucher MAP y Voucher PC toman los vouchers afectados por la fecha y generan
+una vista HTML imprimible separada por régimen. Cada voucher conserva su grupo
+completo; vouchers distintos no se fusionan. Solo se admite un régimen
+consistente con el modo solicitado: MAP muestra cena y PC muestra almuerzo y
+cena.
+
+Antes de generar un voucher se valida que todos sus pasajeros tengan el mismo
+período de estadía válido:
+
+- **Período uniforme y válido:** el voucher puede generarse.
+- **Períodos divergentes:** se informa mediante `reviewRequired` con motivo
+  `DIVERGENT_STAY_PERIODS` y no se genera automáticamente.
+- **Fecha ausente o inválida, o egreso igual/anterior al ingreso:** se informa
+  mediante `reviewRequired` con motivo `MISSING_OR_INVALID_DATES` y no se
+  genera automáticamente.
+
+El representante que aparece en el voucher es el primer PAX en el orden
+original del CSV. Si no tiene DNI, el nombre se conserva y el DNI queda vacío;
+no se busca un sustituto por DNI ni por edad.
+
+## 37.3 Salidas de Rooming MAP y Rooming PC
+
+Rooming MAP y Rooming PC seleccionan solo los pasajeros que ingresan en la
+fecha consultada, filtran respectivamente por MAP o PC y producen CSV con una
+fila por pasajero. Pasajeros que ingresan otro día y pasajeros de otro régimen
+no se incluyen. Compartir habitación no combina ni elimina filas.
+
+## 37.4 Alcance de Balneario
+
+El pipeline de Voucher Alicante/Balneario existente no se elimina, pero no
+forma parte de las salidas de la interfaz actual de Reservas. Su integración
+queda **POSTERGADA** mientras no exista una definición confirmada para la
+temporada 2026/27. El Voucher de Comida Diario es un flujo manual e
+independiente y tampoco forma parte de estas cuatro salidas por fecha.
+
+Las modificaciones futuras deberán actualizar esta especificación cuando
+impliquen cambios en las reglas de negocio y posteriormente reflejarse en el
+código.
+
+**Versión actual: 0.2 — reglas funcionales y salidas de Reservas documentadas.**

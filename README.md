@@ -33,10 +33,16 @@ reportes, CSV, compatibilidad historica, escritura e integracion con fixtures.
 La salida de Vouchers MAP/PC ya cuenta con modelo, renderer HTML, writer e
 integracion completa con fixtures anonimizados.
 
-El flujo de Voucher Alicante/Balneario desde reservas tambien esta implementado
-y probado. Incluye reporte por voucher, titular por primer PAX del CSV,
-habitaciones visuales sin las asignaciones `A`, `B`, `C`, renderer PDF, writer,
-paginacion de tres vouchers por pagina e integracion completa.
+La pantalla Reservas integra la consulta por fecha, el detalle y la
+consolidacion de vouchers relacionados por responsable candidato, las reservas
+no relacionables y las cuatro salidas por regimen (Voucher MAP, Voucher PC,
+Rooming MAP y Rooming PC). Balneario no forma parte de esta interfaz.
+
+El pipeline de Voucher Alicante/Balneario desde reservas existe y tiene pruebas
+de reporte, renderer PDF, writer y paginacion de tres vouchers por pagina. Su
+integracion en la pantalla actual de Reservas esta **POSTERGADA** mientras no
+haya una definicion confirmada para la temporada 2026/27; la postergacion no
+elimina el pipeline existente.
 
 El modulo independiente Voucher de Comida Diario tambien esta terminado. Usa
 una plantilla PDF historica, un overlay calibrado, seleccion de hotel entre
@@ -100,7 +106,8 @@ ese día, filtra por régimen, y pasa reservas proyectadas a los reportes
 existentes antes de exportar con `exportRoomingCsv()` o
 `exportPcRoomingCsv()`. Conserva una fila por pasajero y los contratos CSV
 actuales; devuelve `csv: null` cuando no hay pasajeros para ese modo y fecha.
-El consumer no descarga el archivo ni está expuesto aún por el bundle browser.
+La pantalla Reservas permite descargar las salidas CSV MAP y PC; cuando no hay
+pasajeros para el modo y la fecha, no se crea una descarga.
 
 ## Estructura del resultado
 
@@ -156,19 +163,15 @@ capacidad fisica.
 Desde la raiz del proyecto:
 
 ```bash
-node tests/parser/testParser.js
-node tests/business/testReservation.js
-node tests/business/testClassification.js
-node tests/business/testProcessReservations.js
-node tests/business/testRooming.js
-node tests/business/testBedConfiguration.js
-node tests/hotel/rooms.js
-
-# Suite completa
-for test in $(find tests -type f -name '*.js' | sort); do node "$test" || exit 1; done
+npm test
 ```
 
-Los tests utilizan Node.js y no requieren dependencias externas.
+`npm test` construye el bundle de Reservas y ejecuta las suites `test*.js` de
+parser, normalizadores, business y output, junto con la integracion de
+Reservas. La ejecucion es serial para evitar colisiones en archivos temporales
+compartidos. `npm run test:reservations` ejecuta solamente la integracion de la
+interfaz Reservas. Las pruebas requieren las dependencias de desarrollo
+instaladas con npm, incluido `jsdom`.
 
 ## Documentacion
 
@@ -239,7 +242,8 @@ invalidas o con egreso no posterior al ingreso se devuelven en
 cuyos pasajeros tienen el mismo periodo valido. Devuelve `html: null` si no
 hay vouchers para generar. El HTML usa una URL base de la pagina de reservas
 para conservar la resolucion de CSS y logo al abrir una copia Blob imprimible.
-El consumer no descarga archivos ni esta expuesto aun por el bundle browser.
+La pantalla Reservas abre esta vista imprimible temporal desde las acciones
+Voucher MAP y Voucher PC; no descarga un archivo HTML independiente.
 
 El representante visible es el primer PAX original, mientras que la seleccion
 historica por DNI para hotel, ingreso y egreso se conserva en el reporte. Como

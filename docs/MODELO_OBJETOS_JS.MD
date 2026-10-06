@@ -813,10 +813,77 @@ PC muestra Almuerzo y Cena. La salida se organiza en paginas de hasta cuatro
 vouchers, escapa los datos externos y usa una duracion visual de un dia cuando
 `diasEstadia` es `null`.
 
+## 27.1 Seleccion de salidas por fecha
+
+`selectOutputRecords(reservations, selectedDate)` devuelve dos colecciones
+independientes:
+
+```javascript
+{
+    affectedReservations,
+    roomingPassengers
+}
+```
+
+`affectedReservations` conserva la reserva completa cuando al menos uno de sus
+pasajeros ingresa en la fecha seleccionada. Las salidas de vouchers trabajan
+con estos vouchers completos. Una fecha seleccionada invalida produce ambas
+colecciones vacias.
+
+`roomingPassengers` contiene exclusivamente los pasajeros cuyo ingreso
+coincide con la fecha. `buildRoomingCsvForDate()` proyecta esas personas en las
+reservas correspondientes, filtra por modo MAP o PC y conserva una fila CSV
+por pasajero.
+
+El flujo de Voucher MAP/PC por fecha devuelve:
+
+```javascript
+{
+    reportes,
+    html,             // null si no hay vouchers para generar
+    reviewRequired
+}
+```
+
+Cada reserva afectada debe tener un unico periodo de estadia valido entre sus
+pasajeros. Los casos que requieren revision son:
+
+| Condicion | Motivo |
+| --- | --- |
+| Periodos de ingreso/egreso divergentes entre pasajeros | `DIVERGENT_STAY_PERIODS` |
+| Fecha ausente o invalida, o egreso igual/anterior al ingreso | `MISSING_OR_INVALID_DATES` |
+
+Los vouchers en `reviewRequired` no se generan automaticamente. MAP y PC se
+filtran como flujos separados; cada voucher permanece independiente y no se
+fusiona con otros.
+
+## 27.2 Relaciones y vistas de la interfaz Reservas
+
+`buildResponsibleRelationships()` construye un indice paralelo por DNI del
+primer PAX del voucher, junto con las colecciones de reservas huerfanas e
+ignoradas. `findRelatedReservationsByDni()` consulta ese indice. La UI 2
+proyecta el detalle de los vouchers relacionados; la UI 3 presenta su
+consolidacion conservando el detalle por voucher. La UI 4 convierte las
+reservas huerfanas e ignoradas en filas legibles mediante
+`buildNonRelatableView()`. Estas vistas no modifican ni fusionan las reservas
+originales. La UI 1 presenta las reservas consultadas por fecha.
+
+Las cuatro vistas son:
+
+- UI 1: reservas por fecha.
+- UI 2: detalle de vouchers relacionados por responsable candidato.
+- UI 3: consolidacion por responsable candidato.
+- UI 4: reservas no relacionables.
+
 ## 28. Voucher Alicante/Balneario
 
 El voucher Alicante generado desde reservas constituye un flujo separado de
 MAP/PC y del Voucher de Comida Diario.
+
+**Estado funcional:** el pipeline de Balneario existe, pero su integracion en
+la pantalla actual de Reservas esta **POSTERGADA** mientras no haya definicion
+confirmada para la temporada 2026/27. No se elimina ni se confunde con las
+salidas MAP/PC activas.
 
 Su contrato de reporte es:
 
@@ -866,7 +933,8 @@ conserva para trazabilidad y futuras variantes de plantilla.
 
 ## 29. Próximas etapas
 
-1. Construir la card web de Voucher Alicante/Balneario.
+1. Reconsiderar la integracion de la card web de Voucher Alicante/Balneario
+   cuando exista una definicion confirmada para la temporada correspondiente.
 2. Implementar, en un flujo separado, el voucher manual para personas no
    alojadas si aparece la necesidad operativa.
 3. Fichas PAX para reservas individuales.
