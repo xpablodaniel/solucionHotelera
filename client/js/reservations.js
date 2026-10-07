@@ -9,6 +9,7 @@ const {
     buildResponsibleRelationsView,
     buildResponsibleRelationsAggregateView,
     buildNonRelatableView,
+    findPotentialPassengerDuplicates,
     buildVoucherHtmlForDate,
     buildRoomingCsvForDate,
     parseDateKey
@@ -44,6 +45,11 @@ const nonRelatableSummary = document.querySelector("#non-relatable-summary");
 const nonRelatableResults = document.querySelector("#non-relatable-results");
 const nonRelatableRows = document.querySelector("#non-relatable-rows");
 const nonRelatableEmptyMessage = document.querySelector("#non-relatable-empty-message");
+const passengerDuplicatesSection = document.querySelector("#passenger-duplicates-section");
+const passengerDuplicatesSummary = document.querySelector("#passenger-duplicates-summary");
+const passengerDuplicatesResults = document.querySelector("#passenger-duplicates-results");
+const passengerDuplicatesRows = document.querySelector("#passenger-duplicates-rows");
+const passengerDuplicatesEmptyMessage = document.querySelector("#passenger-duplicates-empty-message");
 const actionsDateLabel = document.querySelector("#actions-date-label");
 const outputStatus = document.querySelector("#output-status");
 const voucherMapButton = document.querySelector("#voucher-map-button");
@@ -94,6 +100,14 @@ function resetNonRelatable() {
     nonRelatableEmptyMessage.hidden = true;
 }
 
+function resetPassengerDuplicates() {
+    passengerDuplicatesSection.hidden = true;
+    passengerDuplicatesSummary.textContent = "";
+    passengerDuplicatesResults.hidden = true;
+    passengerDuplicatesRows.replaceChildren();
+    passengerDuplicatesEmptyMessage.hidden = true;
+}
+
 function resetResults() {
     resultsSection.hidden = true;
     reservationRows.replaceChildren();
@@ -139,6 +153,7 @@ function resetFileState() {
     resetRelatedResults();
     resetResponsibleAggregate();
     resetNonRelatable();
+    resetPassengerDuplicates();
     dateSection.hidden = true;
     arrivalDate.replaceChildren(new Option("Selecciona una fecha", ""));
     arrivalDate.add(new Option("Otra fecha…", CUSTOM_DATE_OPTION));
@@ -244,6 +259,9 @@ async function handleFileSelection() {
         fileStatus.textContent = `Archivo cargado: ${file.name} · ${sizeInKilobytes} KB · ${formatCount(parsedRecords.length, "pasajero válido", "pasajeros válidos")} · ${formatCount(processedReservations.length, "reserva agrupada", "reservas agrupadas")}.`;
         showMessages(fileWarnings, csvWarnings);
         renderNonRelatable(buildNonRelatableView(responsibleRelationships));
+        renderPassengerDuplicates(
+            findPotentialPassengerDuplicates(processedReservations)
+        );
     } catch (error) {
         resetFileState();
         fileStatus.textContent = `No se pudo procesar el CSV: ${error.message}`;
@@ -640,6 +658,32 @@ function renderNonRelatable(view) {
     }
 
     nonRelatableResults.hidden = false;
+}
+
+function renderPassengerDuplicates(duplicates) {
+    resetPassengerDuplicates();
+    passengerDuplicatesSection.hidden = false;
+
+    if (duplicates.length === 0) {
+        passengerDuplicatesEmptyMessage.hidden = false;
+        return;
+    }
+
+    passengerDuplicatesSummary.textContent = formatCount(
+        duplicates.length,
+        "coincidencia candidata",
+        "coincidencias candidatas"
+    );
+
+    for (const duplicate of duplicates) {
+        const row = document.createElement("tr");
+        appendCell(row, duplicate.voucher || "Sin voucher");
+        appendCell(row, `PAX ${duplicate.firstPassengerIndex + 1}`);
+        appendCell(row, `PAX ${duplicate.duplicatePassengerIndex + 1}`);
+        passengerDuplicatesRows.append(row);
+    }
+
+    passengerDuplicatesResults.hidden = false;
 }
 
 function renderRelatedReservations(dni) {

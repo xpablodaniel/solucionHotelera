@@ -1175,3 +1175,231 @@ test("31. S4.9 reports empty outputs without creating a download", async () => {
     assert.equal(dom.window.__openedLinks.length, 0);
     closeApp(dom);
 });
+
+test("32. duplicate passenger review lists every repeated pair independent of selected date", async () => {
+    const duplicateDocument = "DUPLICATE-DOCUMENT-SECRET";
+    const csv = makeCsv([
+        makeRecord({
+            sequence: 1,
+            voucher: "DUP-THREE",
+            document: duplicateDocument,
+            name: "PRIMER-PAX-DUP",
+            arrival: "11/03/2026"
+        }),
+        makeRecord({
+            sequence: 2,
+            voucher: "DUP-THREE",
+            document: duplicateDocument,
+            name: "SEGUNDO-PAX-DUP",
+            arrival: "11/03/2026"
+        }),
+        makeRecord({
+            sequence: 3,
+            voucher: "DUP-THREE",
+            document: duplicateDocument,
+            name: "TERCER-PAX-DUP",
+            arrival: "11/03/2026"
+        }),
+        makeRecord({
+            sequence: 4,
+            voucher: "CROSS-VOUCHER",
+            document: duplicateDocument,
+            name: "PAX-OTRO-VOUCHER",
+            arrival: "12/03/2026"
+        }),
+        makeRecord({
+            sequence: 5,
+            voucher: "DIFFERENT-DOCUMENT-TYPE",
+            document: "SAME-NUMBER-DIFFERENT-TYPE",
+            documentType: "DNI",
+            name: "PAX-DNI"
+        }),
+        makeRecord({
+            sequence: 6,
+            voucher: "DIFFERENT-DOCUMENT-TYPE",
+            document: "SAME-NUMBER-DIFFERENT-TYPE",
+            documentType: "PASAPORTE",
+            name: "PAX-PASAPORTE"
+        }),
+        makeRecord({
+            sequence: 7,
+            voucher: "PC-DUPLICATES",
+            document: duplicateDocument,
+            name: "PRIMER-PAX-PC",
+            service: "PENSION COMPLETA",
+            package: "PPJ",
+            room: "102",
+            arrival: "11/03/2026"
+        }),
+        makeRecord({
+            sequence: 8,
+            voucher: "PC-DUPLICATES",
+            document: duplicateDocument,
+            name: "SEGUNDO-PAX-PC",
+            service: "PENSION COMPLETA",
+            package: "PPJ",
+            room: "102",
+            arrival: "11/03/2026"
+        })
+    ]);
+    const dom = createApp();
+    await uploadCsv(dom, csv);
+
+    const duplicateSection = dom.window.document.querySelector("#passenger-duplicates-section");
+    const nonRelatableSection = dom.window.document.querySelector("#non-relatable-section");
+    const duplicateRows = () => [...dom.window.document.querySelectorAll("#passenger-duplicates-rows tr")]
+        .map(row => [...row.cells].map(cell => cell.textContent.trim()));
+
+    assert.ok(duplicateSection, "possible-duplicates section should exist");
+    assert.equal(duplicateSection.hidden, false);
+    assert.strictEqual(duplicateSection.parentElement, nonRelatableSection.parentElement);
+    assert.equal(textOf(dom, "#passenger-duplicates-title"), "Posibles pasajeros duplicados");
+    assert.match(textOf(dom, "#passenger-duplicates-summary"), /3.*coincidencias/);
+    assert.deepEqual(duplicateRows(), [
+        ["DUP-THREE", "PAX 1", "PAX 2"],
+        ["DUP-THREE", "PAX 1", "PAX 3"],
+        ["PC-DUPLICATES", "PAX 1", "PAX 2"]
+    ]);
+    assert.doesNotMatch(duplicateSection.textContent, new RegExp(duplicateDocument));
+    assert.doesNotMatch(duplicateSection.textContent, /DUPLICATE-DOCUMENT-SECRET/);
+
+    const duplicateSummary = textOf(dom, "#passenger-duplicates-summary");
+    const duplicateRowsBeforeDateSelection = duplicateRows();
+    processDate(dom, "12/03/2026");
+    assert.equal(textOf(dom, "#passenger-duplicates-summary"), duplicateSummary);
+    assert.deepEqual(duplicateRows(), duplicateRowsBeforeDateSelection);
+    assert.deepEqual(readSummary(dom), {
+        passengers: 1, reservations: 1, rooms: 1,
+        mapPassengers: 1, mapReservations: 1,
+        pcPassengers: 0, pcReservations: 0
+    });
+
+    processDate(dom, "11/03/2026");
+    assert.deepEqual(readSummary(dom), {
+        passengers: 7, reservations: 3, rooms: 2,
+        mapPassengers: 5, mapReservations: 2,
+        pcPassengers: 2, pcReservations: 1
+    });
+    assert.equal(tableRows(dom)[0][0], "DUP-THREE");
+    assert.equal(tableRows(dom)[0][1], "PRIMER-PAX-DUP");
+    assert.equal(tableRows(dom)[0][4], "3");
+
+    dom.window.document.querySelector("#related-dni-input").value = duplicateDocument;
+    dom.window.document.querySelector("#related-dni-button").click();
+    const relatedRows = [...dom.window.document.querySelectorAll("#related-reservation-rows tr")];
+    assert.equal(relatedRows.length, 3);
+    assert.deepEqual(
+        relatedRows.map(row => row.cells[0].textContent.trim()),
+        ["DUP-THREE", "CROSS-VOUCHER", "PC-DUPLICATES"]
+    );
+
+    dom.window.document.querySelector("#voucher-map-button").click();
+    const voucherHtml = await readBlobText(
+        dom,
+        dom.window.__createdBlobs.get(dom.window.__openedLinks[0].href)
+    );
+    assert.match(voucherHtml, /PRIMER-PAX-DUP/);
+    assert.match(voucherHtml, /Cant\. Pax:<\/strong> 3/);
+
+    dom.window.document.querySelector("#voucher-pc-button").click();
+    const voucherPcHtml = await readBlobText(
+        dom,
+        dom.window.__createdBlobs.get(dom.window.__openedLinks[1].href)
+    );
+    assert.match(voucherPcHtml, /PRIMER-PAX-PC/);
+    assert.match(voucherPcHtml, /Cant\. Pax:<\/strong> 2/);
+    assert.doesNotMatch(voucherPcHtml, /DUP-THREE|PAX-PASAPORTE/);
+
+    dom.window.document.querySelector("#rooming-map-button").click();
+    const roomingCsv = await readBlobText(
+        dom,
+        dom.window.__createdBlobs.get(dom.window.__openedLinks[2].href)
+    );
+    for (const name of ["PRIMER-PAX-DUP", "SEGUNDO-PAX-DUP", "TERCER-PAX-DUP"]) {
+        assert.match(roomingCsv, new RegExp(name));
+    }
+    assert.doesNotMatch(roomingCsv, /PRIMER-PAX-PC|SEGUNDO-PAX-PC/);
+
+    dom.window.document.querySelector("#rooming-pc-button").click();
+    const roomingPcCsv = await readBlobText(
+        dom,
+        dom.window.__createdBlobs.get(dom.window.__openedLinks[3].href)
+    );
+    assert.match(roomingPcCsv, /PRIMER-PAX-PC/);
+    assert.match(roomingPcCsv, /SEGUNDO-PAX-PC/);
+    assert.doesNotMatch(roomingPcCsv, /PRIMER-PAX-DUP|SEGUNDO-PAX-DUP/);
+    assert.equal(
+        textOf(dom, "#non-relatable-empty-message"),
+        "No se encontraron reservas que requieran revisión."
+    );
+    closeApp(dom);
+});
+
+test("33. duplicate passenger review reports empty when no eligible document pair exists", async () => {
+    const csv = makeCsv([
+        makeRecord({
+            sequence: 1,
+            voucher: "UNIQUE-DOCUMENTS",
+            document: "DOCUMENT-ONE",
+            name: "MISMO-NOMBRE"
+        }),
+        makeRecord({
+            sequence: 2,
+            voucher: "UNIQUE-DOCUMENTS",
+            document: "DOCUMENT-TWO",
+            name: "MISMO-NOMBRE"
+        }),
+        makeRecord({
+            sequence: 3,
+            voucher: "DIFFERENT-TYPES",
+            document: "SAME-NUMBER",
+            documentType: "DNI"
+        }),
+        makeRecord({
+            sequence: 4,
+            voucher: "DIFFERENT-TYPES",
+            document: "SAME-NUMBER",
+            documentType: "PASAPORTE"
+        }),
+        makeRecord({
+            sequence: 5,
+            voucher: "MISSING-DOCUMENT",
+            document: "",
+            name: "SIN-DOCUMENTO"
+        }),
+        makeRecord({
+            sequence: 6,
+            voucher: "MISSING-DOCUMENT",
+            document: "   ",
+            name: "SIN-DOCUMENTO"
+        }),
+        makeRecord({
+            sequence: 7,
+            voucher: "MISSING-DOCUMENT-TYPE",
+            document: "SAME-DOCUMENT-NUMBER",
+            documentType: "",
+            name: "TIPO-VACIO"
+        }),
+        makeRecord({
+            sequence: 8,
+            voucher: "MISSING-DOCUMENT-TYPE",
+            document: "SAME-DOCUMENT-NUMBER",
+            documentType: "   ",
+            name: "TIPO-ESPACIOS"
+        })
+    ]);
+    const dom = createApp();
+    await uploadCsv(dom, csv);
+
+    const duplicateSection = dom.window.document.querySelector("#passenger-duplicates-section");
+    assert.ok(duplicateSection, "possible-duplicates section should exist");
+    assert.equal(duplicateSection.hidden, false);
+    assert.equal(dom.window.document.querySelectorAll("#passenger-duplicates-rows tr").length, 0);
+    assert.equal(dom.window.document.querySelector("#passenger-duplicates-results").hidden, true);
+    assert.equal(dom.window.document.querySelector("#passenger-duplicates-empty-message").hidden, false);
+    assert.equal(
+        textOf(dom, "#passenger-duplicates-empty-message"),
+        "No se detectaron posibles pasajeros duplicados."
+    );
+    closeApp(dom);
+});

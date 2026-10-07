@@ -1174,6 +1174,11 @@ para una fecha seleccionada. La fecha determina dos selecciones distintas:
 4. **UI 4 — Reservas no relacionables:** muestra vouchers que no pudieron
    vincularse a un DNI candidato por falta de titular identificable o porque el
    primer PAX no tiene un DNI disponible.
+5. **Posibles pasajeros duplicados:** muestra candidatos detectados dentro de
+   cada voucher usando tipo y número de documento. La lista informa voucher y
+   posiciones de los PAX, sin exponer el número de documento. Es una advertencia
+   informativa independiente de la fecha y no altera pasajeros, titulares,
+   conteos, relaciones ni salidas.
 
 El responsable candidato se determina usando el DNI del primer PAX del voucher
 en el orden original. No se elige a otro pasajero como sustituto. Las relaciones

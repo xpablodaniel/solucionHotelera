@@ -1165,6 +1165,70 @@ var ReservationsCore = (() => {
     }
   });
 
+  // src/business/passengerDuplicates.js
+  var require_passengerDuplicates = __commonJS({
+    "src/business/passengerDuplicates.js"(exports, module) {
+      function normalizeDocumentType(value) {
+        if (typeof value !== "string") {
+          return null;
+        }
+        const normalized = value.trim().toUpperCase();
+        return normalized === "" ? null : normalized;
+      }
+      function normalizeDocumentNumber(value) {
+        if (typeof value !== "string") {
+          return null;
+        }
+        const normalized = value.trim();
+        return normalized === "" ? null : normalized;
+      }
+      function findPotentialPassengerDuplicates(reservations) {
+        if (!Array.isArray(reservations)) {
+          throw new TypeError(
+            "findPotentialPassengerDuplicates espera un array de reservas."
+          );
+        }
+        const duplicates = [];
+        for (const reservation of reservations) {
+          const passengers = Array.isArray(reservation?.pasajeros) ? reservation.pasajeros : [];
+          const firstPassengerByIdentity = /* @__PURE__ */ new Map();
+          for (const [index, passenger] of passengers.entries()) {
+            const documentType = normalizeDocumentType(
+              passenger?.pax?.tipoDocumento
+            );
+            const documentNumber = normalizeDocumentNumber(
+              passenger?.pax?.numeroDocumento
+            );
+            if (documentType === null || documentNumber === null) {
+              continue;
+            }
+            const identity = JSON.stringify([
+              documentType,
+              documentNumber
+            ]);
+            if (!firstPassengerByIdentity.has(identity)) {
+              firstPassengerByIdentity.set(identity, index);
+              continue;
+            }
+            duplicates.push({
+              voucher: reservation?.voucher ?? null,
+              firstPassengerIndex: firstPassengerByIdentity.get(identity),
+              duplicatePassengerIndex: index,
+              tipoDocumento: documentType,
+              numeroDocumento: documentNumber
+            });
+          }
+        }
+        return duplicates;
+      }
+      if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+          findPotentialPassengerDuplicates
+        };
+      }
+    }
+  });
+
   // src/business/outputSelection.js
   var require_outputSelection = __commonJS({
     "src/business/outputSelection.js"(exports, module) {
@@ -2036,6 +2100,9 @@ ${pages.join("")}
         buildNonRelatableView
       } = require_nonRelatableView();
       var {
+        findPotentialPassengerDuplicates
+      } = require_passengerDuplicates();
+      var {
         buildVoucherHtmlForDate
       } = require_voucherHtmlForDate();
       var {
@@ -2057,6 +2124,7 @@ ${pages.join("")}
         projectResponsibleReservationDetail,
         buildResponsibleRelationsAggregateView,
         buildNonRelatableView,
+        findPotentialPassengerDuplicates,
         buildVoucherHtmlForDate,
         buildRoomingCsvForDate
       };

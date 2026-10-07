@@ -36,7 +36,9 @@ integracion completa con fixtures anonimizados.
 La pantalla Reservas integra la consulta por fecha, el detalle y la
 consolidacion de vouchers relacionados por responsable candidato, las reservas
 no relacionables y las cuatro salidas por regimen (Voucher MAP, Voucher PC,
-Rooming MAP y Rooming PC). Balneario no forma parte de esta interfaz.
+Rooming MAP y Rooming PC). Tambien muestra una auditoria informativa de
+posibles pasajeros duplicados dentro de cada voucher, sin alterar pasajeros,
+conteos ni salidas. Balneario no forma parte de esta interfaz.
 
 El pipeline de Voucher Alicante/Balneario desde reservas existe y tiene pruebas
 de reporte, renderer PDF, writer y paginacion de tres vouchers por pagina. Su

@@ -37,6 +37,10 @@ const {
 } = require("../business/nonRelatableView");
 
 const {
+    findPotentialPassengerDuplicates
+} = require("../business/passengerDuplicates");
+
+const {
     buildVoucherHtmlForDate
 } = require("../output/voucherHtmlForDate");
 
@@ -61,6 +65,7 @@ module.exports = {
     projectResponsibleReservationDetail,
     buildResponsibleRelationsAggregateView,
     buildNonRelatableView,
+    findPotentialPassengerDuplicates,
     buildVoucherHtmlForDate,
     buildRoomingCsvForDate
 };

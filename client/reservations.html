@@ -248,6 +248,32 @@
             </section>
         </section>
 
+        <section class="passenger-duplicates-section" id="passenger-duplicates-section" aria-labelledby="passenger-duplicates-title" hidden>
+            <div class="section-heading">
+                <div>
+                    <p class="step-label">Auditoría de calidad de datos</p>
+                    <h2 id="passenger-duplicates-title">Posibles pasajeros duplicados</h2>
+                </div>
+            </div>
+
+            <p id="passenger-duplicates-summary" role="status"></p>
+
+            <div class="table-scroll" id="passenger-duplicates-results" role="region" aria-label="Listado de posibles pasajeros duplicados" tabindex="0" hidden>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Voucher</th>
+                            <th scope="col">Primer pasajero</th>
+                            <th scope="col">Posible duplicado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="passenger-duplicates-rows"></tbody>
+                </table>
+            </div>
+
+            <p id="passenger-duplicates-empty-message" hidden>No se detectaron posibles pasajeros duplicados.</p>
+        </section>
+
         <section class="non-relatable-section" id="non-relatable-section" aria-labelledby="non-relatable-title" hidden>
             <div class="section-heading">
                 <div>
