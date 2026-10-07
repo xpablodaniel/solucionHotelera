@@ -496,7 +496,27 @@ test("15. selector detects three dates and each query shows only that date", asy
     closeApp(dom);
 });
 
-test("16. invalid 27- and 29-column rows are reported while valid rows survive", async () => {
+test("16. invalid arrival dates are filtered out of the selector and warned without dropping valid rows", async () => {
+    const dom = createApp();
+    const csv = makeCsv([
+        makeRecord({ sequence: 1, voucher: "VALID-ROW-1", arrival: "11/03/2026" }),
+        makeRecord({ sequence: 2, voucher: "INVALID-DATE", arrival: "fecha invalida" }),
+        makeRecord({ sequence: 3, voucher: "VALID-ROW-2", arrival: "12/03/2026" })
+    ]);
+    await uploadCsv(dom, csv);
+
+    const options = [...dom.window.document.querySelectorAll("#arrival-date option")]
+        .map(option => option.value)
+        .filter(value => value && value !== "__custom_date__");
+    assert.deepEqual(options, ["11/03/2026", "12/03/2026"]);
+    assert.match(textOf(dom, "#file-warnings"), /1 pasajero tiene.*fecha de ingreso no válida/);
+    processDate(dom, "11/03/2026");
+    assert.equal(tableRows(dom).length, 1);
+    assert.equal(tableRows(dom)[0][0], "VALID-ROW-1");
+    closeApp(dom);
+});
+
+test("17. invalid 27- and 29-column rows are reported while valid rows survive", async () => {
     const shortRow = makeRecord({ sequence: 10 });
     const longRow = makeRecord({ sequence: 11 });
     shortRow.pop();

@@ -44,9 +44,14 @@ const {
     buildRoomingCsvForDate
 } = require("../output/roomingCsvForDate");
 
+const {
+    parseDateKey
+} = require("../normalizer/dateKeys");
+
 module.exports = {
     parseCSV,
     parseCSVLine,
+    parseDateKey,
     processReservations,
     classifyRecord,
     classifyReservation,

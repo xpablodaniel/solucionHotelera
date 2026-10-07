@@ -2041,9 +2041,13 @@ ${pages.join("")}
       var {
         buildRoomingCsvForDate
       } = require_roomingCsvForDate();
+      var {
+        parseDateKey
+      } = require_dateKeys();
       module.exports = {
         parseCSV,
         parseCSVLine,
+        parseDateKey,
         processReservations,
         classifyRecord,
         classifyReservation,

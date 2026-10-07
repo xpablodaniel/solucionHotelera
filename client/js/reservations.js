@@ -10,7 +10,8 @@ const {
     buildResponsibleRelationsAggregateView,
     buildNonRelatableView,
     buildVoucherHtmlForDate,
-    buildRoomingCsvForDate
+    buildRoomingCsvForDate,
+    parseDateKey
 } = window.ReservationsCore;
 
 const csvInput = document.querySelector("#csv-input");
@@ -197,10 +198,16 @@ async function handleFileSelection() {
         processedReservations = processReservations(parsedRecords);
         responsibleRelationships = buildResponsibleRelationships(processedReservations);
 
-        const dates = [...new Set(parsedRecords
+        const allArrivalDates = parsedRecords
             .map(record => record.estadia.ingreso)
-            .filter(Boolean))]
+            .filter(value => typeof value === "string" && value.trim() !== "");
+        const validDates = [...new Set(allArrivalDates
+            .filter(date => parseDateKey(date) !== null))]
             .sort(compareDates);
+        const invalidDateRows = parsedRecords.filter(record => {
+            const value = record.estadia?.ingreso;
+            return typeof value === "string" && value.trim() !== "" && parseDateKey(value) === null;
+        }).length;
         const recordsWithoutVoucher = parsedRecords.filter(record => !record.voucher).length;
         const recordsWithoutDate = parsedRecords.filter(record => !record.estadia.ingreso).length;
         const recordsWithoutService = parsedRecords.filter(record => !record.servicios).length;
@@ -210,6 +217,9 @@ async function handleFileSelection() {
         }
         if (invalidRowCount > 0) {
             csvWarnings.push(`${formatCount(invalidRowCount, "fila tiene", "filas tienen")} una cantidad de columnas distinta de 28 y el parser no las incluyó.`);
+        }
+        if (invalidDateRows > 0) {
+            csvWarnings.push(`${formatCount(invalidDateRows, "pasajero tiene", "pasajeros tienen")} una fecha de ingreso no válida y queda fuera del selector.`);
         }
         if (recordsWithoutVoucher > 0) {
             csvWarnings.push(`${formatCount(recordsWithoutVoucher, "pasajero no tiene", "pasajeros no tienen")} voucher y no pueden agruparse como reserva.`);
@@ -225,9 +235,9 @@ async function handleFileSelection() {
         }
 
         arrivalDate.replaceChildren(new Option("Selecciona una fecha", ""));
-        for (const date of dates) arrivalDate.add(new Option(date, date));
+        for (const date of validDates) arrivalDate.add(new Option(date, date));
         arrivalDate.add(new Option("Otra fecha…", CUSTOM_DATE_OPTION));
-        dateEmptyMessage.hidden = dates.length > 0;
+        dateEmptyMessage.hidden = validDates.length > 0;
         dateSection.hidden = false;
 
         const sizeInKilobytes = Math.max(1, Math.round(file.size / 1024));
