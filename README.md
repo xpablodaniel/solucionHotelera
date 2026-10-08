@@ -50,9 +50,11 @@ El modulo independiente Voucher de Comida Diario tambien esta terminado. Usa
 una plantilla PDF historica, un overlay calibrado, seleccion de hotel entre
 `23 DE MAYO` y `31 DE AGOSTO`, y una card manual sin CSV ni persistencia.
 
-Todavia no se implementaron fichas PAX dentro de este repositorio. El modulo
-`rooming.js` prepara los datos para las salidas, pero no asigna habitaciones ni
-decide camas.
+La Ficha PAX tiene una capa de negocio aislada y una interfaz independiente
+para cargar CSV, buscar por voucher/DNI/nombre y previsualizar sus paginas en
+el navegador. La generacion y descarga PDF quedan pendientes de una etapa
+posterior. El modulo `rooming.js` prepara los datos para las salidas, pero no
+asigna habitaciones ni decide camas.
 
 ## Flujo de procesamiento
 

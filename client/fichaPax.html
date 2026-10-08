@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#163b37">
+    <title>Ficha PAX | Solución Hotelera</title>
+    <link rel="stylesheet" href="css/reservations.css">
+    <link rel="stylesheet" href="css/ficha-pax.css">
+    <script src="js/ficha-pax-core.js" defer></script>
+    <script src="js/ficha-pax.js" defer></script>
+</head>
+<body>
+    <header class="masthead">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true">S</span>
+            <div>
+                <p class="brand-name">Solución Hotelera</p>
+                <p class="brand-context">Herramientas para recepción</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <a class="back-link" href="../index.html">Volver al inicio</a>
+
+        <section class="page-intro" aria-labelledby="page-title">
+            <p class="eyebrow">Documentación de pasajeros</p>
+            <h1 id="page-title">Ficha PAX</h1>
+            <p>Carga el CSV de reservas y busca por voucher, DNI o nombre para revisar la ficha.</p>
+        </section>
+
+        <p class="demo-notice" role="note">
+            El CSV se procesa en este navegador. El archivo original no se modifica ni se envía.
+        </p>
+
+        <section class="workflow-section" aria-labelledby="upload-title">
+            <div class="section-heading">
+                <div>
+                    <p class="step-label">Paso 1</p>
+                    <h2 id="upload-title">Archivo de reservas</h2>
+                </div>
+            </div>
+            <div class="ficha-dropzone" id="drop-zone">
+                <p>Arrastra aquí el CSV o selecciona el archivo.</p>
+                <input class="file-input" id="csv-input" type="file" accept=".csv,text/csv" aria-describedby="file-status">
+                <label class="button button-secondary" for="csv-input">Seleccionar CSV</label>
+            </div>
+            <p class="file-status" id="file-status" role="status" aria-live="polite">Ningún archivo seleccionado</p>
+            <div class="file-warnings" id="file-warnings" role="status" aria-live="polite" hidden></div>
+        </section>
+
+        <section class="workflow-section" id="search-section" aria-labelledby="search-title" hidden>
+            <div class="section-heading">
+                <div>
+                    <p class="step-label">Paso 2</p>
+                    <h2 id="search-title">Buscar pasajero o voucher</h2>
+                </div>
+            </div>
+            <label class="field-label" for="search-input">
+                Voucher, DNI o apellido/nombre
+                <input id="search-input" type="search" autocomplete="off" placeholder="Escribe para buscar">
+            </label>
+            <p class="search-status" id="search-status" role="status" aria-live="polite"></p>
+            <div class="ficha-results" id="search-results"></div>
+        </section>
+
+        <section class="results-section ficha-preview-section" id="preview-section" aria-labelledby="preview-title" hidden>
+            <div class="section-heading">
+                <div>
+                    <p class="step-label">Vista previa</p>
+                    <h2 id="preview-title">Ficha PAX</h2>
+                </div>
+            </div>
+            <div class="ficha-pages" id="ficha-pages"></div>
+        </section>
+    </main>
+
+    <footer>Solución Hotelera · Herramientas locales de recepción</footer>
+</body>
+</html>

@@ -50,6 +50,7 @@ function projectPassenger(passenger) {
 
     return {
         hotel: passenger.hotel ?? null,
+        sede: passenger.sede ?? null,
         contacto: {
             email: passenger.contacto?.email ?? null,
             telefono: passenger.contacto?.telefono ?? null,
