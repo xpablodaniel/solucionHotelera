@@ -1120,6 +1120,12 @@ Hasta la versión 0.1 quedan confirmadas las siguientes reglas:
 28. Las diferencias de formato deben poder normalizarse.
 29. Las inconsistencias deben poder detectarse.
 30. Los datos personales reales no deben publicarse en el repositorio público.
+31. El diagnóstico de plazas se realiza por voucher, alojamiento y habitación.
+32. `Plazas ocupadas` se compara con la cantidad de filas/PAX de esa unidad; los valores repetidos no se suman.
+33. `Cantidad plazas` se compara por separado con la capacidad física del inventario. Una diferencia es descriptiva y no modifica ninguno de los datos.
+34. Las declaraciones uniformes, contradictorias, ausentes o incompletas se distinguen. Si hay declaraciones contradictorias o faltan datos, no se elige un valor para compararlo; el estado de la declaración y la disponibilidad de inventario se informan por separado.
+35. Las asignaciones A/B/C no cambian el conteo de filas/PAX. El diagnóstico no modifica, elimina, fusiona ni reordena pasajeros ni sus datos.
+36. Las unidades sin voucher, alojamiento o habitación identificable quedan fuera de este diagnóstico.
 
 ---
 
@@ -1133,7 +1139,6 @@ Entre ellas:
 * reglas completas de identificación de contingentes;
 * reglas detalladas de PPJ;
 * tratamiento de diferentes tipos de habitaciones;
-* relación exacta entre cantidad de plazas y plazas ocupadas;
 * excepciones de comidas;
 * reglas de transporte;
 * significado completo del campo `Usuario`;
