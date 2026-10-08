@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#163b37">
+    <title>Vouchers grupales de comidas | Solución Hotelera</title>
+    <link rel="stylesheet" href="css/reservations.css">
+    <script src="js/group-meal-vouchers-core.js" defer></script>
+    <script src="js/group-meal-vouchers.js" defer></script>
+</head>
+<body>
+    <header class="masthead">
+        <div class="brand">
+            <span class="brand-mark" aria-hidden="true">S</span>
+            <div>
+                <p class="brand-name">Solución Hotelera</p>
+                <p class="brand-context">Herramientas para recepción</p>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <a class="back-link" href="../index.html">Volver al inicio</a>
+
+        <section class="page-intro" aria-labelledby="page-title">
+            <p class="eyebrow">Emisión por voucher</p>
+            <h1 id="page-title">Vouchers grupales de comidas</h1>
+            <p>Selecciona el CSV y la fecha de ingreso para generar los vouchers MAP o PC.</p>
+        </section>
+
+        <p class="demo-notice" role="note">
+            El CSV se procesa en este navegador. El archivo original no se modifica ni se envía.
+        </p>
+
+        <section class="workflow-section" aria-labelledby="upload-title">
+            <div class="section-heading">
+                <div>
+                    <p class="step-label">Paso 1</p>
+                    <h2 id="upload-title">Archivo de reservas</h2>
+                </div>
+            </div>
+            <div class="upload-row">
+                <input class="file-input" id="csv-input" type="file" accept=".csv,text/csv" aria-describedby="file-status">
+                <label class="button button-secondary" for="csv-input">Seleccionar CSV</label>
+                <p class="file-status" id="file-status" role="status" aria-live="polite">Ningún archivo seleccionado</p>
+            </div>
+            <div class="file-warnings" id="file-warnings" role="status" aria-live="polite" hidden></div>
+        </section>
+
+        <section class="workflow-section" id="date-section" aria-labelledby="date-title" hidden>
+            <div class="section-heading">
+                <div>
+                    <p class="step-label">Paso 2</p>
+                    <h2 id="date-title">Fecha de ingreso</h2>
+                </div>
+            </div>
+            <div class="date-row">
+                <label class="field-label" for="arrival-date">Selecciona una fecha detectada</label>
+                <select id="arrival-date" name="arrival-date">
+                    <option value="">Selecciona una fecha</option>
+                </select>
+                <label class="field-label manual-date-label" id="manual-date-label" for="manual-arrival-date" hidden>Otra fecha de consulta</label>
+                <input id="manual-arrival-date" type="date" hidden>
+                <p class="date-empty-message" id="date-empty-message" hidden>No se encontraron fechas de ingreso en el CSV.</p>
+                <button class="button button-primary" id="process-button" type="button" disabled>Mostrar salidas</button>
+            </div>
+        </section>
+
+        <section class="results-section" id="results-section" aria-labelledby="results-title" hidden>
+            <div class="section-heading results-heading">
+                <div>
+                    <p class="step-label">Fecha seleccionada</p>
+                    <h2 id="results-title">Vouchers del <span id="selected-date-label"></span></h2>
+                </div>
+            </div>
+            <p class="action-note">Los vouchers usan los pasajeros del voucher afectado por la fecha. Los servicios mezclados o períodos de estadía inconsistentes requieren revisión.</p>
+            <div class="action-buttons">
+                <button class="button button-primary" id="voucher-map-button" type="button">Generar Voucher MAP</button>
+                <button class="button button-primary" id="voucher-pc-button" type="button">Generar Voucher PC</button>
+            </div>
+            <div class="file-warnings output-status" id="output-status" role="status" aria-live="polite" hidden></div>
+        </section>
+    </main>
+
+    <footer>Solución Hotelera · Herramientas locales de recepción</footer>
+</body>
+</html>

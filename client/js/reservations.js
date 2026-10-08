@@ -10,7 +10,6 @@ const {
     buildResponsibleRelationsAggregateView,
     buildNonRelatableView,
     findPotentialPassengerDuplicates,
-    buildVoucherHtmlForDate,
     buildRoomingCsvForDate,
     parseDateKey
 } = window.ReservationsCore;
@@ -52,8 +51,6 @@ const passengerDuplicatesRows = document.querySelector("#passenger-duplicates-ro
 const passengerDuplicatesEmptyMessage = document.querySelector("#passenger-duplicates-empty-message");
 const actionsDateLabel = document.querySelector("#actions-date-label");
 const outputStatus = document.querySelector("#output-status");
-const voucherMapButton = document.querySelector("#voucher-map-button");
-const voucherPcButton = document.querySelector("#voucher-pc-button");
 const roomingMapButton = document.querySelector("#rooming-map-button");
 const roomingPcButton = document.querySelector("#rooming-pc-button");
 
@@ -539,25 +536,6 @@ function showOutputMessages(messages) {
     }
 }
 
-function getReviewMessage(review) {
-    const reason = review.reason === "DIVERGENT_STAY_PERIODS"
-        ? "períodos de ingreso/egreso diferentes entre pasajeros"
-        : "fechas ausentes o inválidas";
-
-    return `Voucher ${review.voucher || "sin número"}: ${reason}.`;
-}
-
-function openPrintableDocument(html) {
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.target = "_blank";
-    link.rel = "noopener";
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-}
-
 function downloadCsv(csv, filename) {
     const blob = new Blob(["\ufeff", csv], {
         type: "text/csv;charset=utf-8"
@@ -575,39 +553,6 @@ function downloadCsv(csv, filename) {
 function getFilenameDate(date) {
     const match = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
     return match ? `${match[3]}-${match[2]}-${match[1]}` : "fecha";
-}
-
-function handleVoucherGeneration(mode) {
-    try {
-        const date = getSelectedDate();
-        const result = buildVoucherHtmlForDate(
-            processedReservations,
-            date,
-            mode,
-            window.location.href
-        );
-        const messages = [];
-
-        if (result.html) {
-            openPrintableDocument(result.html);
-            messages.push(
-                `Vista imprimible de Voucher ${mode} abierta: ${formatCount(result.reportes.length, "voucher", "vouchers")}.`
-            );
-        } else {
-            messages.push(`No hay vouchers ${mode} para generar en esta fecha.`);
-        }
-
-        if (result.reviewRequired.length > 0) {
-            messages.push(
-                `${formatCount(result.reviewRequired.length, "voucher requiere revisión", "vouchers requieren revisión")}:`
-            );
-            messages.push(...result.reviewRequired.map(getReviewMessage));
-        }
-
-        showOutputMessages(messages);
-    } catch (error) {
-        showOutputMessages([`No se pudo generar Voucher ${mode}: ${error.message}`]);
-    }
 }
 
 function handleRoomingGeneration(mode) {
@@ -897,8 +842,6 @@ manualArrivalDate.addEventListener("change", () => {
     processButton.disabled = !manualArrivalDate.value;
 });
 processButton.addEventListener("click", processReservationsForDate);
-voucherMapButton.addEventListener("click", () => handleVoucherGeneration("MAP"));
-voucherPcButton.addEventListener("click", () => handleVoucherGeneration("PC"));
 roomingMapButton.addEventListener("click", () => handleRoomingGeneration("MAP"));
 roomingPcButton.addEventListener("click", () => handleRoomingGeneration("PC"));
 function handleRelatedDniQuery() {

@@ -35,10 +35,15 @@ integracion completa con fixtures anonimizados.
 
 La pantalla Reservas integra la consulta por fecha, el detalle y la
 consolidacion de vouchers relacionados por responsable candidato, las reservas
-no relacionables y las cuatro salidas por regimen (Voucher MAP, Voucher PC,
-Rooming MAP y Rooming PC). Tambien muestra una auditoria informativa de
-posibles pasajeros duplicados dentro de cada voucher, sin alterar pasajeros,
-conteos ni salidas. Balneario no forma parte de esta interfaz.
+no relacionables y las descargas Rooming MAP/PC. Tambien muestra una auditoria
+informativa de posibles pasajeros duplicados dentro de cada voucher, sin
+alterar pasajeros, conteos ni salidas.
+
+Los vouchers grupales MAP/PC tienen una pagina independiente para cargar el
+CSV, seleccionar fecha y abrir la salida imprimible. El procesamiento y las
+reglas de filtrado reutilizan la misma capa de reservas y renderer HTML. El
+Voucher Diario de Comidas individual conserva su formulario propio. En Inicio,
+Balneario queda como la opcion 05; no se integra a Reservas.
 
 El pipeline de Voucher Alicante/Balneario desde reservas existe y tiene pruebas
 de reporte, renderer PDF, writer y paginacion de tres vouchers por pagina. Su
@@ -244,10 +249,11 @@ excluidos. Los vouchers con fechas de ingreso/egreso divergentes, ausentes,
 invalidas o con egreso no posterior al ingreso se devuelven en
 `reviewRequired` y no se generan automaticamente. Solo se generan vouchers
 cuyos pasajeros tienen el mismo periodo valido. Devuelve `html: null` si no
-hay vouchers para generar. El HTML usa una URL base de la pagina de reservas
+hay vouchers para generar. El HTML usa la URL base de la pagina que lo abre
 para conservar la resolucion de CSS y logo al abrir una copia Blob imprimible.
-La pantalla Reservas abre esta vista imprimible temporal desde las acciones
-Voucher MAP y Voucher PC; no descarga un archivo HTML independiente.
+La pagina Vouchers grupales de comidas abre esta vista imprimible temporal
+desde las acciones Voucher MAP y Voucher PC; no descarga un archivo HTML
+independiente.
 
 El representante visible es el primer PAX original, mientras que la seleccion
 historica por DNI para hotel, ingreso y egreso se conserva en el reporte. Como

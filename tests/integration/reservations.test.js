@@ -1019,75 +1019,12 @@ test("28. UI 3 replaces aggregate rows across the three real responsible candida
     closeApp(dom);
 });
 
-test("29. S4.9 opens date-filtered MAP and PC voucher print documents", async () => {
+test("29. group meal vouchers are no longer part of the reservations screen", () => {
     const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({
-            sequence: 1,
-            voucher: "OUTPUT-MAP",
-            document: "90000001",
-            name: "MAP-PRIMER-PAX",
-            service: "MEDIA PENSION"
-        }),
-        makeRecord({
-            sequence: 2,
-            voucher: "OUTPUT-MAP",
-            document: "90000002",
-            name: "MAP-SEGUNDO-PAX",
-            service: "MEDIA PENSION",
-            room: "102"
-        }),
-        makeRecord({
-            sequence: 3,
-            voucher: "OUTPUT-PC",
-            service: "PENSION COMPLETA",
-            name: "PC-PAX",
-            package: "PPJ"
-        }),
-        makeRecord({
-            sequence: 4,
-            voucher: "OUTPUT-BREAKFAST",
-            service: "DESAYUNO",
-            name: "NO-DEBE-SALIR"
-        })
-    ]);
-
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    dom.window.document.querySelector("#voucher-map-button").click();
-    assert.equal(dom.window.__openedLinks.length, 1);
-    const mapLink = dom.window.__openedLinks[0];
-    assert.equal(mapLink.target, "_blank");
-    assert.equal(mapLink.rel, "noopener");
-    const mapBlob = dom.window.__createdBlobs.get(mapLink.href);
-    assert.equal(mapBlob.type, "text/html;charset=utf-8");
-    const mapHtml = await readBlobText(dom, mapBlob);
-    assert.match(mapHtml, /Voucher de Comidas/);
-    assert.match(mapHtml, /MAP-PRIMER-PAX/);
-    assert.doesNotMatch(mapHtml, /MAP-SEGUNDO-PAX/);
-    assert.match(mapHtml, /Cant\. Pax:<\/strong> 2/);
-    assert.match(mapHtml, /<base href="http:\/\/localhost\/client\/reservations\.html">/);
-    assert.doesNotMatch(mapHtml, /PC-PAX|NO-DEBE-SALIR/);
-    assert.equal(
-        textOf(dom, "#output-status"),
-        "Vista imprimible de Voucher MAP abierta: 1 voucher."
-    );
-
-    dom.window.document.querySelector("#voucher-pc-button").click();
-    assert.equal(dom.window.__openedLinks.length, 2);
-    const pcLink = dom.window.__openedLinks[1];
-    const pcHtml = await readBlobText(
-        dom,
-        dom.window.__createdBlobs.get(pcLink.href)
-    );
-    assert.match(pcHtml, /Voucher de Comidas PPJ/);
-    assert.match(pcHtml, /PC-PAX/);
-    assert.doesNotMatch(pcHtml, /MAP-PRIMER-PAX|NO-DEBE-SALIR/);
-    assert.equal(
-        textOf(dom, "#output-status"),
-        "Vista imprimible de Voucher PC abierta: 1 voucher."
-    );
+    assert.equal(dom.window.document.querySelector("#voucher-map-button"), null);
+    assert.equal(dom.window.document.querySelector("#voucher-pc-button"), null);
+    assert.ok(dom.window.document.querySelector("#rooming-map-button"));
+    assert.ok(dom.window.document.querySelector("#rooming-pc-button"));
     closeApp(dom);
 });
 
@@ -1168,8 +1105,6 @@ test("31. S4.9 reports empty outputs without creating a download", async () => {
 
     await uploadCsv(dom, csv);
     processDate(dom, "11/03/2026");
-    dom.window.document.querySelector("#voucher-map-button").click();
-    assert.match(textOf(dom, "#output-status"), /No hay vouchers MAP/);
     dom.window.document.querySelector("#rooming-map-button").click();
     assert.match(textOf(dom, "#output-status"), /No hay pasajeros Rooming MAP/);
     assert.equal(dom.window.__openedLinks.length, 0);
@@ -1293,27 +1228,10 @@ test("32. duplicate passenger review lists every repeated pair independent of se
         ["DUP-THREE", "CROSS-VOUCHER", "PC-DUPLICATES"]
     );
 
-    dom.window.document.querySelector("#voucher-map-button").click();
-    const voucherHtml = await readBlobText(
-        dom,
-        dom.window.__createdBlobs.get(dom.window.__openedLinks[0].href)
-    );
-    assert.match(voucherHtml, /PRIMER-PAX-DUP/);
-    assert.match(voucherHtml, /Cant\. Pax:<\/strong> 3/);
-
-    dom.window.document.querySelector("#voucher-pc-button").click();
-    const voucherPcHtml = await readBlobText(
-        dom,
-        dom.window.__createdBlobs.get(dom.window.__openedLinks[1].href)
-    );
-    assert.match(voucherPcHtml, /PRIMER-PAX-PC/);
-    assert.match(voucherPcHtml, /Cant\. Pax:<\/strong> 2/);
-    assert.doesNotMatch(voucherPcHtml, /DUP-THREE|PAX-PASAPORTE/);
-
     dom.window.document.querySelector("#rooming-map-button").click();
     const roomingCsv = await readBlobText(
         dom,
-        dom.window.__createdBlobs.get(dom.window.__openedLinks[2].href)
+        dom.window.__createdBlobs.get(dom.window.__openedLinks[0].href)
     );
     for (const name of ["PRIMER-PAX-DUP", "SEGUNDO-PAX-DUP", "TERCER-PAX-DUP"]) {
         assert.match(roomingCsv, new RegExp(name));
@@ -1323,7 +1241,7 @@ test("32. duplicate passenger review lists every repeated pair independent of se
     dom.window.document.querySelector("#rooming-pc-button").click();
     const roomingPcCsv = await readBlobText(
         dom,
-        dom.window.__createdBlobs.get(dom.window.__openedLinks[3].href)
+        dom.window.__createdBlobs.get(dom.window.__openedLinks[1].href)
     );
     assert.match(roomingPcCsv, /PRIMER-PAX-PC/);
     assert.match(roomingPcCsv, /SEGUNDO-PAX-PC/);

@@ -41,10 +41,6 @@ const {
 } = require("../business/passengerDuplicates");
 
 const {
-    buildVoucherHtmlForDate
-} = require("../output/voucherHtmlForDate");
-
-const {
     buildRoomingCsvForDate
 } = require("../output/roomingCsvForDate");
 
@@ -66,6 +62,5 @@ module.exports = {
     buildResponsibleRelationsAggregateView,
     buildNonRelatableView,
     findPotentialPassengerDuplicates,
-    buildVoucherHtmlForDate,
     buildRoomingCsvForDate
 };
