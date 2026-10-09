@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "start": "node scripts/serve.js",
     "build:reservations": "esbuild src/browser/reservations.js --bundle --platform=browser --format=iife --global-name=ReservationsCore --outfile=client/js/reservations-core.js",
     "build:ficha-pax": "esbuild src/browser/fichaPax.js --bundle --platform=browser --format=iife --global-name=FichaPaxCore --outfile=client/js/ficha-pax-core.js",
     "build:group-meal-vouchers": "esbuild src/browser/groupMealVouchers.js --bundle --platform=browser --format=iife --global-name=GroupMealVouchersCore --outfile=client/js/group-meal-vouchers-core.js",

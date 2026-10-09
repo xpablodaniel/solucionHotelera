@@ -169,6 +169,18 @@ Actualmente contiene 53 habitaciones:
 Cada habitacion registra numero, piso, codigo de tipo, descripcion y
 capacidad fisica.
 
+## Abrir la aplicacion
+
+Las paginas de `client/` cargan plantillas PDF y `positions.json` con `fetch`, que los
+navegadores bloquean si `index.html` se abre con `file://` ("Failed to fetch").
+Hay que servirla por HTTP:
+
+```bash
+npm start
+```
+
+Luego abrir `http://localhost:4173/` (puerto configurable con la variable `PORT`).
+
 ## Ejecutar las pruebas
 
 Desde la raiz del proyecto:

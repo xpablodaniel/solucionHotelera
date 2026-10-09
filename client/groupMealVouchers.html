@@ -26,7 +26,7 @@
         <section class="page-intro" aria-labelledby="page-title">
             <p class="eyebrow">Emisión por voucher</p>
             <h1 id="page-title">Vouchers grupales de comidas</h1>
-            <p>Selecciona el CSV y la fecha de ingreso para generar los vouchers MAP o PC.</p>
+            <p>Cargá el CSV: se elige la próxima fecha de ingreso y se indican cuántos vouchers MAP o PC hay para imprimir.</p>
         </section>
 
         <p class="demo-notice" role="note">
@@ -56,14 +56,13 @@
                 </div>
             </div>
             <div class="date-row">
-                <label class="field-label" for="arrival-date">Selecciona una fecha detectada</label>
+                <label class="field-label" for="arrival-date">Fecha de ingreso (se preselecciona la próxima)</label>
                 <select id="arrival-date" name="arrival-date">
                     <option value="">Selecciona una fecha</option>
                 </select>
                 <label class="field-label manual-date-label" id="manual-date-label" for="manual-arrival-date" hidden>Otra fecha de consulta</label>
                 <input id="manual-arrival-date" type="date" hidden>
                 <p class="date-empty-message" id="date-empty-message" hidden>No se encontraron fechas de ingreso en el CSV.</p>
-                <button class="button button-primary" id="process-button" type="button" disabled>Mostrar salidas</button>
             </div>
         </section>
 

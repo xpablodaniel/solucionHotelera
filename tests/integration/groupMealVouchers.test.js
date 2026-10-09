@@ -157,7 +157,6 @@ function selectDate(dom, value = "11/03/2026") {
     const select = document.querySelector("#arrival-date");
     select.value = value;
     select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
-    document.querySelector("#process-button").click();
     assert.equal(document.querySelector("#results-section").hidden, false);
 }
 
@@ -261,25 +260,79 @@ test("group voucher page reports empty outputs and vouchers requiring review", a
 
     await uploadCsv(dom, csv);
     selectDate(dom);
-    dom.window.document.querySelector("#voucher-map-button").click();
-    assert.equal(dom.window.__openedLinks.length, 0);
+    const { document } = dom.window;
+    assert.equal(document.querySelector("#voucher-map-button").disabled, true);
+    assert.equal(document.querySelector("#voucher-pc-button").disabled, false);
     assert.match(
-        dom.window.document.querySelector("#output-status").textContent,
-        /No hay vouchers MAP para generar en esta fecha/
-    );
-    assert.match(
-        [...dom.window.document.querySelectorAll("#output-status p")]
+        [...document.querySelectorAll("#output-status p")]
             .map(paragraph => paragraph.textContent)
             .join(" "),
         /1 voucher requiere revisión: Voucher REVIEW-MAP: períodos de ingreso\/egreso diferentes entre pasajeros\./
     );
+    assert.equal(dom.window.__openedLinks.length, 0);
 
-    dom.window.document.querySelector("#voucher-pc-button").click();
+    document.querySelector("#voucher-pc-button").click();
     assert.equal(dom.window.__openedLinks.length, 1);
     assert.match(
-        dom.window.document.querySelector("#output-status").textContent,
+        document.querySelector("#output-status").textContent,
         /Vista imprimible de Voucher PC abierta: 1 voucher/
     );
+    dom.window.close();
+});
+
+test("group voucher page preselects the next arrival date and shows MAP/PC counts", async () => {
+    const dom = createApp();
+    const { document } = dom.window;
+    await uploadCsv(dom, makeCsv([
+        makeRecord({ sequence: 1, voucher: "OLD", arrival: "01/01/2020", departure: "03/01/2020" }),
+        makeRecord({ sequence: 2, voucher: "LATER", arrival: "20/01/2099", departure: "23/01/2099" }),
+        makeRecord({
+            sequence: 3,
+            voucher: "NEXT-A",
+            arrival: "10/01/2099",
+            departure: "13/01/2099",
+            service: "PENSION COMPLETA",
+            package: "PPJ"
+        }),
+        makeRecord({
+            sequence: 4,
+            voucher: "NEXT-B",
+            arrival: "10/01/2099",
+            departure: "13/01/2099",
+            service: "PENSION COMPLETA",
+            package: "PPJ"
+        })
+    ]));
+
+    assert.equal(document.querySelector("#arrival-date").value, "10/01/2099");
+    assert.equal(document.querySelector("#results-section").hidden, false);
+    assert.equal(document.querySelector("#process-button"), null);
+    assert.equal(
+        document.querySelector("#voucher-pc-button").textContent,
+        "Generar Voucher PC · 2 vouchers"
+    );
+    assert.equal(
+        document.querySelector("#voucher-map-button").textContent,
+        "Generar Voucher MAP · 0 vouchers"
+    );
+    assert.equal(document.querySelector("#voucher-map-button").disabled, true);
+
+    selectDate(dom, "20/01/2099");
+    assert.equal(
+        document.querySelector("#voucher-map-button").textContent,
+        "Generar Voucher MAP · 1 voucher"
+    );
+    assert.equal(document.querySelector("#voucher-pc-button").disabled, true);
+    dom.window.close();
+});
+
+test("group voucher page falls back to the latest date when all are past", async () => {
+    const dom = createApp();
+    await uploadCsv(dom, makeCsv([
+        makeRecord({ sequence: 1, voucher: "A", arrival: "01/01/2020", departure: "03/01/2020" }),
+        makeRecord({ sequence: 2, voucher: "B", arrival: "05/01/2020", departure: "07/01/2020" })
+    ]));
+    assert.equal(dom.window.document.querySelector("#arrival-date").value, "05/01/2020");
     dom.window.close();
 });
 

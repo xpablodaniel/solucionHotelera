@@ -14,7 +14,6 @@ const arrivalDate = document.querySelector("#arrival-date");
 const manualDateLabel = document.querySelector("#manual-date-label");
 const manualArrivalDate = document.querySelector("#manual-arrival-date");
 const dateEmptyMessage = document.querySelector("#date-empty-message");
-const processButton = document.querySelector("#process-button");
 const resultsSection = document.querySelector("#results-section");
 const selectedDateLabel = document.querySelector("#selected-date-label");
 const voucherMapButton = document.querySelector("#voucher-map-button");
@@ -64,6 +63,30 @@ function resetResults() {
     selectedDateLabel.textContent = "";
     outputStatus.replaceChildren();
     outputStatus.hidden = true;
+    setModeButton(voucherMapButton, "MAP", null);
+    setModeButton(voucherPcButton, "PC", null);
+}
+
+
+function setModeButton(button, mode, count) {
+
+    button.textContent = count === null
+        ? `Generar Voucher ${mode}`
+        : `Generar Voucher ${mode} · ${formatCount(count, "voucher", "vouchers")}`;
+    button.disabled = count === 0;
+}
+
+
+function pickDefaultDate(dates) {
+
+    const today = new Date();
+    const todayKey = parseDateKey(
+        `${String(today.getDate()).padStart(2, "0")}/` +
+        `${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`
+    );
+    const upcoming = dates.find(date => parseDateKey(date) >= todayKey);
+
+    return upcoming ?? dates[dates.length - 1] ?? "";
 }
 
 
@@ -74,7 +97,6 @@ function resetFileState() {
     dateSection.hidden = true;
     arrivalDate.replaceChildren(new Option("Selecciona una fecha", ""));
     arrivalDate.add(new Option("Otra fecha…", CUSTOM_DATE_OPTION));
-    processButton.disabled = true;
     dateEmptyMessage.hidden = true;
     manualDateLabel.hidden = true;
     manualArrivalDate.hidden = true;
@@ -167,6 +189,7 @@ async function handleFileSelection() {
             arrivalDate.add(new Option(date, date));
         }
         arrivalDate.add(new Option("Otra fecha…", CUSTOM_DATE_OPTION));
+        arrivalDate.value = pickDefaultDate(validDates);
         dateEmptyMessage.hidden = validDates.length > 0;
         dateSection.hidden = false;
         fileStatus.textContent =
@@ -174,6 +197,7 @@ async function handleFileSelection() {
             `${formatCount(parsedRecords.length, "pasajero válido", "pasajeros válidos")} · ` +
             `${formatCount(reservations.length, "reserva agrupada", "reservas agrupadas")}.`;
         showMessages(fileWarnings, messages);
+        processSelectedDate();
     } catch (error) {
         resetFileState();
         fileStatus.textContent = `No se pudo procesar el CSV: ${error.message}`;
@@ -209,6 +233,24 @@ function processSelectedDate() {
     resetResults();
     selectedDateLabel.textContent = date;
     resultsSection.hidden = false;
+
+    try {
+        const base = window.location.href;
+        const map = buildVoucherHtmlForDate(reservations, date, "MAP", base);
+        const pc = buildVoucherHtmlForDate(reservations, date, "PC", base);
+        const reviews = new Set(
+            [...map.reviewRequired, ...pc.reviewRequired].map(getReviewMessage)
+        );
+
+        setModeButton(voucherMapButton, "MAP", map.reportes.length);
+        setModeButton(voucherPcButton, "PC", pc.reportes.length);
+        showMessages(outputStatus, reviews.size === 0 ? [] : [
+            `${formatCount(reviews.size, "voucher requiere revisión", "vouchers requieren revisión")}:`,
+            ...reviews
+        ]);
+    } catch (error) {
+        showMessages(outputStatus, [`No se pudo preparar la fecha: ${error.message}`]);
+    }
 }
 
 
@@ -280,16 +322,10 @@ arrivalDate.addEventListener("change", () => {
     const customDateSelected = arrivalDate.value === CUSTOM_DATE_OPTION;
     manualDateLabel.hidden = !customDateSelected;
     manualArrivalDate.hidden = !customDateSelected;
-    processButton.disabled = customDateSelected
-        ? !manualArrivalDate.value
-        : !arrivalDate.value;
+    processSelectedDate();
 });
 
-manualArrivalDate.addEventListener("change", () => {
-    resetResults();
-    processButton.disabled = !manualArrivalDate.value;
-});
+manualArrivalDate.addEventListener("change", processSelectedDate);
 
-processButton.addEventListener("click", processSelectedDate);
 voucherMapButton.addEventListener("click", () => generateVoucher("MAP"));
 voucherPcButton.addEventListener("click", () => generateVoucher("PC"));
