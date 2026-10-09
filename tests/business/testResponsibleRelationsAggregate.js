@@ -1,6 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-
 const {
     buildResponsibleRelationships
 } = require("../../src/business/responsibleRelationships");
@@ -8,15 +5,6 @@ const {
 const {
     buildResponsibleRelationsAggregateView
 } = require("../../src/business/responsibleRelationsAggregate");
-
-const {
-    parseCSV
-} = require("../../src/parser/csvParser");
-
-const {
-    processReservations
-} = require("../../src/business/processReservations");
-
 
 function assert(condition, message) {
 
@@ -168,16 +156,44 @@ assert(
     "una fecha invalida deberia dejar sin extremo solo su propio campo"
 );
 
-const csvPath = path.join(__dirname, "../../oct31_8.csv");
-const realRecords = parseCSV(fs.readFileSync(csvPath, "utf8"));
-const realReservations = processReservations(realRecords);
-const realRelations = buildResponsibleRelationships(realReservations);
-const realRelationsSnapshot = JSON.stringify(realRelations);
-const realReservationsSnapshot = JSON.stringify(realReservations);
+const syntheticReservations = [
+    reservation("SYN-A-1", [
+        passenger("710", "05/10/2026", "07/10/2026", "DESAYUNO U.PROPIAS"),
+        passenger("711", "05/10/2026", "07/10/2026", "DESAYUNO U.PROPIAS")
+    ], [{ alojamiento: "901", numero: "23" }]),
+    reservation("SYN-A-2", [
+        passenger("710", "06/10/2026", "08/10/2026", "MEDIA PENSION"),
+        passenger("711", "06/10/2026", "08/10/2026", "MEDIA PENSION")
+    ], [{ alojamiento: "901", numero: "23" }]),
+    reservation("SYN-B-1", [
+        passenger("820", "08/10/2026", "10/10/2026", "SERVICIO B"),
+        passenger("821", "08/10/2026", "10/10/2026", "SERVICIO B")
+    ], [{ alojamiento: "901", numero: "14" }]),
+    reservation("SYN-B-2", [
+        passenger("820", "10/10/2026", "12/10/2026", "SERVICIO C"),
+        passenger("821", "10/10/2026", "12/10/2026", "SERVICIO C")
+    ], [{ alojamiento: "901", numero: "14" }]),
+    reservation("SYN-C-1", Array.from({ length: 14 }, (_, index) =>
+        passenger(
+            `93${String(index).padStart(6, "0")}`,
+            "09/10/2026",
+            "11/10/2026",
+            "SERVICIO D"
+        )
+    ), ["11", "15", "20", "21", "22"].map(numero => ({
+        alojamiento: "901",
+        numero
+    })))
+];
+const syntheticRelations = buildResponsibleRelationships(
+    syntheticReservations
+);
+const syntheticRelationsSnapshot = JSON.stringify(syntheticRelations);
+const syntheticReservationsSnapshot = JSON.stringify(syntheticReservations);
 
-const realContractCases = [
+const syntheticContractCases = [
     {
-        dni: "14885869",
+        dni: "710",
         cantidadVouchers: 2,
         totalPaxRegistrados: 4,
         documentosDistintos: 2,
@@ -186,7 +202,7 @@ const realContractCases = [
         egresoMaximo: "08/10/2026"
     },
     {
-        dni: "35656610",
+        dni: "820",
         cantidadVouchers: 2,
         totalPaxRegistrados: 4,
         documentosDistintos: 2,
@@ -195,7 +211,7 @@ const realContractCases = [
         egresoMaximo: "12/10/2026"
     },
     {
-        dni: "24973836",
+        dni: "93000000",
         cantidadVouchers: 1,
         totalPaxRegistrados: 14,
         documentosDistintos: 14,
@@ -204,19 +220,19 @@ const realContractCases = [
         egresoMaximo: "11/10/2026"
     }
 ];
-const realViews = new Map();
+const syntheticViews = new Map();
 
-for (const expected of realContractCases) {
+for (const expected of syntheticContractCases) {
     const view = buildResponsibleRelationsAggregateView(
-        realRelations,
+        syntheticRelations,
         expected.dni,
-        realReservations
+        syntheticReservations
     );
     const rooms = [...new Set(
         view.vouchers.flatMap(item => item.habitaciones)
     )];
 
-    realViews.set(expected.dni, view);
+    syntheticViews.set(expected.dni, view);
 
     assert(
         view.responsableDni === expected.dni &&
@@ -228,7 +244,7 @@ for (const expected of realContractCases) {
         rooms.join(",") === expected.habitaciones.join(",") &&
         view.extremosFechas.ingresoMinimo === expected.ingresoMinimo &&
         view.extremosFechas.egresoMaximo === expected.egresoMaximo,
-        `oct31_8.csv deberia cumplir el contrato para ${expected.dni}`
+        `los datos sinteticos deberian cumplir el contrato para ${expected.dni}`
     );
     assert(
         Object.keys(view).sort().join(",") === [
@@ -252,35 +268,35 @@ for (const expected of realContractCases) {
             "voucher"
         ].sort().join(",")) &&
         !containsInterpretiveField(view),
-        `el agregado de ${expected.dni} no deberia introducir interpretaciones`
+        `el agregado sintetico de ${expected.dni} no deberia introducir interpretaciones`
     );
 }
 
-const real14885869 = realViews.get("14885869");
+const synthetic710 = syntheticViews.get("710");
 assert(
-    real14885869.vouchers.map(item => item.voucher).join(",") ===
-        "30252951,30253015",
-    "14885869 deberia conservar la identidad individual de sus vouchers"
+    synthetic710.vouchers.map(item => item.voucher).join(",") ===
+        "SYN-A-1,SYN-A-2",
+    "el responsable sintetico deberia conservar la identidad de sus vouchers"
 );
 
-const real35656610 = realViews.get("35656610");
+const synthetic820 = syntheticViews.get("820");
 assert(
-    real35656610.vouchers.length === 2 &&
-    real35656610.vouchers[0].servicios.valor === "DESAYUNO U.PROPIAS" &&
-    real35656610.vouchers[1].servicios.valor === "MEDIA PENSION",
-    "oct31_8.csv deberia conservar ambos servicios de 35656610 por voucher"
+    synthetic820.vouchers.length === 2 &&
+    synthetic820.vouchers[0].servicios.valor === "SERVICIO B" &&
+    synthetic820.vouchers[1].servicios.valor === "SERVICIO C",
+    "los datos sinteticos deberian conservar servicios distintos por voucher"
 );
 
-const real24973836 = realViews.get("24973836");
+const synthetic93000000 = syntheticViews.get("93000000");
 assert(
-    real24973836.vouchers[0].voucher === "30255244" &&
-    real24973836.vouchers[0].habitaciones.join(",") === "11,15,20,21,22",
-    "oct31_8.csv deberia conservar el voucher multi-habitacion de 24973836"
+    synthetic93000000.vouchers[0].voucher === "SYN-C-1" &&
+    synthetic93000000.vouchers[0].habitaciones.join(",") === "11,15,20,21,22",
+    "los datos sinteticos deberian conservar las habitaciones del voucher"
 );
 assert(
-    JSON.stringify(realRelations) === realRelationsSnapshot &&
-    JSON.stringify(realReservations) === realReservationsSnapshot,
-    "la validacion CSV no deberia mutar relaciones ni reservas originales"
+    JSON.stringify(syntheticRelations) === syntheticRelationsSnapshot &&
+    JSON.stringify(syntheticReservations) === syntheticReservationsSnapshot,
+    "la validacion no deberia mutar relaciones ni reservas sinteticas"
 );
 
 console.log("OK agregado de relaciones, divergencias e inmutabilidad");

@@ -714,6 +714,11 @@ Debe incluir:
 * fechas;
 * servicios.
 
+La ficha debe poder descargarse en PDF sobre la plantilla oficial
+`assets/templates/1fichaPax.pdf`. Si los acompañantes superan
+la capacidad de una página, se deben generar páginas adicionales con el
+titular y los datos de reserva repetidos, sin omitir pasajeros.
+
 No debe utilizarse para contingentes.
 
 ---

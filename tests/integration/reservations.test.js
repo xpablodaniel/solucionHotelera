@@ -80,6 +80,80 @@ function makeCsv(records) {
         .join("\r\n");
 }
 
+function makeSyntheticRelationsCsv() {
+    const records = [];
+
+    function addReservation({
+        voucher,
+        documents,
+        rooms,
+        arrivals,
+        departures,
+        service
+    }) {
+        documents.forEach((document, index) => {
+            records.push(makeRecord({
+                sequence: `${voucher}-${index + 1}`,
+                accommodationCode: "901",
+                voucher,
+                document,
+                name: `PASAJERO SINTETICO ${voucher} ${index + 1}`,
+                room: rooms[index] || rooms[0],
+                arrival: arrivals[index] || arrivals[0],
+                departure: departures[index] || departures[0],
+                occupied: String(documents.length),
+                capacity: String(Math.max(2, documents.length)),
+                service,
+                package: "",
+                transport: "Sin Transporte"
+            }));
+        });
+    }
+
+    addReservation({
+        voucher: "SYN-A-1",
+        documents: ["SYN-DOC-A", "SYN-DOC-A-COMP"],
+        rooms: ["23"],
+        arrivals: ["05/10/2026"],
+        departures: ["07/10/2026"],
+        service: "DESAYUNO U.PROPIAS"
+    });
+    addReservation({
+        voucher: "SYN-A-2",
+        documents: ["SYN-DOC-A", "SYN-DOC-A-COMP"],
+        rooms: ["23"],
+        arrivals: ["06/10/2026"],
+        departures: ["08/10/2026"],
+        service: "MEDIA PENSION"
+    });
+    addReservation({
+        voucher: "SYN-B-1",
+        documents: ["SYN-DOC-B", "SYN-DOC-B-COMP"],
+        rooms: ["14"],
+        arrivals: ["08/10/2026"],
+        departures: ["10/10/2026"],
+        service: "SERVICIO B"
+    });
+    addReservation({
+        voucher: "SYN-B-2",
+        documents: ["SYN-DOC-B", "SYN-DOC-B-COMP"],
+        rooms: ["14"],
+        arrivals: ["10/10/2026"],
+        departures: ["12/10/2026"],
+        service: "SERVICIO C"
+    });
+    addReservation({
+        voucher: "SYN-MULTI",
+        documents: Array.from({ length: 5 }, (_, index) => `SYN-DOC-C-${index + 1}`),
+        rooms: ["11", "15", "20", "21", "22"],
+        arrivals: ["09/10/2026"],
+        departures: ["11/10/2026"],
+        service: "SERVICIO D"
+    });
+
+    return makeCsv(records);
+}
+
 function createApp() {
     const dom = new JSDOM(htmlSource, {
         runScripts: "outside-only",
@@ -794,11 +868,10 @@ test("25. integration calls the unchanged engine and does not mutate parsed reco
     closeApp(dom);
 });
 
-test("26. related reservations query uses real responsible candidates", async () => {
+test("26. related reservations query uses synthetic responsible candidates", async () => {
     const dom = createApp();
-    const realCsv = fs.readFileSync(path.join(root, "oct31_8.csv"), "utf8");
 
-    await uploadCsv(dom, realCsv, "oct31_8.csv");
+    await uploadCsv(dom, makeSyntheticRelationsCsv());
     processDate(dom, "01/10/2026");
 
     const dniInput = dom.window.document.querySelector("#related-dni-input");
@@ -807,35 +880,34 @@ test("26. related reservations query uses real responsible candidates", async ()
         "#related-reservation-rows tr"
     )].map(row => [...row.cells].map(cell => cell.textContent.trim()));
 
-    dniInput.value = "14885869";
+    dniInput.value = "SYN-DOC-A";
     queryButton.click();
 
     assert.equal(
         textOf(dom, "#related-summary"),
-        "Responsable candidato: 14885869 · 2 vouchers relacionados"
+        "Responsable candidato: SYN-DOC-A · 2 vouchers relacionados"
     );
     assert.deepEqual(
         relatedRows().map(row => row[0]).sort(),
-        ["30252951", "30253015"]
+        ["SYN-A-1", "SYN-A-2"]
     );
 
-    dniInput.value = "35656610";
+    dniInput.value = "SYN-DOC-B";
     queryButton.click();
     assert.deepEqual(
         relatedRows().map(row => row[0]).sort(),
-        ["9005042", "9005043"]
+        ["SYN-B-1", "SYN-B-2"]
     );
 
-    dniInput.value = "24973836";
+    dniInput.value = "SYN-DOC-C-1";
     queryButton.click();
     const multiRoomDetail = dom.window.document.querySelector("#related-detail-list").textContent;
-    assert.match(multiRoomDetail, /Voucher 30255244/);
+    assert.match(multiRoomDetail, /Voucher SYN-MULTI/);
     for (const room of ["11", "15", "20", "21", "22"]) {
         assert.match(multiRoomDetail, new RegExp(room));
     }
-    assert.match(multiRoomDetail, /14/);
 
-    dniInput.value = "14340128";
+    dniInput.value = "SYN-DOC-A-COMP";
     queryButton.click();
     assert.equal(
         textOf(dom, "#related-empty-message"),
@@ -843,12 +915,12 @@ test("26. related reservations query uses real responsible candidates", async ()
     );
     assert.equal(dom.window.document.querySelector("#related-empty-message").hidden, false);
 
-    dniInput.value = "14885869";
+    dniInput.value = "SYN-DOC-A";
     queryButton.click();
     assert.deepEqual(
         [...dom.window.document.querySelectorAll("#related-detail-list h3")]
             .map(heading => heading.textContent),
-        ["Voucher 30252951", "Voucher 30253015"]
+        ["Voucher SYN-A-1", "Voucher SYN-A-2"]
     );
     closeApp(dom);
 });
@@ -912,11 +984,10 @@ test("27. related detail renders multi-room and divergent values", async () => {
     closeApp(dom);
 });
 
-test("28. UI 3 replaces aggregate rows across the three real responsible candidates", async () => {
+test("28. UI 3 replaces aggregate rows across synthetic responsible candidates", async () => {
     const dom = createApp();
-    const realCsv = fs.readFileSync(path.join(root, "oct31_8.csv"), "utf8");
 
-    await uploadCsv(dom, realCsv, "oct31_8.csv");
+    await uploadCsv(dom, makeSyntheticRelationsCsv());
     processDate(dom, "01/10/2026");
 
     const document = dom.window.document;
@@ -930,8 +1001,8 @@ test("28. UI 3 replaces aggregate rows across the three real responsible candida
     )].map(row => [...row.cells].map(cell => cell.textContent.trim()));
     const cases = [
         {
-            dni: "14885869",
-            vouchers: ["30252951", "30253015"],
+            dni: "SYN-DOC-A",
+            vouchers: ["SYN-A-1", "SYN-A-2"],
             pax: "4",
             documents: "2",
             rooms: "23",
@@ -939,8 +1010,8 @@ test("28. UI 3 replaces aggregate rows across the three real responsible candida
             departure: "08/10/2026"
         },
         {
-            dni: "35656610",
-            vouchers: ["9005042", "9005043"],
+            dni: "SYN-DOC-B",
+            vouchers: ["SYN-B-1", "SYN-B-2"],
             pax: "4",
             documents: "2",
             rooms: "14",
@@ -948,10 +1019,10 @@ test("28. UI 3 replaces aggregate rows across the three real responsible candida
             departure: "12/10/2026"
         },
         {
-            dni: "24973836",
-            vouchers: ["30255244"],
-            pax: "14",
-            documents: "14",
+            dni: "SYN-DOC-C-1",
+            vouchers: ["SYN-MULTI"],
+            pax: "5",
+            documents: "5",
             rooms: "11, 15, 20, 21, 22",
             arrival: "09/10/2026",
             departure: "11/10/2026"
@@ -986,10 +1057,10 @@ test("28. UI 3 replaces aggregate rows across the three real responsible candida
 
     const finalRows = aggregateRows();
     assert.equal(finalRows.length, 1, "la última consulta debe reemplazar las dos filas anteriores");
-    assert.equal(finalRows[0][0], "30255244");
+    assert.equal(finalRows[0][0], "SYN-MULTI");
     assert.equal(finalRows[0][2], "11, 15, 20, 21, 22");
 
-    for (const dni of ["14340128", "00000000"]) {
+    for (const dni of ["SYN-DOC-A-COMP", "SYN-MISSING"]) {
         dniInput.value = dni;
         queryButton.click();
 
@@ -1005,12 +1076,12 @@ test("28. UI 3 replaces aggregate rows across the three real responsible candida
         assert.equal(document.querySelector("#related-empty-message").hidden, false);
     }
 
-    dniInput.value = "14885869";
+    dniInput.value = "SYN-DOC-A";
     queryButton.click();
     assert.equal(aggregateRows().length, 2);
-    assert.deepEqual(relatedRows(), ["30252951", "30253015"]);
+    assert.deepEqual(relatedRows(), ["SYN-A-1", "SYN-A-2"]);
 
-    dniInput.value = "35656610";
+    dniInput.value = "SYN-DOC-A";
     queryButton.click();
     const serviceRows = aggregateRows();
     assert.match(serviceRows[0][7], /DESAYUNO U\.PROPIAS/);

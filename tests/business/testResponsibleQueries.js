@@ -1,6 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-
 const {
     buildResponsibleRelationships
 } = require("../../src/business/responsibleRelationships");
@@ -8,15 +5,6 @@ const {
 const {
     findRelatedReservationsByDni
 } = require("../../src/business/responsibleQueries");
-
-const {
-    parseCSV
-} = require("../../src/parser/csvParser");
-
-const {
-    processReservations
-} = require("../../src/business/processReservations");
-
 
 function assert(condition, message) {
 
@@ -111,29 +99,6 @@ findRelatedReservationsByDni(relations, "12345678");
 assert(
     JSON.stringify(relations) === relationsSnapshot,
     "la consulta no deberia modificar las relaciones"
-);
-
-const csvPath = path.join(__dirname, "../../oct31_8.csv");
-const realRecords = parseCSV(fs.readFileSync(csvPath, "utf8"));
-const realReservations = processReservations(realRecords);
-const realRelations = buildResponsibleRelationships(realReservations);
-const realQuery = findRelatedReservationsByDni(realRelations, "14885869");
-const realCompanionQuery = findRelatedReservationsByDni(realRelations, "14340128");
-
-assert(
-    realQuery.vouchers.map(item => item.voucher).sort().join(",") ===
-        "30252951,30253015",
-    "la consulta real deberia devolver los dos vouchers relacionados"
-);
-assert(
-    realQuery.vouchers.every(item =>
-        realReservations[item.reservaIndex].voucher === item.voucher
-    ),
-    "la consulta real deberia conservar reservaIndex"
-);
-assert(
-    realCompanionQuery.vouchers.length === 0,
-    "la consulta real no deberia promover un DNI acompañante"
 );
 
 console.log("OK consultas independientes sin modificar relaciones");

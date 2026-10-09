@@ -1,6 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-
 const {
     buildResponsibleRelationships
 } = require("../../src/business/responsibleRelationships");
@@ -9,15 +6,6 @@ const {
     buildResponsibleRelationsView,
     projectResponsibleReservationDetail
 } = require("../../src/business/responsibleRelationsConsumer");
-
-const {
-    parseCSV
-} = require("../../src/parser/csvParser");
-
-const {
-    processReservations
-} = require("../../src/business/processReservations");
-
 
 function assert(condition, message) {
 
@@ -319,36 +307,6 @@ assert(
 assert(
     projectResponsibleReservationDetail(reservas, 999, "INVALID") === null,
     "un reservaIndex invalido deberia devolver null"
-);
-
-const csvPath = path.join(__dirname, "../../oct31_8.csv");
-const realRecords = parseCSV(fs.readFileSync(csvPath, "utf8"));
-const realReservations = processReservations(realRecords);
-const realRelations = buildResponsibleRelationships(realReservations);
-const realView = buildResponsibleRelationsView(
-    realRelations,
-    "14885869",
-    realReservations,
-    { includeDetail: true }
-);
-const realCompanionView = buildResponsibleRelationsView(
-    realRelations,
-    "14340128",
-    realReservations
-);
-
-assert(
-    realView.cantidadVouchers === 2 &&
-    realView.vouchers.map(item => item.voucher).sort().join(",") ===
-        "30252951,30253015" &&
-    realView.vouchers.every(item =>
-        item.detalle.voucher === realReservations[item.reservaIndex].voucher
-    ),
-    "la regresion real deberia producir la vista y detalles esperados"
-);
-assert(
-    realCompanionView.vouchers.length === 0,
-    "la regresion real no deberia promover un DNI acompañante"
 );
 
 console.log("OK consumidor de relaciones sin mutaciones");

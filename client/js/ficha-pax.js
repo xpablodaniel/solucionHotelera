@@ -16,8 +16,13 @@ const searchStatus = document.querySelector("#search-status");
 const searchResults = document.querySelector("#search-results");
 const previewSection = document.querySelector("#preview-section");
 const fichaPages = document.querySelector("#ficha-pages");
+const downloadPdfButton = document.querySelector("#download-pdf");
+const pdfStatus = document.querySelector("#pdf-status");
+const mmToPt = 72 / 25.4;
+const templateUrl = "../assets/templates/1fichaPax.pdf";
 
 let reservations = [];
+let selectedReservation = null;
 
 function clearChildren(element) {
     element.replaceChildren();
@@ -125,6 +130,13 @@ function showPreview(reservation) {
     clearChildren(fichaPages);
 
     const pages = buildFichaPaxPages(reservation);
+    selectedReservation = pages.length > 0 ? reservation : null;
+    const isContingent = reservation.clasificacion?.tipo === "CONTINGENTE";
+    downloadPdfButton.disabled = isContingent;
+    pdfStatus.textContent = isContingent
+        ? "No se genera ficha PAX para reservas de contingentes."
+        : "";
+    pdfStatus.classList.remove("error");
     pages.forEach((page, index) => {
         fichaPages.append(renderPage(page, index, pages.length));
     });
@@ -141,6 +153,7 @@ function renderSearchResults(matches, query) {
     clearChildren(searchResults);
     previewSection.hidden = true;
     clearChildren(fichaPages);
+    selectedReservation = null;
 
     if (!query.trim()) {
         searchStatus.textContent = "Escribe un voucher, DNI o nombre para buscar.";
@@ -180,6 +193,256 @@ function renderSearchResults(matches, query) {
     }
 }
 
+function cleanPdfValue(value) {
+
+    const text = String(value ?? "").trim();
+    const placeholderValues = new Set([
+        "0",
+        "no informado",
+        "noinformado",
+        "sin email",
+        "sin mail",
+        "n/a",
+        "na",
+        "-"
+    ]);
+
+    return placeholderValues.has(text.toLocaleLowerCase()) ? "" : text;
+}
+
+
+function fitTextSize(font, text, baseSize, maxWidthMm) {
+
+    const maxWidth = maxWidthMm * mmToPt;
+    let size = baseSize;
+
+    while (size > 6 && font.widthOfTextAtSize(text, size) > maxWidth) {
+        size -= 0.5;
+    }
+
+    return size;
+}
+
+
+function drawPdfText(page, font, value, xMm, yTopMm, options = {}) {
+
+    const text = cleanPdfValue(value);
+    if (!text) {
+        return;
+    }
+
+    const size = fitTextSize(
+        font,
+        text,
+        options.size || 10,
+        options.maxWidthMm || 100
+    );
+    page.drawText(text, {
+        x: xMm * mmToPt,
+        y: page.getHeight() - yTopMm * mmToPt,
+        size,
+        font
+    });
+}
+
+
+function getPassengerText(passenger, property) {
+
+    return cleanPdfValue(passenger?.pax?.[property]);
+}
+
+
+function drawFichaPage(page, ficha, regularFont, boldFont) {
+
+    const titular = ficha.titular;
+    const nombre = getPassengerText(titular, "nombre").toLocaleUpperCase();
+    const tipoDocumento = getPassengerText(titular, "tipoDocumento");
+    const numeroDocumento = getPassengerText(titular, "numeroDocumento");
+    const documento = [tipoDocumento, numeroDocumento].filter(Boolean).join(": ");
+    const telefonoRaw = cleanPdfValue(
+        titular?.contacto?.celular || titular?.contacto?.telefono
+    );
+    const telefono = telefonoRaw.replace(/[^\d]/g, "").length >= 6
+        ? telefonoRaw
+        : "";
+    const emailRaw = cleanPdfValue(titular?.contacto?.email);
+    const email = emailRaw.includes("@") && emailRaw.length > 5
+        ? emailRaw
+        : "";
+    const sede = cleanPdfValue(titular?.sede)
+        .replace(/^\s*\d+\s*[-–—]\s*/, "");
+    const habitaciones = ficha.habitaciones
+        .map(room => cleanPdfValue(room.numero))
+        .filter(Boolean)
+        .join(", ");
+
+    drawPdfText(page, regularFont, nombre, 70, 57, {
+        maxWidthMm: 120
+    });
+    drawPdfText(page, regularFont, documento, 80, 65, {
+        maxWidthMm: 110
+    });
+    drawPdfText(page, regularFont, telefono, 80, 72, {
+        maxWidthMm: 45
+    });
+    drawPdfText(page, regularFont, email, 130, 72, {
+        maxWidthMm: 65
+    });
+    drawPdfText(page, regularFont, sede, 45, 95, {
+        maxWidthMm: 140
+    });
+    drawPdfText(
+        page,
+        regularFont,
+        getPassengerText(titular, "fechaNacimiento"),
+        162,
+        65,
+        { maxWidthMm: 35 }
+    );
+
+    ficha.acompanantes.slice(0, 3).forEach((passenger, index) => {
+        const yTopMm = 115 + index * 7;
+        const companionName = getPassengerText(passenger, "nombre")
+            .toLocaleUpperCase();
+        const companionDocument = [
+            getPassengerText(passenger, "tipoDocumento"),
+            getPassengerText(passenger, "numeroDocumento")
+        ].filter(Boolean).join(": ");
+
+        drawPdfText(page, regularFont, companionName, 45, yTopMm, {
+            size: 9,
+            maxWidthMm: 57
+        });
+        drawPdfText(page, regularFont, companionDocument, 105, yTopMm, {
+            size: 9,
+            maxWidthMm: 85
+        });
+    });
+
+    drawPdfText(page, regularFont, habitaciones, 110, 187, {
+        maxWidthMm: 85
+    });
+    drawPdfText(page, regularFont, ficha.estadia.ingreso, 75, 173, {
+        maxWidthMm: 45
+    });
+    drawPdfText(page, regularFont, ficha.estadia.egreso, 142, 173, {
+        maxWidthMm: 45
+    });
+
+    const servicios = cleanPdfValue(ficha.servicios).toLocaleUpperCase();
+    const serviceX = servicios.includes("DESAYUNO") && !servicios.includes("MEDIA")
+        ? 75
+        : servicios.includes("MEDIA")
+            ? 113
+            : servicios.includes("COMPLETA") || servicios.includes("PENSION")
+                ? 140
+                : null;
+    if (serviceX !== null) {
+        drawPdfText(page, regularFont, "X", serviceX, 198);
+    }
+
+    drawPdfText(page, boldFont, ficha.voucher, 80, 40, {
+        size: 11,
+        maxWidthMm: 100
+    });
+}
+
+
+async function createFichaPdf(reservation) {
+
+    if (reservation.clasificacion?.tipo === "CONTINGENTE") {
+        throw new Error("No se genera ficha PAX para reservas de contingentes.");
+    }
+
+    const pdfLibrary = window.PDFLib;
+    if (!pdfLibrary?.PDFDocument) {
+        throw new Error("No se pudo cargar la librería para generar PDF.");
+    }
+
+    const response = await fetch(templateUrl);
+    if (!response.ok) {
+        throw new Error("No se pudo cargar la plantilla PDF oficial.");
+    }
+
+    const templateBytes = await response.arrayBuffer();
+    const templateDocument = await pdfLibrary.PDFDocument.load(templateBytes);
+    const templatePages = templateDocument.getPages();
+    if (templatePages.length !== 1) {
+        throw new Error("La plantilla oficial debe tener exactamente una página.");
+    }
+
+    const fichaPagesData = buildFichaPaxPages(reservation);
+    if (fichaPagesData.length === 0) {
+        throw new Error("La reserva no tiene pasajeros para generar la ficha.");
+    }
+
+    const outputDocument = await pdfLibrary.PDFDocument.create();
+    const regularFont = await outputDocument.embedFont(
+        pdfLibrary.StandardFonts.Helvetica
+    );
+    const boldFont = await outputDocument.embedFont(
+        pdfLibrary.StandardFonts.HelveticaBold
+    );
+
+    for (const ficha of fichaPagesData) {
+        const [page] = await outputDocument.copyPages(templateDocument, [0]);
+        drawFichaPage(page, ficha, regularFont, boldFont);
+        outputDocument.addPage(page);
+    }
+
+    return outputDocument.save();
+}
+
+
+function makePdfFilename(voucher) {
+
+    const safeVoucher = cleanPdfValue(voucher)
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9_-]/gi, "_")
+        .replace(/_+/g, "_")
+        .replace(/^_|_$/g, "")
+        .slice(0, 80) || "reserva";
+
+    return `ficha_pax_${safeVoucher}.pdf`;
+}
+
+
+downloadPdfButton.addEventListener("click", async () => {
+
+    const reservation = selectedReservation;
+    if (!reservation) {
+        pdfStatus.textContent = "Selecciona un voucher antes de generar la ficha.";
+        pdfStatus.classList.add("error");
+        return;
+    }
+
+    downloadPdfButton.disabled = true;
+    pdfStatus.classList.remove("error");
+    pdfStatus.textContent = "Generando ficha PDF...";
+
+    try {
+        const pdfBytes = await createFichaPdf(reservation);
+        const filename = makePdfFilename(reservation.voucher);
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+        pdfStatus.textContent = `Ficha PDF generada: ${filename}`;
+    } catch (error) {
+        pdfStatus.textContent =
+            `No se pudo generar la ficha PDF: ${error.message}`;
+        pdfStatus.classList.add("error");
+    } finally {
+        downloadPdfButton.disabled =
+            !selectedReservation ||
+            selectedReservation.clasificacion?.tipo === "CONTINGENTE";
+    }
+});
+
 
 function showFileWarnings(messages) {
 
@@ -197,6 +460,7 @@ function showFileWarnings(messages) {
 function resetFileState() {
 
     reservations = [];
+    selectedReservation = null;
     searchInput.value = "";
     searchSection.hidden = true;
     searchStatus.textContent = "";

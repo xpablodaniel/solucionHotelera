@@ -51,6 +51,7 @@ function makeRecord(index, overrides = {}) {
         document: `1000000${index}`,
         name: `PASAJERO ${index}`,
         age: String(30 + index),
+        package: "",
         service: "MEDIA PENSION",
         email: `pax${index}@example.test`,
         birthDate: `01/01/19${80 + index}`,
@@ -74,6 +75,7 @@ function makeRecord(index, overrides = {}) {
     values[13] = fields.name;
     values[14] = fields.age;
     values[16] = fields.service;
+    values[17] = fields.package;
     values[22] = fields.email;
     values[23] = "O";
     values[24] = fields.birthDate;
@@ -109,6 +111,65 @@ function createApp() {
     });
 
     dom.window.HTMLElement.prototype.scrollIntoView = function () {};
+    const pdfTrace = {
+        fetchUrls: [],
+        pages: [],
+        openedLinks: []
+    };
+    dom.window.fetch = async url => {
+        pdfTrace.fetchUrls.push(url);
+        return {
+            ok: true,
+            arrayBuffer: () => Promise.resolve(
+                new Uint8Array([1, 2, 3]).buffer
+            )
+        };
+    };
+    dom.window.PDFLib = {
+        StandardFonts: {
+            Helvetica: "Helvetica",
+            HelveticaBold: "HelveticaBold"
+        },
+        PDFDocument: {
+            load: async () => ({
+                getPages: () => [{ getHeight: () => 841.918 }]
+            }),
+            create: async () => ({
+                embedFont: async () => ({
+                    widthOfTextAtSize: (text, size) => text.length * size * 0.5
+                }),
+                copyPages: async (_template, indexes) => indexes.map(() => {
+                    const page = {
+                        text: [],
+                        getHeight: () => 841.918,
+                        drawText(text, options) {
+                            page.text.push({ text, options });
+                        }
+                    };
+                    pdfTrace.pages.push(page);
+                    return page;
+                }),
+                addPage() {},
+                save: async () => new Uint8Array([37, 80, 68, 70])
+            })
+        }
+    };
+    let nextObjectUrl = 0;
+    Object.defineProperty(dom.window.URL, "createObjectURL", {
+        configurable: true,
+        value: () => `blob:http://localhost/${++nextObjectUrl}`
+    });
+    Object.defineProperty(dom.window.URL, "revokeObjectURL", {
+        configurable: true,
+        value: () => {}
+    });
+    dom.window.HTMLAnchorElement.prototype.click = function () {
+        pdfTrace.openedLinks.push({
+            href: this.href,
+            download: this.download
+        });
+    };
+    dom.window.__pdfTrace = pdfTrace;
     dom.window.eval(bundleSource);
     dom.window.eval(controllerSource);
 
@@ -219,6 +280,119 @@ test("previews all pages with repeated holder and voucher details", async () => 
             dom.window.document.querySelector("#preview-section").hidden,
             false
         );
+    } finally {
+        dom.window.close();
+    }
+});
+
+test("downloads official-template PDFs for every preview page", async () => {
+
+    const dom = createApp();
+    const passengers = Array.from({ length: 8 }, (_, index) =>
+        makeRecord(index + 1, {
+            name: index === 0 ? "TITULAR PRIMERO" : `ACOMPANANTE ${index}`,
+            service: "MEDIA PENSION"
+        })
+    );
+
+    try {
+        await uploadCsv(dom, makeCsv(passengers));
+        search(dom, "FICHA-001");
+        dom.window.document.querySelector(".ficha-result button").click();
+
+        dom.window.document.querySelector("#download-pdf").click();
+        for (let attempt = 0; attempt < 50; attempt++) {
+            const status = dom.window.document.querySelector("#pdf-status").textContent;
+            if (status.startsWith("Ficha PDF generada:")) {
+                break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+
+        const trace = dom.window.__pdfTrace;
+        assert.deepEqual(
+            trace.fetchUrls,
+            ["../assets/templates/1fichaPax.pdf"]
+        );
+        assert.equal(trace.pages.length, 3);
+        assert.deepEqual(
+            trace.pages.map(page => page.text
+                .filter(item => item.text.startsWith("ACOMPANANTE "))
+                .length),
+            [3, 3, 1]
+        );
+        assert.ok(trace.pages.every(page =>
+            page.text.some(item => item.text === "TITULAR PRIMERO") &&
+            page.text.some(item => item.text === "FICHA-001")
+        ));
+        assert.ok(trace.pages[0].text.some(item =>
+            item.text === "X" && Math.round(item.options.x) === Math.round(113 * 72 / 25.4)
+        ));
+        assert.deepEqual(trace.openedLinks.map(link => link.download), [
+            "ficha_pax_FICHA-001.pdf"
+        ]);
+        assert.match(
+            dom.window.document.querySelector("#pdf-status").textContent,
+            /Ficha PDF generada/
+        );
+    } finally {
+        dom.window.close();
+    }
+});
+
+test("reports a missing official PDF template without starting a download", async () => {
+
+    const dom = createApp();
+
+    try {
+        await uploadCsv(dom, makeCsv([makeRecord(1)]));
+        search(dom, "FICHA-001");
+        dom.window.document.querySelector(".ficha-result button").click();
+        dom.window.fetch = async () => ({
+            ok: false,
+            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
+        });
+
+        dom.window.document.querySelector("#download-pdf").click();
+        for (let attempt = 0; attempt < 50; attempt++) {
+            const status = dom.window.document.querySelector("#pdf-status").textContent;
+            if (status.startsWith("No se pudo generar")) {
+                break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+
+        assert.match(
+            dom.window.document.querySelector("#pdf-status").textContent,
+            /No se pudo cargar la plantilla PDF oficial/
+        );
+        assert.deepEqual(dom.window.__pdfTrace.openedLinks, []);
+    } finally {
+        dom.window.close();
+    }
+});
+
+test("does not offer PDF generation for contingent reservations", async () => {
+
+    const dom = createApp();
+
+    try {
+        await uploadCsv(dom, makeCsv([
+            makeRecord(1, {
+                service: "PENSION COMPLETA",
+                package: "PPJ"
+            })
+        ]));
+        search(dom, "FICHA-001");
+        dom.window.document.querySelector(".ficha-result button").click();
+
+        const downloadButton = dom.window.document.querySelector("#download-pdf");
+        assert.equal(downloadButton.disabled, true);
+        assert.match(
+            dom.window.document.querySelector("#pdf-status").textContent,
+            /No se genera ficha PAX para reservas de contingentes/
+        );
+        assert.deepEqual(dom.window.__pdfTrace.fetchUrls, []);
     } finally {
         dom.window.close();
     }

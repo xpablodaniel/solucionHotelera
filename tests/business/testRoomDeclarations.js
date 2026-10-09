@@ -1,17 +1,9 @@
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const test = require("node:test");
 
 const {
     diagnoseRoomDeclarations
 } = require("../../src/business/roomDeclarations");
-const {
-    parseCSV
-} = require("../../src/parser/csvParser");
-const {
-    processReservations
-} = require("../../src/business/processReservations");
 
 function makeRoom({
     accommodation = "900",
@@ -323,19 +315,22 @@ test("omits rooms that lack voucher, accommodation, or room identity", () => {
     assert.deepEqual(diagnoseRoomDeclarations(reservations), []);
 });
 
-test("preserves the real Hotel 31 de Agosto room 12 source values", () => {
-    const csvPath = path.join(__dirname, "../../oct31_8.csv");
-    const reservations = processReservations(
-        parseCSV(fs.readFileSync(csvPath, "utf8"))
-    );
-    const reservation = reservations.find(
-        item => item.voucher === "161001383"
-    );
+test("preserves synthetic Hotel 31 de Agosto room declaration discrepancies", () => {
+    const reservation = makeReservation("SYN-H31-ROOM-12", [
+        makeRoom({
+            accommodation: "901",
+            number: "12",
+            declaredCapacity: [2, 2],
+            declaredOccupied: [3, 3],
+            inventoryCapacity: 3
+        })
+    ]);
+    const reservations = [reservation];
     const snapshot = JSON.stringify(reservations);
 
     const diagnostics = diagnoseRoomDeclarations(reservations);
     const diagnostic = diagnostics.find(
-        item => item.voucher === "161001383" &&
+        item => item.voucher === "SYN-H31-ROOM-12" &&
             item.alojamiento === "901" &&
             item.habitacion === "12"
     );

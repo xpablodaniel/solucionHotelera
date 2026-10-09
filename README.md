@@ -57,9 +57,11 @@ una plantilla PDF historica, un overlay calibrado, seleccion de hotel entre
 
 La Ficha PAX tiene una capa de negocio aislada y una interfaz independiente
 para cargar CSV, buscar por voucher/DNI/nombre y previsualizar sus paginas en
-el navegador. La generacion y descarga PDF quedan pendientes de una etapa
-posterior. El modulo `rooming.js` prepara los datos para las salidas, pero no
-asigna habitaciones ni decide camas.
+el navegador. Permite descargar la ficha sobre la plantilla oficial
+`assets/templates/1fichaPax.pdf`; genera una pagina por cada
+grupo de hasta tres acompanantes para incluir a todos los pasajeros. El CSV
+se procesa localmente en el navegador. El modulo `rooming.js` prepara los
+datos para las salidas, pero no asigna habitaciones ni decide camas.
 
 ## Flujo de procesamiento
 

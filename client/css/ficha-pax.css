@@ -67,6 +67,24 @@
     gap: 24px;
 }
 
+.ficha-pdf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.ficha-pdf-status {
+    margin: 0;
+    color: #5b6865;
+    font-size: 14px;
+}
+
+.ficha-pdf-status.error {
+    color: #a52828;
+}
+
 .ficha-page {
     width: min(100%, 794px);
     min-height: 1050px;
