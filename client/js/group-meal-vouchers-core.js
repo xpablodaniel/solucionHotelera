@@ -1127,6 +1127,16 @@ ${pages.join("")}
       function escapeAttribute(value) {
         return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
       }
+      var PRINT_TOOLBAR = `
+<style>
+    .print-toolbar { padding: 12px 16px; background: #eef1f4; border-bottom: 1px solid #d7dce1; font-family: Arial, sans-serif; }
+    .print-toolbar button { padding: 10px 18px; font-size: 15px; font-weight: 700; cursor: pointer; }
+    @media print { .print-toolbar { display: none; } }
+</style>
+<div class="print-toolbar"><button type="button" onclick="window.print()">Imprimir</button></div>`;
+      function addPrintToolbar(html) {
+        return html.replace("<body>", `<body>${PRINT_TOOLBAR}`);
+      }
       function addDocumentBase(html, baseUrl) {
         if (typeof baseUrl !== "string" || baseUrl.trim() === "") {
           throw new TypeError(
@@ -1190,7 +1200,7 @@ ${pages.join("")}
           reportes,
           reviewRequired,
           html: addDocumentBase(
-            renderVouchersHtml(reportes),
+            addPrintToolbar(renderVouchersHtml(reportes)),
             baseUrl
           )
         };

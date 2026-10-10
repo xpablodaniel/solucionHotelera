@@ -208,6 +208,8 @@ test("group vouchers preserve MAP/PC print output and date filtering", async () 
         dom.window.__createdBlobs.get(mapLink.href)
     );
     assert.match(mapHtml, /Voucher de Comidas/);
+    assert.match(mapHtml, /<button type="button" onclick="window\.print\(\)">Imprimir<\/button>/);
+    assert.match(mapHtml, /@media print \{ \.print-toolbar \{ display: none; \} \}/);
     assert.match(mapHtml, /MAP-PRIMER-PAX/);
     assert.doesNotMatch(mapHtml, /MAP-SEGUNDO-PAX|PC-PAX|NO-DEBE-SALIR/);
     assert.match(mapHtml, /Cant\. Pax:<\/strong> 2/);
