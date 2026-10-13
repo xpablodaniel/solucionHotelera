@@ -172,12 +172,39 @@ capacidad fisica.
 ## Abrir la aplicacion
 
 Las paginas de `client/` cargan plantillas PDF y `positions.json` con `fetch`, que los
-navegadores bloquean si `index.html` se abre con `file://` ("Failed to fetch").
-Hay que servirla por HTTP:
+navegadores bloquean si `index.html` se abre directamente con `file://` ("Failed to fetch").
+Por eso debe servirse mediante un servidor HTTP local.
+
+### Opcion 1: Sin instalar paquetes (Ubuntu / Linux en el trabajo)
+
+En maquinas donde no se puede instalar Node.js ni paquetes externos con npm, se utiliza
+el servidor HTTP estandar de Python 3 (preinstalado en Linux) mediante los scripts de la raiz:
+
+```bash
+./launcher.sh
+```
+
+El script inicia el servidor en segundo plano en `http://localhost:8000/index.html` y abre
+automaticamente el navegador.
+
+Para detener el servidor:
+
+```bash
+./stop-server.sh
+```
+
+En Ubuntu nativo tambien se puede generar el acceso directo en el escritorio y menu de aplicaciones con:
+
+```bash
+./instalar-ubuntu-nativo.sh
+```
+
+### Opcion 2: Con Node.js / VS Code
 
 ```bash
 npm start
 ```
+(o directamente `node scripts/serve.js`).
 
 Luego abrir `http://localhost:4173/` (puerto configurable con la variable `PORT`).
 
