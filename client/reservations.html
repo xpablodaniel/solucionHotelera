@@ -24,271 +24,54 @@
         <a class="back-link" href="../index.html">Volver al inicio</a>
 
         <section class="page-intro" aria-labelledby="page-title">
-            <p class="eyebrow">Procesamiento de reservas</p>
-            <h1 id="page-title">Reservas</h1>
-            <p>Consulta los ingresos por fecha y revisa las reservas del archivo.</p>
+            <h1 id="page-title">Procesador de Reservas Hoteleras</h1>
+            <p>Listado de pasajeros que ingresan</p>
         </section>
 
-        <p class="demo-notice" role="note">
-            El CSV se procesa en este navegador. El archivo original no se modifica ni se envía.
-        </p>
-
-        <section class="workflow-section" aria-labelledby="upload-title">
-            <div class="section-heading">
-                <div>
-                    <p class="step-label">Paso 1</p>
-                    <h2 id="upload-title">Archivo de reservas</h2>
-                </div>
-            </div>
-            <div class="upload-row">
+        <section class="upload-section" aria-label="Cargar archivo de reservas">
+            <label class="drop-area" id="drop-area" for="csv-input">
+                <span class="drop-icon" aria-hidden="true">⇧</span>
+                <span class="drop-prompt">Arrastra un archivo CSV aquí o selecciona uno</span>
+                <span class="button button-primary">Seleccionar CSV</span>
                 <input class="file-input" id="csv-input" type="file" accept=".csv,text/csv" aria-describedby="file-status">
-                <label class="button button-secondary" for="csv-input">Seleccionar CSV</label>
-                <p id="file-status" class="file-status" role="status" aria-live="polite">Ningún archivo seleccionado</p>
-            </div>
+            </label>
+            <p id="file-status" class="file-status" role="status" aria-live="polite">Ningún archivo seleccionado</p>
             <div class="file-warnings" id="file-warnings" role="status" aria-live="polite" hidden></div>
         </section>
 
-        <section class="workflow-section" id="date-section" aria-labelledby="date-title" hidden>
-            <div class="section-heading">
-                <div>
-                    <p class="step-label">Paso 2</p>
-                    <h2 id="date-title">Fecha de ingreso</h2>
-                </div>
-            </div>
-            <div class="date-row">
-                <label class="field-label" for="arrival-date">Selecciona una fecha detectada</label>
-                <select id="arrival-date" name="arrival-date">
-                    <option value="">Selecciona una fecha</option>
-                </select>
-                <label class="field-label manual-date-label" id="manual-date-label" for="manual-arrival-date" hidden>Otra fecha de consulta</label>
-                <input id="manual-arrival-date" type="date" hidden>
-                <p class="date-empty-message" id="date-empty-message" hidden>No se encontraron fechas de ingreso en el CSV.</p>
-                <button class="button button-primary" id="process-button" type="button" disabled>Procesar reservas</button>
-            </div>
-        </section>
-
         <section class="results-section" id="results-section" aria-labelledby="results-title" hidden>
-            <div class="section-heading results-heading">
-                <div>
-                    <p class="step-label">Resultado del procesamiento</p>
-                    <h2 id="results-title">Ingresos del <span id="selected-date-label"></span></h2>
-                </div>
+            <h2 id="results-title">Listado de reservas</h2>
+            <div class="overview" id="overview" aria-live="polite">
+                <p>Habitaciones que se ocupan: <strong id="room-count">0</strong></p>
+                <p>Cantidad de PAX: <strong id="passenger-count">0</strong></p>
             </div>
-
-            <div class="file-warnings result-warnings" id="result-warnings" role="status" aria-live="polite" hidden></div>
-
-            <dl class="overview-metrics" aria-label="Resumen de ingresos">
-                <div class="metric">
-                    <dt>Pasajeros</dt>
-                    <dd id="passenger-count">—</dd>
-                </div>
-                <div class="metric">
-                    <dt>Reservas</dt>
-                    <dd id="reservation-count">—</dd>
-                </div>
-                <div class="metric">
-                    <dt>Habitaciones</dt>
-                    <dd id="room-count">—</dd>
-                </div>
-            </dl>
-
-            <div class="regime-summary" aria-label="Resumen por régimen">
-                <div class="regime-row">
-                    <h3>MAP</h3>
-                    <p><strong id="map-passenger-count">—</strong> pasajeros · <strong id="map-reservation-count">—</strong> reservas</p>
-                    <p class="regime-meals">Media pensión · Cena</p>
-                </div>
-                <div class="regime-row">
-                    <h3>PC</h3>
-                    <p><strong id="pc-passenger-count">—</strong> pasajeros · <strong id="pc-reservation-count">—</strong> reservas</p>
-                    <p class="regime-meals">Pensión completa · Almuerzo y cena</p>
-                </div>
-            </div>
-
-            <p class="map-status" id="map-status" role="status" aria-live="polite"></p>
-            <p class="classification-status" id="classification-status" role="status" aria-live="polite"></p>
-
-            <div class="list-heading">
-                <h2>Reservas encontradas</h2>
-                <p>El titular es el primer PAX de cada voucher según el orden original del CSV.</p>
-            </div>
-            <p class="no-arrivals-message" id="no-arrivals-message" role="status" hidden>No hay ingresos para la fecha seleccionada.</p>
-            <div class="table-scroll" role="region" aria-label="Listado de reservas" tabindex="0">
+            <p class="empty-message" id="empty-message" role="status" hidden>No se encontraron reservas.</p>
+            <div class="table-scroll" id="table-scroll" role="region" aria-label="Listado de pasajeros" tabindex="0">
                 <table>
                     <thead>
                         <tr>
+                            <th scope="col">Nro. habitación</th>
+                            <th scope="col">Fecha de ingreso</th>
+                            <th scope="col">Fecha de egreso</th>
+                            <th scope="col">Cantidad plazas</th>
+                            <th scope="col">Tipo documento</th>
+                            <th scope="col">Nro. doc.</th>
+                            <th scope="col">Apellido y nombre</th>
+                            <th scope="col">Edad</th>
                             <th scope="col">Voucher</th>
-                            <th scope="col">Titular</th>
-                            <th scope="col">Hotel</th>
-                            <th scope="col">Habitación/es</th>
-                            <th scope="col">PAX</th>
-                            <th scope="col">Régimen / servicios</th>
-                            <th scope="col">Clasificación</th>
+                            <th scope="col">Servicio</th>
+                            <th scope="col">Estado</th>
+                            <th scope="col">Paquete</th>
+                            <th scope="col">Sede</th>
+                            <th scope="col">Observación habitación</th>
                         </tr>
                     </thead>
                     <tbody id="reservation-rows"></tbody>
                 </table>
             </div>
-
-            <section class="related-reservations-section" id="related-reservations-section" aria-labelledby="related-reservations-title" hidden>
-                <div class="section-heading">
-                    <div>
-                        <p class="step-label">Consulta adicional</p>
-                        <h2 id="related-reservations-title">Reservas relacionadas por responsable candidato</h2>
-                    </div>
-                </div>
-
-                <div class="related-query-row">
-                    <label class="field-label" for="related-dni-input">
-                        DNI candidato
-                        <input id="related-dni-input" type="text" inputmode="numeric" autocomplete="off">
-                    </label>
-                    <button class="button button-primary" id="related-dni-button" type="button">Consultar</button>
-                </div>
-
-                <div class="file-warnings related-errors" id="related-errors" role="status" aria-live="polite" hidden></div>
-                <p class="related-empty-message" id="related-empty-message" role="status" hidden>No se encontraron vouchers relacionados para ese DNI candidato.</p>
-
-                <div id="related-results" hidden>
-                    <p class="related-summary" id="related-summary" aria-live="polite"></p>
-                    <div class="table-scroll" role="region" aria-label="Vouchers relacionados" tabindex="0">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Voucher</th>
-                                    <th scope="col">Alojamiento</th>
-                                    <th scope="col">Habitaciones</th>
-                                </tr>
-                            </thead>
-                            <tbody id="related-reservation-rows"></tbody>
-                        </table>
-                    </div>
-                    <div class="related-detail-list" id="related-detail-list" aria-live="polite"></div>
-                </div>
-
-                <section class="responsible-aggregate-section" id="responsible-aggregate-section" aria-labelledby="responsible-aggregate-title" hidden>
-                    <div class="section-heading">
-                        <div>
-                            <p class="step-label">Vista consolidada</p>
-                            <h3 id="responsible-aggregate-title">Resumen de vouchers relacionados</h3>
-                        </div>
-                    </div>
-
-                    <dl class="overview-metrics responsible-aggregate-summary" aria-label="Resumen del responsable candidato">
-                        <div class="metric aggregate-metric">
-                            <dt>Responsable candidato</dt>
-                            <dd id="aggregate-responsible-dni">—</dd>
-                        </div>
-                        <div class="metric aggregate-metric">
-                            <dt>Vouchers</dt>
-                            <dd id="aggregate-voucher-count">—</dd>
-                        </div>
-                        <div class="metric aggregate-metric">
-                            <dt>PAX registrados</dt>
-                            <dd id="aggregate-pax-count">—</dd>
-                        </div>
-                        <div class="metric aggregate-metric">
-                            <dt>DNI distintos informados</dt>
-                            <dd id="aggregate-document-count">—</dd>
-                        </div>
-                        <div class="metric aggregate-metric">
-                            <dt>Alojamientos</dt>
-                            <dd id="aggregate-accommodations">—</dd>
-                        </div>
-                        <div class="metric aggregate-metric">
-                            <dt>Ingreso mínimo</dt>
-                            <dd id="aggregate-min-arrival">—</dd>
-                        </div>
-                        <div class="metric aggregate-metric">
-                            <dt>Egreso máximo</dt>
-                            <dd id="aggregate-max-departure">—</dd>
-                        </div>
-                    </dl>
-
-                    <div class="table-scroll" id="responsible-aggregate-results" role="region" aria-label="Resumen por voucher" tabindex="0">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th scope="col">Voucher</th>
-                                    <th scope="col">Alojamiento</th>
-                                    <th scope="col">Habitaciones</th>
-                                    <th scope="col">Ingreso</th>
-                                    <th scope="col">Egreso</th>
-                                    <th scope="col">PAX</th>
-                                    <th scope="col">Clasificación</th>
-                                    <th scope="col">Servicios</th>
-                                </tr>
-                            </thead>
-                            <tbody id="responsible-aggregate-rows"></tbody>
-                        </table>
-                    </div>
-                </section>
-            </section>
-
-            <section class="actions-section" aria-labelledby="actions-title">
-                <h2 id="actions-title">Rooming por pasajero</h2>
-                <p class="action-note">Descargas para los pasajeros que ingresan el <strong id="actions-date-label"></strong>.</p>
-                <div class="action-groups">
-                    <section class="action-group" aria-labelledby="rooming-actions-title">
-                        <div class="action-buttons">
-                            <button class="button button-secondary" id="rooming-map-button" type="button">Descargar Rooming MAP</button>
-                            <button class="button button-secondary" id="rooming-pc-button" type="button">Descargar Rooming PC</button>
-                        </div>
-                    </section>
-                </div>
-                <div class="file-warnings output-status" id="output-status" role="status" aria-live="polite" hidden></div>
-            </section>
-        </section>
-
-        <section class="passenger-duplicates-section" id="passenger-duplicates-section" aria-labelledby="passenger-duplicates-title" hidden>
-            <div class="section-heading">
-                <div>
-                    <p class="step-label">Auditoría de calidad de datos</p>
-                    <h2 id="passenger-duplicates-title">Posibles pasajeros duplicados</h2>
-                </div>
-            </div>
-
-            <p id="passenger-duplicates-summary" role="status"></p>
-
-            <div class="table-scroll" id="passenger-duplicates-results" role="region" aria-label="Listado de posibles pasajeros duplicados" tabindex="0" hidden>
-                <table>
-                    <thead>
-                        <tr>
-                            <th scope="col">Voucher</th>
-                            <th scope="col">Primer pasajero</th>
-                            <th scope="col">Posible duplicado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="passenger-duplicates-rows"></tbody>
-                </table>
-            </div>
-
-            <p id="passenger-duplicates-empty-message" hidden>No se detectaron posibles pasajeros duplicados.</p>
-        </section>
-
-        <section class="non-relatable-section" id="non-relatable-section" aria-labelledby="non-relatable-title" hidden>
-            <div class="section-heading">
-                <div>
-                    <p class="step-label">Auditoría de calidad de datos</p>
-                    <h2 id="non-relatable-title">Reservas no relacionables</h2>
-                </div>
-            </div>
-
-            <p id="non-relatable-summary" role="status"></p>
-
-            <div class="table-scroll" id="non-relatable-results" role="region" aria-label="Listado de reservas no relacionables" tabindex="0" hidden>
-                <table>
-                    <thead>
-                        <tr>
-                            <th scope="col">Voucher</th>
-                            <th scope="col">Motivo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="non-relatable-rows"></tbody>
-                </table>
-            </div>
-
-            <p id="non-relatable-empty-message" hidden>No se encontraron reservas que requieran revisión.</p>
+            <button class="button button-primary download-button" id="download-button" type="button">
+                Guardar como CSV (compatible con LibreOffice)
+            </button>
         </section>
     </main>
 

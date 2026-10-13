@@ -19,27 +19,24 @@ const headers = [
 ];
 
 function makeRecord(overrides = {}) {
-    const sequence = overrides.sequence ?? 1;
     const values = Array(28).fill("");
     const fields = {
         accommodationCode: "900",
-        hotel: "HOTEL 23 DE MAYO",
+        hotel: "HOTEL SINTETICO",
         room: "101",
-        roomType: "DOBLE MATRIMONIAL",
+        roomType: "DOBLE",
+        roomObservation: "",
         capacity: "2",
-        voucher: `SYN-${sequence}`,
-        office: "SECCIONAL SINTETICA",
+        voucher: "SYN-1",
         arrival: "11/03/2026",
         departure: "14/03/2026",
-        occupied: "1",
         documentType: "DNI",
-        document: `TEST-DOC-${sequence}`,
-        name: `PASAJERO-SINTETICO-${sequence}`,
+        document: "DOC-1",
+        name: "PASAJERO SINTETICO",
         age: "40",
-        entity: "SUTEBA",
+        office: "SEDE SINTETICA",
         service: "MEDIA PENSION",
-        package: "MDP TEMPORADA BAJA",
-        transport: "Sin Transporte",
+        package: "PAQUETE SINTETICO",
         paymentStatus: "O",
         ...overrides
     };
@@ -48,22 +45,19 @@ function makeRecord(overrides = {}) {
     values[1] = fields.hotel;
     values[2] = fields.room;
     values[3] = fields.roomType;
+    values[4] = fields.roomObservation;
     values[5] = fields.capacity;
     values[6] = fields.voucher;
     values[7] = fields.office;
     values[8] = fields.arrival;
     values[9] = fields.departure;
-    values[10] = fields.occupied;
     values[11] = fields.documentType;
     values[12] = fields.document;
     values[13] = fields.name;
     values[14] = fields.age;
-    values[15] = fields.entity;
     values[16] = fields.service;
     values[17] = fields.package;
-    values[18] = fields.transport;
     values[23] = fields.paymentStatus;
-
     return values;
 }
 
@@ -80,92 +74,10 @@ function makeCsv(records) {
         .join("\r\n");
 }
 
-function makeSyntheticRelationsCsv() {
-    const records = [];
-
-    function addReservation({
-        voucher,
-        documents,
-        rooms,
-        arrivals,
-        departures,
-        service
-    }) {
-        documents.forEach((document, index) => {
-            records.push(makeRecord({
-                sequence: `${voucher}-${index + 1}`,
-                accommodationCode: "901",
-                voucher,
-                document,
-                name: `PASAJERO SINTETICO ${voucher} ${index + 1}`,
-                room: rooms[index] || rooms[0],
-                arrival: arrivals[index] || arrivals[0],
-                departure: departures[index] || departures[0],
-                occupied: String(documents.length),
-                capacity: String(Math.max(2, documents.length)),
-                service,
-                package: "",
-                transport: "Sin Transporte"
-            }));
-        });
-    }
-
-    addReservation({
-        voucher: "SYN-A-1",
-        documents: ["SYN-DOC-A", "SYN-DOC-A-COMP"],
-        rooms: ["23"],
-        arrivals: ["05/10/2026"],
-        departures: ["07/10/2026"],
-        service: "DESAYUNO U.PROPIAS"
-    });
-    addReservation({
-        voucher: "SYN-A-2",
-        documents: ["SYN-DOC-A", "SYN-DOC-A-COMP"],
-        rooms: ["23"],
-        arrivals: ["06/10/2026"],
-        departures: ["08/10/2026"],
-        service: "MEDIA PENSION"
-    });
-    addReservation({
-        voucher: "SYN-B-1",
-        documents: ["SYN-DOC-B", "SYN-DOC-B-COMP"],
-        rooms: ["14"],
-        arrivals: ["08/10/2026"],
-        departures: ["10/10/2026"],
-        service: "SERVICIO B"
-    });
-    addReservation({
-        voucher: "SYN-B-2",
-        documents: ["SYN-DOC-B", "SYN-DOC-B-COMP"],
-        rooms: ["14"],
-        arrivals: ["10/10/2026"],
-        departures: ["12/10/2026"],
-        service: "SERVICIO C"
-    });
-    addReservation({
-        voucher: "SYN-MULTI",
-        documents: Array.from({ length: 5 }, (_, index) => `SYN-DOC-C-${index + 1}`),
-        rooms: ["11", "15", "20", "21", "22"],
-        arrivals: ["09/10/2026"],
-        departures: ["11/10/2026"],
-        service: "SERVICIO D"
-    });
-
-    return makeCsv(records);
-}
-
 function createApp() {
     const dom = new JSDOM(htmlSource, {
         runScripts: "outside-only",
         url: "http://localhost/client/reservations.html"
-    });
-
-    const windowSetTimeout = dom.window.setTimeout.bind(dom.window);
-    Object.defineProperty(dom.window, "setTimeout", {
-        configurable: true,
-        value: (callback, delay, ...args) => delay === 60000
-            ? 0
-            : windowSetTimeout(callback, delay, ...args)
     });
 
     const createdBlobs = new Map();
@@ -183,20 +95,22 @@ function createApp() {
         configurable: true,
         value: () => {}
     });
+    Object.defineProperty(dom.window, "setTimeout", {
+        configurable: true,
+        value: callback => {
+            callback();
+            return 0;
+        }
+    });
     dom.window.__createdBlobs = createdBlobs;
     dom.window.__openedLinks = openedLinks;
     dom.window.HTMLAnchorElement.prototype.click = function () {
-        openedLinks.push({
-            href: this.href,
-            download: this.download,
-            target: this.target,
-            rel: this.rel
-        });
+        openedLinks.push({ href: this.href, download: this.download });
     };
 
     dom.window.eval(bundleSource);
     dom.window.eval(controllerSource);
-    assert.ok(dom.window.ReservationsCore, "browser bundle must expose the existing parser and business API");
+    assert.ok(dom.window.ReservationsCore);
     return dom;
 }
 
@@ -228,44 +142,9 @@ async function uploadCsv(dom, csv, name = "synthetic.csv") {
     );
 }
 
-function processDate(dom, date) {
-    const { document } = dom.window;
-    const select = document.querySelector("#arrival-date");
-
-    if ([...select.options].some(option => option.value === date)) {
-        select.value = date;
-        select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
-    } else {
-        select.value = "__custom_date__";
-        select.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
-        document.querySelector("#manual-arrival-date").value = date.split("/").reverse().join("-");
-        document.querySelector("#manual-arrival-date").dispatchEvent(new dom.window.Event("change", { bubbles: true }));
-    }
-
-    document.querySelector("#process-button").click();
-    assert.equal(document.querySelector("#results-section").hidden, false, "results should be visible after processing");
-}
-
-function readSummary(dom) {
-    const text = selector => dom.window.document.querySelector(selector).textContent;
-    return {
-        passengers: Number(text("#passenger-count")),
-        reservations: Number(text("#reservation-count")),
-        rooms: Number(text("#room-count")),
-        mapPassengers: Number(text("#map-passenger-count")),
-        mapReservations: Number(text("#map-reservation-count")),
-        pcPassengers: Number(text("#pc-passenger-count")),
-        pcReservations: Number(text("#pc-reservation-count"))
-    };
-}
-
 function tableRows(dom) {
     return [...dom.window.document.querySelectorAll("#reservation-rows tr")]
         .map(row => [...row.cells].map(cell => cell.textContent.trim()));
-}
-
-function textOf(dom, selector) {
-    return dom.window.document.querySelector(selector).textContent;
 }
 
 function readBlobText(dom, blob) {
@@ -286,1109 +165,187 @@ function readBlobBytes(dom, blob) {
     });
 }
 
-function closeApp(dom) {
-    dom.window.close();
-}
-
-test("1. individual MAP reservation counts both passengers and one voucher", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "MAP-1", name: "SINTETICO-UNO" }),
-        makeRecord({ sequence: 2, voucher: "MAP-1", name: "SINTETICO-DOS", room: "102" })
-    ]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.deepEqual(readSummary(dom), {
-        passengers: 2, reservations: 1, rooms: 2,
-        mapPassengers: 2, mapReservations: 1,
-        pcPassengers: 0, pcReservations: 0
-    });
-    assert.match(textOf(dom, "#file-status"), /2 pasajeros válidos · 1 reserva agrupada/);
-    assert.equal(textOf(dom, "#map-status"), "Hay ingresos MAP: 2 pasajeros en 1 reserva.");
-    assert.equal(tableRows(dom)[0][1], "SINTETICO-UNO");
-    closeApp(dom);
-});
-
-test("1a. singular counts use singular nouns in reservation summaries", async () => {
-    const dom = createApp();
-    await uploadCsv(dom, makeCsv([
-        makeRecord({ sequence: 1, voucher: "MAP-SINGULAR", name: "SINTETICO-UNO" })
-    ]));
-    processDate(dom, "11/03/2026");
-
-    assert.match(textOf(dom, "#file-status"), /1 pasajero válido · 1 reserva agrupada/);
-    assert.equal(textOf(dom, "#map-status"), "Hay ingresos MAP: 1 pasajero en 1 reserva.");
-    assert.equal(
-        textOf(dom, "#classification-status"),
-        "Clasificación del motor: 1 individual · 0 contingentes · 0 no clasificadas."
-    );
-    closeApp(dom);
-});
-
-test("2. individual MAP reservation with two passengers in one room counts one physical room", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "MAP-SAME-ROOM", name: "SINTETICO-UNO", room: "101" }),
-        makeRecord({ sequence: 2, voucher: "MAP-SAME-ROOM", name: "SINTETICO-DOS", room: "101" })
-    ]);
-
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.deepEqual(readSummary(dom), {
-        passengers: 2, reservations: 1, rooms: 1,
-        mapPassengers: 2, mapReservations: 1,
-        pcPassengers: 0, pcReservations: 0
-    });
-    assert.equal(tableRows(dom)[0][1], "SINTETICO-UNO");
-    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 101");
-    assert.equal(tableRows(dom)[0][4], "2");
-    closeApp(dom);
-});
-
-test("3. full-board group uses the existing engine classification", async () => {
-    const dom = createApp();
-    const records = [1, 2, 3].map(sequence => makeRecord({
-        sequence,
-        voucher: "PC-1",
-        service: "PENSIÓN COMPLETA",
-        package: "PPJ MAR DEL PLATA",
-        transport: "PPJ BUS SINTETICO"
-    }));
-    const csv = makeCsv(records);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(readSummary(dom).pcPassengers, 3);
-    assert.equal(readSummary(dom).pcReservations, 1);
-    assert.match(tableRows(dom)[0][6], /CONTINGENTE/);
-    assert.equal(tableRows(dom)[0][5], "PENSIÓN COMPLETA");
-    closeApp(dom);
-});
-
-test("4. DESAYUNO remains observed service and is not counted as MAP", async () => {
-    const dom = createApp();
-    const csv = makeCsv([1, 2].map(sequence => makeRecord({
-        sequence, voucher: "BREAKFAST-1", service: "DESAYUNO"
-    })));
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(readSummary(dom).mapPassengers, 0);
-    assert.equal(readSummary(dom).pcPassengers, 0);
-    assert.equal(tableRows(dom)[0][5], "DESAYUNO");
-    closeApp(dom);
-});
-
-test("5. DESAYUNO U.PROPIAS remains unchanged and is not counted as MAP", async () => {
-    const dom = createApp();
-    const csv = makeCsv([makeRecord({ service: "DESAYUNO U.PROPIAS" })]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(readSummary(dom).mapPassengers, 0);
-    assert.equal(tableRows(dom)[0][5], "DESAYUNO U.PROPIAS");
-    closeApp(dom);
-});
-
-test("6. empty service displays operational breakfast without MAP/PC and warns about origin", async () => {
-    const dom = createApp();
-    const csv = makeCsv([1, 2].map(sequence => makeRecord({
-        sequence, voucher: "EMPTY-SERVICE", service: ""
-    })));
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(readSummary(dom).mapPassengers, 0);
-    assert.equal(readSummary(dom).pcPassengers, 0);
-    assert.equal(tableRows(dom)[0][5], "Desayuno · servicio no informado en origen");
-    assert.match(textOf(dom, "#result-warnings"), /no tienen servicio informado/);
-    closeApp(dom);
-});
-
-test("7. passenger without voucher stays visible and is not assigned an invented voucher", async () => {
-    const dom = createApp();
-    const csv = makeCsv([makeRecord({ voucher: "", name: "SIN-VOUCHER" })]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(readSummary(dom).passengers, 1);
-    assert.equal(readSummary(dom).reservations, 0);
-    assert.equal(tableRows(dom).length, 1);
-    assert.equal(tableRows(dom)[0][0], "Sin voucher");
-    assert.match(textOf(dom, "#result-warnings"), /1 pasajero no tiene voucher/);
-    closeApp(dom);
-});
-
-test("8. different services within one voucher stay separate and trigger warnings", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "MIX-SERVICE", service: "PENSION COMPLETA", package: "PPJ", transport: "BUS" }),
-        makeRecord({ sequence: 2, voucher: "MIX-SERVICE", service: "DESAYUNO" })
-    ]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    const row = tableRows(dom)[0];
-    assert.match(row[5], /PENSION COMPLETA/);
-    assert.match(row[5], /DESAYUNO/);
-    assert.match(row[6], /CONTINGENTE/);
-    assert.match(textOf(dom, "#result-warnings"), /servicios distintos/);
-    assert.match(row[6], /clasificaciones diferentes/);
-    closeApp(dom);
-});
-
-test("9. different hotels within one voucher remain visible and trigger a warning", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "MIX-HOTEL", room: "227", accommodationCode: "900", hotel: "HOTEL 23 DE MAYO" }),
-        makeRecord({ sequence: 2, voucher: "MIX-HOTEL", room: "227", accommodationCode: "901", hotel: "HOTEL 31 DE AGOSTO" })
-    ]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.match(tableRows(dom)[0][2], /HOTEL 23 DE MAYO/);
-    assert.match(tableRows(dom)[0][2], /HOTEL 31 DE AGOSTO/);
-    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 227, Aloj. 901 — Hab. 227");
-    assert.equal(readSummary(dom).rooms, 2);
-    assert.match(textOf(dom, "#result-warnings"), /hoteles distintos/);
-    closeApp(dom);
-});
-
-test("10. mixed-date voucher shows only selected-date passengers and keeps first CSV PAX as holder", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "MIX-DATE", arrival: "11/03/2026", room: "101", name: "PRIMER-PAX-CSV" }),
-        makeRecord({ sequence: 2, voucher: "MIX-DATE", arrival: "12/03/2026", room: "102", name: "SEGUNDO-PAX-CSV" })
-    ]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "12/03/2026");
-
-    assert.equal(readSummary(dom).passengers, 1);
-    assert.equal(readSummary(dom).reservations, 1);
-    assert.equal(tableRows(dom)[0][1], "PRIMER-PAX-CSV");
-    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 102");
-    assert.equal(tableRows(dom)[0][4], "1");
-    assert.match(textOf(dom, "#result-warnings"), /más de una fecha/);
-    closeApp(dom);
-});
-
-test("11. room assignment suffixes survive while physical room count is one", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "ROOM-ASSIGN", room: "227 A" }),
-        makeRecord({ sequence: 2, voucher: "ROOM-ASSIGN", room: "227 B" }),
-        makeRecord({ sequence: 3, voucher: "ROOM-ASSIGN", room: "227" })
-    ]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(readSummary(dom).rooms, 1);
-    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 227 (A/B)");
-    closeApp(dom);
-});
-
-test("12. same room number in two hotels counts as two physical rooms", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "HOTEL-A", room: "227", accommodationCode: "900", hotel: "HOTEL 23 DE MAYO" }),
-        makeRecord({ sequence: 2, voucher: "HOTEL-B", room: "227", accommodationCode: "901", hotel: "HOTEL 31 DE AGOSTO" })
-    ]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(readSummary(dom).rooms, 2);
-    assert.equal(tableRows(dom).length, 2);
-    assert.match(tableRows(dom)[0][3], /Aloj. 900 — Hab. 227|Aloj. 901 — Hab. 227/);
-    assert.match(tableRows(dom)[1][3], /Aloj. 900 — Hab. 227|Aloj. 901 — Hab. 227/);
-    closeApp(dom);
-});
-
-test("13. Hotel 31 de Agosto room values 5, 10, 27 and 28 remain ordinary CSV values", async () => {
-    const dom = createApp();
-    const csv = makeCsv([5, 10, 27, 28].map((room, index) => makeRecord({
-        sequence: index + 1,
-        voucher: `AGOSTO-${room}`,
-        accommodationCode: "901",
-        hotel: "HOTEL 31 DE AGOSTO",
-        room: String(room),
-        service: "DESAYUNO"
-    })));
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(readSummary(dom).rooms, 4);
-    assert.deepEqual(tableRows(dom).map(row => row[3]), [
-        "Aloj. 901 — Hab. 5",
-        "Aloj. 901 — Hab. 10",
-        "Aloj. 901 — Hab. 27",
-        "Aloj. 901 — Hab. 28"
-    ]);
-    assert.equal(dom.window.document.querySelectorAll("#reservation-rows tr").length, 4);
-    closeApp(dom);
-});
-
-test("14. manual date with no arrivals shows empty state without fake reservation rows", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "DATE-A", arrival: "11/03/2026" }),
-        makeRecord({ sequence: 2, voucher: "DATE-C", arrival: "13/03/2026" })
-    ]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "12/03/2026");
-
-    assert.deepEqual(readSummary(dom), {
-        passengers: 0, reservations: 0, rooms: 0,
-        mapPassengers: 0, mapReservations: 0,
-        pcPassengers: 0, pcReservations: 0
-    });
-    assert.equal(dom.window.document.querySelectorAll("#reservation-rows tr").length, 0);
-    assert.equal(dom.window.document.querySelector("#no-arrivals-message").hidden, false);
-    assert.match(textOf(dom, "#map-status"), /No hay ingresos MAP/);
-    closeApp(dom);
-});
-
-test("15. selector detects three dates and each query shows only that date", async () => {
-    const dom = createApp();
-    const dates = ["11/03/2026", "12/03/2026", "13/03/2026"];
-    const csv = makeCsv(dates.map((arrival, index) => makeRecord({
-        sequence: index + 1, voucher: `DATE-${index + 1}`, arrival
-    })));
-    await uploadCsv(dom, csv);
-
-    const options = [...dom.window.document.querySelectorAll("#arrival-date option")]
-        .map(option => option.value)
-        .filter(value => value && value !== "__custom_date__");
-    assert.deepEqual(options, dates);
-
-    for (const [index, date] of dates.entries()) {
-        processDate(dom, date);
-        assert.equal(readSummary(dom).passengers, 1);
-        assert.equal(tableRows(dom)[0][0], `DATE-${index + 1}`);
-    }
-    closeApp(dom);
-});
-
-test("16. invalid arrival dates are filtered out of the selector and warned without dropping valid rows", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "VALID-ROW-1", arrival: "11/03/2026" }),
-        makeRecord({ sequence: 2, voucher: "INVALID-DATE", arrival: "fecha invalida" }),
-        makeRecord({ sequence: 3, voucher: "VALID-ROW-2", arrival: "12/03/2026" })
-    ]);
-    await uploadCsv(dom, csv);
-
-    const options = [...dom.window.document.querySelectorAll("#arrival-date option")]
-        .map(option => option.value)
-        .filter(value => value && value !== "__custom_date__");
-    assert.deepEqual(options, ["11/03/2026", "12/03/2026"]);
-    assert.match(textOf(dom, "#file-warnings"), /1 pasajero tiene.*fecha de ingreso no válida/);
-    processDate(dom, "11/03/2026");
-    assert.equal(tableRows(dom).length, 1);
-    assert.equal(tableRows(dom)[0][0], "VALID-ROW-1");
-    closeApp(dom);
-});
-
-test("17. invalid 27- and 29-column rows are reported while valid rows survive", async () => {
-    const shortRow = makeRecord({ sequence: 10 });
-    const longRow = makeRecord({ sequence: 11 });
-    shortRow.pop();
-    longRow.push("EXTRA");
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "VALID-ROW" }),
-        shortRow,
-        longRow
-    ]);
-    const dom = createApp();
-    await uploadCsv(dom, csv);
-
-    assert.match(textOf(dom, "#file-warnings"), /2 filas tienen.*distinta de 28/);
-    assert.match(textOf(dom, "#file-status"), /1 pasajero válido/);
-    processDate(dom, "11/03/2026");
-    assert.equal(tableRows(dom).length, 1);
-    assert.equal(tableRows(dom)[0][0], "VALID-ROW");
-    closeApp(dom);
-});
-
-test("17. empty CSV and CSV without valid data rows produce clear messages", async () => {
-    for (const csv of ["", makeCsv([makeRecord()]).split("\r\n")[0] + "\r\n" + makeRecord().slice(0, 27).join(",")]) {
-        const dom = createApp();
-        await uploadCsv(dom, csv);
-        assert.equal(dom.window.document.querySelector("#date-empty-message").hidden, false);
-        assert.match(textOf(dom, "#file-warnings"), /no encontró filas válidas/);
-        processDate(dom, "11/03/2026");
-        assert.equal(dom.window.document.querySelectorAll("#reservation-rows tr").length, 0);
-        assert.equal(dom.window.document.querySelector("#no-arrivals-message").hidden, false);
-        closeApp(dom);
-    }
-});
-
-test("18. missing hotel is not inferred and is warned", async () => {
-    const dom = createApp();
-    const csv = makeCsv([makeRecord({ hotel: "" })]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(tableRows(dom)[0][2], "Sin dato");
-    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 101");
-    assert.equal(readSummary(dom).rooms, 1);
-    assert.match(textOf(dom, "#result-warnings"), /sin hotel informado/);
-    closeApp(dom);
-});
-
-test("19. missing room is not inferred and is warned", async () => {
-    const dom = createApp();
-    const csv = makeCsv([makeRecord({ room: "" })]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(tableRows(dom)[0][3], "Sin dato");
-    assert.equal(readSummary(dom).rooms, 0);
-    assert.match(textOf(dom, "#result-warnings"), /sin habitación informada/);
-    closeApp(dom);
-});
-
-test("20. accommodation code and room number appear together in room labels", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ voucher: "ROOM-MIXED", accommodationCode: "900", room: "101" }),
-        makeRecord({ sequence: 2, voucher: "ROOM-MIXED", accommodationCode: "901", hotel: "HOTEL 31 DE AGOSTO", room: "9" })
-    ]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(tableRows(dom).length, 1);
-    assert.equal(
-        tableRows(dom)[0][3],
-        "Aloj. 900 — Hab. 101, Aloj. 901 — Hab. 9"
-    );
-    assert.equal(readSummary(dom).rooms, 2);
-    closeApp(dom);
-});
-
-test("21. same voucher keeps same-number rooms distinct across accommodation codes", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "SAME-VOUCHER", accommodationCode: "900", room: "101" }),
-        makeRecord({ sequence: 2, voucher: "SAME-VOUCHER", accommodationCode: "901", hotel: "HOTEL 31 DE AGOSTO", room: "101" })
-    ]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(tableRows(dom).length, 1);
-    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 101, Aloj. 901 — Hab. 101");
-    assert.equal(readSummary(dom).rooms, 2);
-    closeApp(dom);
-});
-
-test("22. missing accommodation keeps a room label without inventing code 900", async () => {
-    const dom = createApp();
-    const csv = makeCsv([makeRecord({
-        voucher: "NO-ACCOMMODATION",
-        accommodationCode: "",
-        room: "101"
-    })]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(tableRows(dom)[0][3], "Hab. 101");
-    assert.doesNotMatch(tableRows(dom)[0][3], /900/);
-    assert.equal(readSummary(dom).rooms, 1);
-    closeApp(dom);
-});
-
-test("23. separate vouchers sharing 900/101 remain separate rows and one physical room", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "SHARED-A", accommodationCode: "900", room: "101" }),
-        makeRecord({ sequence: 2, voucher: "SHARED-B", accommodationCode: "900", room: "101" })
-    ]);
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    assert.equal(tableRows(dom).length, 2);
-    assert.deepEqual(tableRows(dom).map(row => row[0]), ["SHARED-A", "SHARED-B"]);
-    assert.equal(readSummary(dom).rooms, 1);
-    assert.equal(tableRows(dom)[0][3], "Aloj. 900 — Hab. 101");
-    assert.equal(tableRows(dom)[1][3], "Aloj. 900 — Hab. 101");
-    closeApp(dom);
-});
-
-function seededRandom(seed) {
-    let state = seed >>> 0;
-    return () => {
-        state += 0x6D2B79F5;
-        let value = state;
-        value = Math.imul(value ^ (value >>> 15), value | 1);
-        value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
-        return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-    };
-}
-
-function makeStressCsv() {
-    const random = seededRandom(0x5EED2026);
-    const dates = ["11/03/2026", "12/03/2026", "13/03/2026"];
-    const services = [
-        "MEDIA PENSION", "MEDIA PENSION", "MEDIA PENSION", "MEDIA PENSION",
-        "PENSIÓN COMPLETA", "PENSIÓN COMPLETA", "PENSIÓN COMPLETA", "PENSIÓN COMPLETA",
-        "DESAYUNO", "DESAYUNO", "DESAYUNO",
-        "DESAYUNO U.PROPIAS", "DESAYUNO U.PROPIAS", "DESAYUNO U.PROPIAS",
-        "", "", "", "SERVICIO ESPECIAL", "SERVICIO ESPECIAL", "SERVICIO ESPECIAL"
-    ];
-    const records = [];
-
-    for (let index = 0; index < 20; index++) {
-        const isAugustHotel = random() < 0.5;
-        const hotel = isAugustHotel ? "HOTEL 31 DE AGOSTO" : "HOTEL 23 DE MAYO";
-        const room = String((isAugustHotel ? 5 : 101) + index);
-        let transport = "Sin Transporte";
-        let packageName = "MDP TEMPORADA BAJA";
-        if (index >= 4 && index <= 7) {
-            transport = "PPJ BUS SINTETICO";
-            packageName = "PPJ MAR DEL PLATA";
-        }
-        if ([15, 18, 19].includes(index)) {
-            transport = "";
-            packageName = "";
-        }
-
-        for (let paxIndex = 0; paxIndex < 2; paxIndex++) {
-            let service = services[index];
-            if (index === 13 && paxIndex === 1) service = "DESAYUNO";
-            records.push(makeRecord({
-                sequence: index * 2 + paxIndex + 1,
-                voucher: `STRESS-${String(index + 1).padStart(2, "0")}`,
-                arrival: dates[index % dates.length],
-                hotel,
-                room,
-                service,
-                transport,
-                package: packageName
-            }));
-        }
-    }
-
-    records.push(makeRecord({
-        sequence: 41,
-        voucher: "",
-        arrival: dates[1],
-        hotel: "HOTEL 23 DE MAYO",
-        room: "130",
-        service: "DESAYUNO"
-    }));
-    records.push(makeRecord({
-        sequence: 42,
-        voucher: "",
-        arrival: dates[2],
-        hotel: "HOTEL 31 DE AGOSTO",
-        room: "28",
-        service: ""
-    }));
-
-    return { csv: makeCsv(records), dates };
-}
-
-test("24. seeded 42-PAX mixed CSV has reproducible and manually auditable totals", async () => {
-    const dom = createApp();
-    const { csv, dates } = makeStressCsv();
-    const originalCsv = csv;
-    await uploadCsv(dom, csv, "stress-seeded.csv");
-
-    const expectedByDate = {
-        "11/03/2026": { passengers: 14, reservations: 7, rooms: 7, mapPassengers: 4, mapReservations: 2, pcPassengers: 2, pcReservations: 1 },
-        "12/03/2026": { passengers: 15, reservations: 7, rooms: 8, mapPassengers: 2, mapReservations: 1, pcPassengers: 4, pcReservations: 2 },
-        "13/03/2026": { passengers: 13, reservations: 6, rooms: 7, mapPassengers: 2, mapReservations: 1, pcPassengers: 2, pcReservations: 1 }
-    };
-
-    const allClassifications = {
-        INDIVIDUAL: 0,
-        CONTINGENTE: 0,
-        NO_CLASIFICADA: 0
-    };
-
-    for (const date of dates) {
-        processDate(dom, date);
-        assert.deepEqual(readSummary(dom), expectedByDate[date], date);
-        const status = textOf(dom, "#classification-status");
-        const counts = status.match(/(\d+) individual(?:es)? · (\d+) contingente(?:s)? · (\d+) no clasificada(?:s)?/);
-        assert.ok(counts, status);
-        allClassifications.INDIVIDUAL += Number(counts[1]);
-        allClassifications.CONTINGENTE += Number(counts[2]);
-        allClassifications.NO_CLASIFICADA += Number(counts[3]);
-    }
-
-    processDate(dom, "11/03/2026");
-    const firstRow = tableRows(dom).find(row => row[0] === "STRESS-01");
-    assert.ok(firstRow, "first stress voucher should appear on its generated arrival date");
-    assert.equal(firstRow[1], "PASAJERO-SINTETICO-1");
-
-    processDate(dom, "12/03/2026");
-    assert.equal(csv, originalCsv, "source CSV string must remain unchanged");
-    assert.equal(tableRows(dom).length, 8, "7 voucher rows + 1 unassigned passenger row");
-    assert.match(textOf(dom, "#file-warnings"), /no tienen servicio informado/);
-    assert.match(textOf(dom, "#result-warnings"), /servicios distintos/);
-
-    const allDates = Object.values(expectedByDate).reduce((total, day) => ({
-        passengers: total.passengers + day.passengers,
-        reservations: total.reservations + day.reservations,
-        rooms: total.rooms + day.rooms,
-        mapPassengers: total.mapPassengers + day.mapPassengers,
-        mapReservations: total.mapReservations + day.mapReservations,
-        pcPassengers: total.pcPassengers + day.pcPassengers,
-        pcReservations: total.pcReservations + day.pcReservations
-    }), { passengers: 0, reservations: 0, rooms: 0, mapPassengers: 0, mapReservations: 0, pcPassengers: 0, pcReservations: 0 });
-    assert.deepEqual(allDates, {
-        passengers: 42, reservations: 20, rooms: 22,
-        mapPassengers: 8, mapReservations: 4,
-        pcPassengers: 8, pcReservations: 4
-    });
-    assert.deepEqual(allClassifications, {
-        INDIVIDUAL: 13,
-        CONTINGENTE: 4,
-        NO_CLASIFICADA: 3
-    });
-    closeApp(dom);
-});
-
-test("25. integration calls the unchanged engine and does not mutate parsed records", () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({ sequence: 1, voucher: "IMMUTABLE", transport: "PPJ BUS", package: "PPJ", service: "PENSIÓN COMPLETA" }),
-        makeRecord({ sequence: 2, voucher: "IMMUTABLE", transport: "PPJ BUS", package: "PPJ", service: "PENSIÓN COMPLETA" })
-    ]);
-    const records = dom.window.ReservationsCore.parseCSV(csv);
-    const snapshot = JSON.stringify(records);
-    const actual = dom.window.ReservationsCore.processReservations(records);
-    const expectedClassification = dom.window.ReservationsCore.classifyReservation(records).tipo;
-
-    assert.equal(JSON.stringify(records), snapshot);
-    assert.equal(actual[0].clasificacion.tipo, expectedClassification);
-    assert.equal(actual[0].pasajeros[0].pax.nombre, "PASAJERO-SINTETICO-1");
-    closeApp(dom);
-});
-
-test("26. related reservations query uses synthetic responsible candidates", async () => {
-    const dom = createApp();
-
-    await uploadCsv(dom, makeSyntheticRelationsCsv());
-    processDate(dom, "01/10/2026");
-
-    const dniInput = dom.window.document.querySelector("#related-dni-input");
-    const queryButton = dom.window.document.querySelector("#related-dni-button");
-    const relatedRows = () => [...dom.window.document.querySelectorAll(
-        "#related-reservation-rows tr"
-    )].map(row => [...row.cells].map(cell => cell.textContent.trim()));
-
-    dniInput.value = "SYN-DOC-A";
-    queryButton.click();
-
-    assert.equal(
-        textOf(dom, "#related-summary"),
-        "Responsable candidato: SYN-DOC-A · 2 vouchers relacionados"
-    );
-    assert.deepEqual(
-        relatedRows().map(row => row[0]).sort(),
-        ["SYN-A-1", "SYN-A-2"]
-    );
-
-    dniInput.value = "SYN-DOC-B";
-    queryButton.click();
-    assert.deepEqual(
-        relatedRows().map(row => row[0]).sort(),
-        ["SYN-B-1", "SYN-B-2"]
-    );
-
-    dniInput.value = "SYN-DOC-C-1";
-    queryButton.click();
-    const multiRoomDetail = dom.window.document.querySelector("#related-detail-list").textContent;
-    assert.match(multiRoomDetail, /Voucher SYN-MULTI/);
-    for (const room of ["11", "15", "20", "21", "22"]) {
-        assert.match(multiRoomDetail, new RegExp(room));
-    }
-
-    dniInput.value = "SYN-DOC-A-COMP";
-    queryButton.click();
-    assert.equal(
-        textOf(dom, "#related-empty-message"),
-        "No se encontraron vouchers relacionados para ese DNI candidato."
-    );
-    assert.equal(dom.window.document.querySelector("#related-empty-message").hidden, false);
-
-    dniInput.value = "SYN-DOC-A";
-    queryButton.click();
-    assert.deepEqual(
-        [...dom.window.document.querySelectorAll("#related-detail-list h3")]
-            .map(heading => heading.textContent),
-        ["Voucher SYN-A-1", "Voucher SYN-A-2"]
-    );
-    closeApp(dom);
-});
-
-test("27. related detail renders multi-room and divergent values", async () => {
+test("CSV upload automatically lists every passenger in room order with the historical fields", async () => {
     const dom = createApp();
     const csv = makeCsv([
         makeRecord({
-            sequence: 1,
-            voucher: "UI2-DIVERGENT",
-            document: "UI2-CANDIDATE",
+            voucher: "SYN-MULTI",
+            document: "DOC-1",
+            name: "TITULAR SINTETICO",
+            room: "205",
             arrival: "11/03/2026",
-            departure: "14/03/2026",
-            service: "SERVICIO A",
-            room: "101",
-            capacity: "2",
-            occupied: "2"
+            departure: "14/03/2026"
         }),
         makeRecord({
-            sequence: 2,
-            voucher: "UI2-DIVERGENT",
-            document: "UI2-SECOND",
+            voucher: "SYN-MULTI",
+            document: "DOC-2",
+            name: "ACOMPANANTE SINTETICO",
+            room: "101B",
             arrival: "12/03/2026",
             departure: "15/03/2026",
-            service: "SERVICIO B",
-            room: "102",
-            capacity: "3",
-            occupied: "3"
+            roomObservation: "Ventanilla"
+        }),
+        makeRecord({
+            voucher: "SYN-OTHER",
+            document: "DOC-3",
+            name: "OTRO TITULAR",
+            room: "101A",
+            arrival: "20/03/2026",
+            departure: "22/03/2026",
+            service: "PENSION COMPLETA"
+        }),
+        makeRecord({
+            voucher: "",
+            document: "DOC-4",
+            name: "SIN VOUCHER",
+            room: "307"
         })
     ]);
 
     await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
+    const { document } = dom.window;
+    const rows = tableRows(dom);
 
-    const dniInput = dom.window.document.querySelector("#related-dni-input");
-    dniInput.value = "UI2-CANDIDATE";
-    dom.window.document.querySelector("#related-dni-button").click();
-
-    const detailText = dom.window.document.querySelector("#related-detail-list").textContent;
-    assert.match(detailText, /Voucher UI2-DIVERGENT/);
-    assert.match(detailText, /Valores diferentes/);
-    assert.match(detailText, /SERVICIO A/);
-    assert.match(detailText, /SERVICIO B/);
-    assert.match(detailText, /101/);
-    assert.match(detailText, /102/);
-    assert.match(detailText, /2 \/ 2/);
-    assert.match(detailText, /3 \/ 3/);
-
-    const aggregateRow = dom.window.document.querySelector(
-        "#responsible-aggregate-rows tr"
-    );
-    assert.ok(aggregateRow, "UI 3 should render the voucher row");
-    assert.match(aggregateRow.cells[3].textContent, /Valores diferentes/);
-    assert.match(aggregateRow.cells[3].textContent, /11\/03\/2026/);
-    assert.match(aggregateRow.cells[3].textContent, /12\/03\/2026/);
-    assert.match(aggregateRow.cells[4].textContent, /14\/03\/2026/);
-    assert.match(aggregateRow.cells[4].textContent, /15\/03\/2026/);
-    assert.match(aggregateRow.cells[7].textContent, /Valores diferentes/);
-    assert.match(aggregateRow.cells[7].textContent, /SERVICIO A/);
-    assert.match(aggregateRow.cells[7].textContent, /SERVICIO B/);
-    closeApp(dom);
-});
-
-test("28. UI 3 replaces aggregate rows across synthetic responsible candidates", async () => {
-    const dom = createApp();
-
-    await uploadCsv(dom, makeSyntheticRelationsCsv());
-    processDate(dom, "01/10/2026");
-
-    const document = dom.window.document;
-    const dniInput = document.querySelector("#related-dni-input");
-    const queryButton = document.querySelector("#related-dni-button");
-    const relatedRows = () => [...document.querySelectorAll(
-        "#related-reservation-rows tr"
-    )].map(row => row.cells[0].textContent.trim());
-    const aggregateRows = () => [...document.querySelectorAll(
-        "#responsible-aggregate-rows tr"
-    )].map(row => [...row.cells].map(cell => cell.textContent.trim()));
-    const cases = [
-        {
-            dni: "SYN-DOC-A",
-            vouchers: ["SYN-A-1", "SYN-A-2"],
-            pax: "4",
-            documents: "2",
-            rooms: "23",
-            arrival: "05/10/2026",
-            departure: "08/10/2026"
-        },
-        {
-            dni: "SYN-DOC-B",
-            vouchers: ["SYN-B-1", "SYN-B-2"],
-            pax: "4",
-            documents: "2",
-            rooms: "14",
-            arrival: "08/10/2026",
-            departure: "12/10/2026"
-        },
-        {
-            dni: "SYN-DOC-C-1",
-            vouchers: ["SYN-MULTI"],
-            pax: "5",
-            documents: "5",
-            rooms: "11, 15, 20, 21, 22",
-            arrival: "09/10/2026",
-            departure: "11/10/2026"
-        }
-    ];
-
-    for (const expected of cases) {
-        dniInput.value = expected.dni;
-        queryButton.click();
-
-        const rows = aggregateRows();
-        assert.equal(rows.length, expected.vouchers.length);
-        assert.deepEqual(rows.map(row => row[0]), expected.vouchers);
-        assert.deepEqual(relatedRows(), expected.vouchers);
-        assert.equal(
-            document.querySelectorAll("#related-detail-list .related-detail").length,
-            expected.vouchers.length
-        );
-        assert.equal(document.querySelector("#aggregate-responsible-dni").textContent, expected.dni);
-        assert.equal(document.querySelector("#aggregate-voucher-count").textContent, String(expected.vouchers.length));
-        assert.equal(document.querySelector("#aggregate-pax-count").textContent, expected.pax);
-        assert.equal(document.querySelector("#aggregate-document-count").textContent, expected.documents);
-        assert.equal(document.querySelector("#aggregate-accommodations").textContent, "901");
-        assert.equal(document.querySelector("#aggregate-min-arrival").textContent, expected.arrival);
-        assert.equal(document.querySelector("#aggregate-max-departure").textContent, expected.departure);
-        assert.equal(document.querySelector("#responsible-aggregate-section").hidden, false);
-        assert.doesNotMatch(
-            document.querySelector("#responsible-aggregate-section").textContent,
-            /continuidad|reingreso|cambio de habitación|familia|estancia acumulada|superposición|titular/i
-        );
-    }
-
-    const finalRows = aggregateRows();
-    assert.equal(finalRows.length, 1, "la última consulta debe reemplazar las dos filas anteriores");
-    assert.equal(finalRows[0][0], "SYN-MULTI");
-    assert.equal(finalRows[0][2], "11, 15, 20, 21, 22");
-
-    for (const dni of ["SYN-DOC-A-COMP", "SYN-MISSING"]) {
-        dniInput.value = dni;
-        queryButton.click();
-
-        assert.equal(aggregateRows().length, 0);
-        assert.equal(document.querySelector("#responsible-aggregate-section").hidden, true);
-        assert.equal(document.querySelector("#aggregate-responsible-dni").textContent, "");
-        assert.deepEqual(relatedRows(), []);
-        assert.equal(
-            document.querySelectorAll("#related-detail-list .related-detail").length,
-            0
-        );
-        assert.equal(document.querySelector("#related-results").hidden, true);
-        assert.equal(document.querySelector("#related-empty-message").hidden, false);
-    }
-
-    dniInput.value = "SYN-DOC-A";
-    queryButton.click();
-    assert.equal(aggregateRows().length, 2);
-    assert.deepEqual(relatedRows(), ["SYN-A-1", "SYN-A-2"]);
-
-    dniInput.value = "SYN-DOC-A";
-    queryButton.click();
-    const serviceRows = aggregateRows();
-    assert.match(serviceRows[0][7], /DESAYUNO U\.PROPIAS/);
-    assert.match(serviceRows[1][7], /MEDIA PENSION/);
-
-    closeApp(dom);
-});
-
-test("29. group meal vouchers are no longer part of the reservations screen", () => {
-    const dom = createApp();
-    assert.equal(dom.window.document.querySelector("#voucher-map-button"), null);
-    assert.equal(dom.window.document.querySelector("#voucher-pc-button"), null);
-    assert.ok(dom.window.document.querySelector("#rooming-map-button"));
-    assert.ok(dom.window.document.querySelector("#rooming-pc-button"));
-    closeApp(dom);
-});
-
-test("30. S4.9 downloads MAP/PC Rooming CSV for selected-date passengers only", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({
-            sequence: 1,
-            voucher: "ROOMING-MAP",
-            arrival: "11/03/2026",
-            name: "MAP-INGRESA",
-            service: "MEDIA PENSION"
-        }),
-        makeRecord({
-            sequence: 2,
-            voucher: "ROOMING-MAP",
-            arrival: "12/03/2026",
-            name: "MAP-OTRO-DIA",
-            service: "MEDIA PENSION",
-            room: "102"
-        }),
-        makeRecord({
-            sequence: 3,
-            voucher: "ROOMING-PC",
-            arrival: "11/03/2026",
-            name: "PC-INGRESA",
-            service: "PENSION COMPLETA",
-            package: "PPJ"
-        }),
-        makeRecord({
-            sequence: 4,
-            voucher: "ROOMING-BREAKFAST",
-            arrival: "11/03/2026",
-            name: "BREAKFAST-EXCLUIDO",
-            service: "DESAYUNO"
-        })
-    ]);
-
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-
-    dom.window.document.querySelector("#rooming-map-button").click();
-    assert.equal(dom.window.__openedLinks.length, 1);
-    const mapLink = dom.window.__openedLinks[0];
-    assert.equal(mapLink.download, "rooming_map_2026-03-11.csv");
-    const mapBlob = dom.window.__createdBlobs.get(mapLink.href);
-    assert.equal(mapBlob.type, "text/csv;charset=utf-8");
-    const mapCsv = await readBlobText(dom, mapBlob);
-    const mapCsvBytes = await readBlobBytes(dom, mapBlob);
-    assert.deepEqual([...mapCsvBytes.slice(0, 3)], [0xef, 0xbb, 0xbf]);
-    assert.match(mapCsv, /MAP-INGRESA/);
-    assert.doesNotMatch(mapCsv, /MAP-OTRO-DIA|PC-INGRESA|BREAKFAST-EXCLUIDO/);
-    assert.match(textOf(dom, "#output-status"), /1 pasajero · 1 habitación/);
-
-    dom.window.document.querySelector("#rooming-pc-button").click();
-    assert.equal(dom.window.__openedLinks.length, 2);
-    const pcLink = dom.window.__openedLinks[1];
-    assert.equal(pcLink.download, "rooming_pc_2026-03-11.csv");
-    const pcCsv = await readBlobText(
-        dom,
-        dom.window.__createdBlobs.get(pcLink.href)
-    );
-    assert.match(pcCsv, /PC-INGRESA/);
-    assert.doesNotMatch(pcCsv, /MAP-INGRESA|MAP-OTRO-DIA|BREAKFAST-EXCLUIDO/);
-    closeApp(dom);
-});
-
-test("31. S4.9 reports empty outputs without creating a download", async () => {
-    const dom = createApp();
-    const csv = makeCsv([
-        makeRecord({
-            sequence: 1,
-            voucher: "ONLY-PC",
-            service: "PENSION COMPLETA",
-            package: "PPJ"
-        })
-    ]);
-
-    await uploadCsv(dom, csv);
-    processDate(dom, "11/03/2026");
-    dom.window.document.querySelector("#rooming-map-button").click();
-    assert.match(textOf(dom, "#output-status"), /No hay pasajeros Rooming MAP/);
-    assert.equal(dom.window.__openedLinks.length, 0);
-    closeApp(dom);
-});
-
-test("32. duplicate passenger review lists every repeated pair independent of selected date", async () => {
-    const duplicateDocument = "DUPLICATE-DOCUMENT-SECRET";
-    const csv = makeCsv([
-        makeRecord({
-            sequence: 1,
-            voucher: "DUP-THREE",
-            document: duplicateDocument,
-            name: "PRIMER-PAX-DUP",
-            arrival: "11/03/2026"
-        }),
-        makeRecord({
-            sequence: 2,
-            voucher: "DUP-THREE",
-            document: duplicateDocument,
-            name: "SEGUNDO-PAX-DUP",
-            arrival: "11/03/2026"
-        }),
-        makeRecord({
-            sequence: 3,
-            voucher: "DUP-THREE",
-            document: duplicateDocument,
-            name: "TERCER-PAX-DUP",
-            arrival: "11/03/2026"
-        }),
-        makeRecord({
-            sequence: 4,
-            voucher: "CROSS-VOUCHER",
-            document: duplicateDocument,
-            name: "PAX-OTRO-VOUCHER",
-            arrival: "12/03/2026"
-        }),
-        makeRecord({
-            sequence: 5,
-            voucher: "DIFFERENT-DOCUMENT-TYPE",
-            document: "SAME-NUMBER-DIFFERENT-TYPE",
-            documentType: "DNI",
-            name: "PAX-DNI"
-        }),
-        makeRecord({
-            sequence: 6,
-            voucher: "DIFFERENT-DOCUMENT-TYPE",
-            document: "SAME-NUMBER-DIFFERENT-TYPE",
-            documentType: "PASAPORTE",
-            name: "PAX-PASAPORTE"
-        }),
-        makeRecord({
-            sequence: 7,
-            voucher: "PC-DUPLICATES",
-            document: duplicateDocument,
-            name: "PRIMER-PAX-PC",
-            service: "PENSION COMPLETA",
-            package: "PPJ",
-            room: "102",
-            arrival: "11/03/2026"
-        }),
-        makeRecord({
-            sequence: 8,
-            voucher: "PC-DUPLICATES",
-            document: duplicateDocument,
-            name: "SEGUNDO-PAX-PC",
-            service: "PENSION COMPLETA",
-            package: "PPJ",
-            room: "102",
-            arrival: "11/03/2026"
-        })
-    ]);
-    const dom = createApp();
-    await uploadCsv(dom, csv);
-
-    const duplicateSection = dom.window.document.querySelector("#passenger-duplicates-section");
-    const nonRelatableSection = dom.window.document.querySelector("#non-relatable-section");
-    const duplicateRows = () => [...dom.window.document.querySelectorAll("#passenger-duplicates-rows tr")]
-        .map(row => [...row.cells].map(cell => cell.textContent.trim()));
-
-    assert.ok(duplicateSection, "possible-duplicates section should exist");
-    assert.equal(duplicateSection.hidden, false);
-    assert.strictEqual(duplicateSection.parentElement, nonRelatableSection.parentElement);
-    assert.equal(textOf(dom, "#passenger-duplicates-title"), "Posibles pasajeros duplicados");
-    assert.match(textOf(dom, "#passenger-duplicates-summary"), /3.*coincidencias/);
-    assert.deepEqual(duplicateRows(), [
-        ["DUP-THREE", "PAX 1", "PAX 2"],
-        ["DUP-THREE", "PAX 1", "PAX 3"],
-        ["PC-DUPLICATES", "PAX 1", "PAX 2"]
-    ]);
-    assert.doesNotMatch(duplicateSection.textContent, new RegExp(duplicateDocument));
-    assert.doesNotMatch(duplicateSection.textContent, /DUPLICATE-DOCUMENT-SECRET/);
-
-    const duplicateSummary = textOf(dom, "#passenger-duplicates-summary");
-    const duplicateRowsBeforeDateSelection = duplicateRows();
-    processDate(dom, "12/03/2026");
-    assert.equal(textOf(dom, "#passenger-duplicates-summary"), duplicateSummary);
-    assert.deepEqual(duplicateRows(), duplicateRowsBeforeDateSelection);
-    assert.deepEqual(readSummary(dom), {
-        passengers: 1, reservations: 1, rooms: 1,
-        mapPassengers: 1, mapReservations: 1,
-        pcPassengers: 0, pcReservations: 0
-    });
-
-    processDate(dom, "11/03/2026");
-    assert.deepEqual(readSummary(dom), {
-        passengers: 7, reservations: 3, rooms: 2,
-        mapPassengers: 5, mapReservations: 2,
-        pcPassengers: 2, pcReservations: 1
-    });
-    assert.equal(tableRows(dom)[0][0], "DUP-THREE");
-    assert.equal(tableRows(dom)[0][1], "PRIMER-PAX-DUP");
-    assert.equal(tableRows(dom)[0][4], "3");
-
-    dom.window.document.querySelector("#related-dni-input").value = duplicateDocument;
-    dom.window.document.querySelector("#related-dni-button").click();
-    const relatedRows = [...dom.window.document.querySelectorAll("#related-reservation-rows tr")];
-    assert.equal(relatedRows.length, 3);
+    assert.equal(document.querySelector("#results-section").hidden, false);
+    assert.match(document.querySelector("#file-status").textContent, /4 pasajero\(s\)/);
+    assert.equal(document.querySelector("#passenger-count").textContent, "4");
+    assert.equal(document.querySelector("#room-count").textContent, "3");
+    assert.equal(rows.length, 4);
+    assert.deepEqual(rows.map(row => row[0]), ["101A", "101B", "205", "307"]);
+    assert.equal(rows[0][6], "OTRO TITULAR");
+    assert.equal(rows[1][6], "ACOMPANANTE SINTETICO");
+    assert.equal(rows[1][13], "Ventanilla");
+    assert.equal(rows[2][6], "TITULAR SINTETICO");
+    assert.equal(rows[3][6], "SIN VOUCHER");
+    assert.equal(document.querySelectorAll("#reservation-rows tr:first-child td").length, 14);
     assert.deepEqual(
-        relatedRows.map(row => row.cells[0].textContent.trim()),
-        ["DUP-THREE", "CROSS-VOUCHER", "PC-DUPLICATES"]
+        [...document.querySelectorAll(".table-scroll thead th")].map(cell => cell.textContent),
+        [
+            "Nro. habitación", "Fecha de ingreso", "Fecha de egreso",
+            "Cantidad plazas", "Tipo documento", "Nro. doc.",
+            "Apellido y nombre", "Edad", "Voucher", "Servicio",
+            "Estado", "Paquete", "Sede", "Observación habitación"
+        ]
     );
 
-    dom.window.document.querySelector("#rooming-map-button").click();
-    const roomingCsv = await readBlobText(
-        dom,
-        dom.window.__createdBlobs.get(dom.window.__openedLinks[0].href)
-    );
-    for (const name of ["PRIMER-PAX-DUP", "SEGUNDO-PAX-DUP", "TERCER-PAX-DUP"]) {
-        assert.match(roomingCsv, new RegExp(name));
-    }
-    assert.doesNotMatch(roomingCsv, /PRIMER-PAX-PC|SEGUNDO-PAX-PC/);
-
-    dom.window.document.querySelector("#rooming-pc-button").click();
-    const roomingPcCsv = await readBlobText(
-        dom,
-        dom.window.__createdBlobs.get(dom.window.__openedLinks[1].href)
-    );
-    assert.match(roomingPcCsv, /PRIMER-PAX-PC/);
-    assert.match(roomingPcCsv, /SEGUNDO-PAX-PC/);
-    assert.doesNotMatch(roomingPcCsv, /PRIMER-PAX-DUP|SEGUNDO-PAX-DUP/);
-    assert.equal(
-        textOf(dom, "#non-relatable-empty-message"),
-        "No se encontraron reservas que requieran revisión."
-    );
-    closeApp(dom);
+    dom.window.close();
 });
 
-test("33. duplicate passenger review reports empty when no eligible document pair exists", async () => {
-    const csv = makeCsv([
-        makeRecord({
-            sequence: 1,
-            voucher: "UNIQUE-DOCUMENTS",
-            document: "DOCUMENT-ONE",
-            name: "MISMO-NOMBRE"
-        }),
-        makeRecord({
-            sequence: 2,
-            voucher: "UNIQUE-DOCUMENTS",
-            document: "DOCUMENT-TWO",
-            name: "MISMO-NOMBRE"
-        }),
-        makeRecord({
-            sequence: 3,
-            voucher: "DIFFERENT-TYPES",
-            document: "SAME-NUMBER",
-            documentType: "DNI"
-        }),
-        makeRecord({
-            sequence: 4,
-            voucher: "DIFFERENT-TYPES",
-            document: "SAME-NUMBER",
-            documentType: "PASAPORTE"
-        }),
-        makeRecord({
-            sequence: 5,
-            voucher: "MISSING-DOCUMENT",
-            document: "",
-            name: "SIN-DOCUMENTO"
-        }),
-        makeRecord({
-            sequence: 6,
-            voucher: "MISSING-DOCUMENT",
-            document: "   ",
-            name: "SIN-DOCUMENTO"
-        }),
-        makeRecord({
-            sequence: 7,
-            voucher: "MISSING-DOCUMENT-TYPE",
-            document: "SAME-DOCUMENT-NUMBER",
-            documentType: "",
-            name: "TIPO-VACIO"
-        }),
-        makeRecord({
-            sequence: 8,
-            voucher: "MISSING-DOCUMENT-TYPE",
-            document: "SAME-DOCUMENT-NUMBER",
-            documentType: "   ",
-            name: "TIPO-ESPACIOS"
-        })
-    ]);
+test("reservations screen follows the simple historical upload, list, and export flow", () => {
     const dom = createApp();
-    await uploadCsv(dom, csv);
+    const { document } = dom.window;
 
-    const duplicateSection = dom.window.document.querySelector("#passenger-duplicates-section");
-    assert.ok(duplicateSection, "possible-duplicates section should exist");
-    assert.equal(duplicateSection.hidden, false);
-    assert.equal(dom.window.document.querySelectorAll("#passenger-duplicates-rows tr").length, 0);
-    assert.equal(dom.window.document.querySelector("#passenger-duplicates-results").hidden, true);
-    assert.equal(dom.window.document.querySelector("#passenger-duplicates-empty-message").hidden, false);
-    assert.equal(
-        textOf(dom, "#passenger-duplicates-empty-message"),
-        "No se detectaron posibles pasajeros duplicados."
+    for (const selector of [
+        "#arrival-date",
+        "#process-button",
+        "#rooming-map-button",
+        "#rooming-pc-button",
+        "#print-button",
+        "#related-dni-input",
+        "#passenger-duplicates-section",
+        "#non-relatable-section",
+        "#classification-status"
+    ]) {
+        assert.equal(document.querySelector(selector), null, `${selector} should not be in the screen`);
+    }
+
+    assert.ok(document.querySelector("#drop-area"));
+    assert.ok(document.querySelector("#download-button"));
+    const headersInHtml = [...document.querySelectorAll("thead th")].map(cell => cell.textContent);
+    assert.ok(!headersInHtml.includes("Hotel"));
+    assert.ok(!headersInHtml.includes("Clasificación"));
+    assert.ok(!headersInHtml.includes("Señales"));
+    dom.window.close();
+});
+
+test("CSV can also be loaded by dropping it on the historical upload area", async () => {
+    const dom = createApp();
+    const csv = makeCsv([
+        makeRecord({ room: "12", name: "PASAJERO POR ARRASTRE" })
+    ]);
+    const drop = new dom.window.Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(drop, "dataTransfer", {
+        value: {
+            files: [{
+                name: "arrastrado.csv",
+                size: Buffer.byteLength(csv),
+                text: () => Promise.resolve(csv)
+            }]
+        }
+    });
+    dom.window.document.querySelector("#drop-area").dispatchEvent(drop);
+    await waitUntil(
+        () => dom.window.document.querySelector("#results-section").hidden === false,
+        "Dropped CSV did not produce a result"
     );
-    closeApp(dom);
+
+    assert.equal(tableRows(dom).length, 1);
+    assert.equal(tableRows(dom)[0][6], "PASAJERO POR ARRASTRE");
+    dom.window.close();
+});
+
+test("CSV export uses historical columns, room sorting, LibreOffice delimiter, and escaped values", async () => {
+    const dom = createApp();
+    await uploadCsv(dom, makeCsv([
+        makeRecord({
+            room: "20",
+            name: 'TITULAR "TEST"',
+            roomObservation: "ventana; revisar",
+            service: "SERVICIO; ESPECIAL"
+        }),
+        makeRecord({ room: "3", voucher: "SYN-3", name: "PRIMERO POR HABITACION" })
+    ]));
+
+    dom.window.document.querySelector("#download-button").click();
+    assert.equal(dom.window.__openedLinks.length, 1);
+    assert.equal(dom.window.__openedLinks[0].download, "reservas_ingresan.csv");
+    const blob = dom.window.__createdBlobs.get(dom.window.__openedLinks[0].href);
+    const bytes = await readBlobBytes(dom, blob);
+    const csv = await readBlobText(dom, blob);
+
+    assert.deepEqual([...bytes.slice(0, 3)], [0xef, 0xbb, 0xbf]);
+    assert.match(csv, /^Nro\. habitación;Fecha de ingreso;Fecha de egreso;Cantidad plazas/);
+    assert.ok(csv.indexOf("PRIMERO POR HABITACION") < csv.indexOf('"TITULAR ""TEST"""'));
+    assert.ok(csv.includes('"ventana; revisar"'));
+    assert.ok(csv.includes('"TITULAR ""TEST"""'));
+    assert.ok(csv.includes('"SERVICIO; ESPECIAL"'));
+    dom.window.close();
+});
+
+test("CSV warnings remain visible while valid records are displayed", async () => {
+    const dom = createApp();
+    const validRecord = makeRecord({ voucher: "SYN-VALID", name: "VALIDO" });
+    const malformedRecord = makeRecord({ voucher: "SYN-BAD" }).slice(0, 27);
+    await uploadCsv(dom, makeCsv([validRecord, malformedRecord]));
+
+    assert.match(dom.window.document.querySelector("#file-warnings").textContent, /cantidad de columnas distinta de 28/);
+    assert.equal(tableRows(dom).length, 1);
+    assert.equal(tableRows(dom)[0][6], "VALIDO");
+    dom.window.close();
+});
+
+test("empty CSV displays an empty result instead of leaving the processing flow unfinished", async () => {
+    const dom = createApp();
+    await uploadCsv(dom, makeCsv([]));
+
+    assert.equal(dom.window.document.querySelector("#results-section").hidden, false);
+    assert.equal(dom.window.document.querySelector("#empty-message").hidden, false);
+    assert.equal(tableRows(dom).length, 0);
+    assert.match(dom.window.document.querySelector("#file-warnings").textContent, /no encontró filas válidas/);
+    dom.window.close();
+});
+
+test("non-CSV selection reports an error and resets the displayed results", async () => {
+    const dom = createApp();
+    await uploadCsv(dom, makeCsv([makeRecord()]));
+    const input = dom.window.document.querySelector("#csv-input");
+    Object.defineProperty(input, "files", {
+        configurable: true,
+        value: [{ name: "reservas.txt", size: 0, text: () => Promise.resolve("") }]
+    });
+    input.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+
+    assert.equal(dom.window.document.querySelector("#file-status").textContent, "Selecciona un archivo con extensión .csv.");
+    assert.equal(dom.window.document.querySelector("#results-section").hidden, true);
+    dom.window.close();
 });
