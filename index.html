@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#163b37">
-    <title>Solución Hotelera | Inicio</title>
+    <meta name="theme-color" content="#f4f4f4">
+    <title>Solución Hotelera | Sistema Unificado SUTEBA</title>
+
     <style>
         :root {
-            color-scheme: light;
-            font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
-            color: #1d2928;
-            background: #f3f5f2;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #333;
+            background: #f4f4f4;
             font-synthesis: none;
         }
 
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             margin: 0;
@@ -22,227 +24,249 @@
             min-height: 100vh;
         }
 
-        .masthead {
-            background: #163b37;
-            color: #fff;
-            padding: 28px max(24px, calc((100vw - 1120px) / 2));
-        }
-
-        .brand {
+        .header-container {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 14px;
-            max-width: 1120px;
-            margin: 0 auto;
+            padding: 26px 24px 30px;
+            background: #fff;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
         }
 
-        .brand-mark {
-            display: grid;
-            place-items: center;
-            width: 44px;
-            aspect-ratio: 1;
-            border: 1px solid #8db9a9;
-            border-radius: 50%;
-            color: #c2dfd2;
-            font-family: Georgia, serif;
-            font-size: 23px;
+        .logo-initial img {
+            display: block;
+            width: 100px;
+            max-width: 100%;
+            height: auto;
+            margin: 0 auto 16px;
         }
 
-        .brand-name {
+        .h1-initial {
             margin: 0;
-            font-size: 17px;
-            font-weight: 650;
+            color: #333;
+            font-size: clamp(23px, 4vw, 30px);
+            line-height: 1.25;
         }
 
-        .brand-context {
-            margin: 4px 0 0;
-            color: #c4d6d0;
-            font-size: 13px;
+        .h2-initial {
+            margin: 8px 0 0;
+            color: #666;
+            font-size: 17px;
+            font-weight: normal;
         }
 
         main {
-            width: min(1120px, calc(100% - 48px));
+            width: min(1120px, calc(100% - 40px));
             margin: 0 auto;
-            padding: 64px 0 48px;
+            padding: 38px 0 44px;
         }
 
         .intro {
-            max-width: 620px;
-            margin-bottom: 34px;
+            margin-bottom: 26px;
         }
 
-        .eyebrow {
-            margin: 0 0 10px;
-            color: #497568;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
+        .intro h2 {
+            margin: 0 0 8px;
+            color: #333;
+            font-size: 25px;
         }
 
-        h1 {
+        .intro p {
             margin: 0;
-            color: #163b37;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 38px;
-            font-weight: 500;
-            line-height: 1.15;
-        }
-
-        .intro p:last-child {
-            margin: 12px 0 0;
-            color: #5b6865;
-            font-size: 16px;
-            line-height: 1.55;
-        }
-
-        .tools {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px;
-        }
-
-        .tool {
-            display: flex;
-            min-height: 244px;
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 27px;
-            border: 1px solid #d5ddd8;
-            border-top: 4px solid #3e7968;
-            background: #fff;
-            color: inherit;
-            text-decoration: none;
-            transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
-        }
-
-        .tool:hover {
-            transform: translateY(-3px);
-            border-color: #82a99a;
-            box-shadow: 0 12px 26px rgb(22 59 55 / 9%);
-        }
-
-        .tool:focus-visible {
-            outline: 3px solid #d29337;
-            outline-offset: 3px;
-        }
-
-        .tool-number {
-            color: #8a6a34;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 15px;
-        }
-
-        .tool h2 {
-            margin: 23px 0 8px;
-            color: #163b37;
-            font-size: 21px;
-            line-height: 1.3;
-        }
-
-        .tool p {
-            max-width: 390px;
-            margin: 0 0 24px;
-            color: #5b6865;
+            color: #666;
             font-size: 15px;
             line-height: 1.5;
         }
 
-        .tool-action {
-            display: inline-flex;
-            min-height: 44px;
-            align-items: center;
-            gap: 10px;
-            margin-top: auto;
-            padding: 0 17px;
-            background: #1769aa;
-            color: #fff;
-            font-size: 14px;
-            font-weight: 700;
+        .menu-container {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
         }
 
-        .tool:hover .tool-action { background: #125487; }
+        .menu-card {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 24px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 4px 12px rgb(0 0 0 / 5%);
+            transition: box-shadow 160ms ease, transform 160ms ease;
+        }
+
+        .menu-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgb(0 0 0 / 9%);
+        }
+
+        .menu-card h3 {
+            margin: 12px 0 8px;
+            color: #333;
+            font-size: 20px;
+            line-height: 1.35;
+        }
+
+        .menu-card p {
+            margin: 0 0 22px;
+            color: #666;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .icon {
+            font-size: 28px;
+            line-height: 1.2;
+        }
+
+        .menu-button {
+            display: inline-flex;
+            min-height: 42px;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: auto;
+            padding: 10px 17px;
+            border: 0;
+            border-radius: 5px;
+            background: #007bff;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+            transition: background-color 160ms ease;
+        }
+
+        .menu-button:hover {
+            background: #0056b3;
+        }
+
+        .menu-button.secondary {
+            background: #28a745;
+        }
+
+        .menu-button.secondary:hover {
+            background: #218838;
+        }
+
+        .menu-button:focus-visible {
+            outline: 3px solid #333;
+            outline-offset: 3px;
+        }
 
         footer {
-            width: min(1120px, calc(100% - 48px));
-            margin: 0 auto;
-            padding: 18px 0 26px;
-            border-top: 1px solid #d5ddd8;
-            color: #697572;
+            padding: 20px 16px 28px;
+            border-top: 1px solid #ddd;
+            color: #666;
             font-size: 13px;
+            text-align: center;
         }
 
         @media (max-width: 640px) {
-            .masthead { padding: 20px 24px; }
-            main { padding-top: 42px; }
-            h1 { font-size: 32px; }
-            .tools { grid-template-columns: 1fr; gap: 14px; }
-            .tool { min-height: 220px; padding: 23px; }
+            .header-container {
+                padding: 22px 18px 26px;
+            }
+
+            main {
+                width: calc(100% - 32px);
+                padding-top: 28px;
+            }
+
+            .menu-container {
+                grid-template-columns: 1fr;
+                gap: 14px;
+            }
+
+            .menu-card {
+                padding: 20px;
+            }
+
+            .intro h2 {
+                font-size: 22px;
+            }
         }
 
         @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
+            *,
+            *::before,
+            *::after {
                 scroll-behavior: auto !important;
                 transition-duration: 0.01ms !important;
             }
         }
     </style>
 </head>
+
 <body>
-    <header class="masthead">
-        <div class="brand">
-            <span class="brand-mark" aria-hidden="true">S</span>
-            <div>
-                <p class="brand-name">Solución Hotelera</p>
-                <p class="brand-context">Herramientas para recepción</p>
-            </div>
+    <header class="header-container">
+        <div class="logo-initial">
+            <img
+                src="assets/suteba_logo_3.jpg"
+                alt="Logo SUTEBA"
+                width="100"
+            >
         </div>
+
+        <h1 class="h1-initial">Herramientas de Gestión Hotelera</h1>
+        <p class="h2-initial">Sistema Unificado SUTEBA</p>
     </header>
 
     <main>
-        <section class="intro" aria-labelledby="page-title">
-            <p class="eyebrow">Operaciones disponibles</p>
-            <h1 id="page-title">¿Qué necesitas generar hoy?</h1>
-            <p>Accede directamente al formulario de la operación que necesitas.</p>
-        </section>
+        
 
-        <nav class="tools" aria-label="Herramientas disponibles">
-            <a class="tool" href="client/mealVoucher.html">
-                <span class="tool-number">01 / COMIDAS</span>
-                <h2>Voucher Diario de Comidas</h2>
-                <p>Generar un voucher individual de comida para un pasajero.</p>
-                <span class="tool-action">Abrir formulario <span aria-hidden="true">&#8594;</span></span>
-            </a>
+        <nav class="menu-container" aria-label="Herramientas disponibles">
+            <article class="menu-card">
+                <span class="icon" aria-hidden="true">🎫</span>
+                <h3>Voucher Diario de Comidas</h3>
+                <p>Voucher individual de comida.</p>
+                <a class="menu-button" href="client/mealVoucher.html">
+                    Abrir formulario <span aria-hidden="true">→</span>
+                </a>
+            </article>
 
-            <a class="tool" href="client/groupMealVouchers.html">
-                <span class="tool-number">02 / COMIDAS GRUPALES</span>
-                <h2>Vouchers grupales de comidas</h2>
-                <p>Generar vouchers MAP o PC por fecha a partir de las reservas.</p>
-                <span class="tool-action">Abrir formulario <span aria-hidden="true">&#8594;</span></span>
-            </a>
+            <article class="menu-card">
+                <span class="icon" aria-hidden="true">🍽️</span>
+                <h3>Vouchers grupales de comidas</h3>
+                <p>Vouchers MAP y PC.</p>
+                <a class="menu-button" href="client/groupMealVouchers.html">
+                    Abrir formulario <span aria-hidden="true">→</span>
+                </a>
+            </article>
 
-            <a class="tool" href="client/reservations.html">
-                <span class="tool-number">03 / RESERVAS</span>
-                <h2>Reservas</h2>
-                <p>Prototipo para consultar reservas por fecha de ingreso.</p>
-                <span class="tool-action">Abrir formulario <span aria-hidden="true">&#8594;</span></span>
-            </a>
+            <article class="menu-card">
+                <span class="icon" aria-hidden="true">📋</span>
+                <h3>Reservas</h3>
+                <p>Consultar reservas por fecha de ingreso.</p>
+                <a class="menu-button secondary" href="client/reservations.html">
+                    Abrir formulario <span aria-hidden="true">→</span>
+                </a>
+            </article>
 
-            <a class="tool" href="client/fichaPax.html">
-                <span class="tool-number">04 / PASAJEROS</span>
-                <h2>Ficha PAX</h2>
-                <p>Buscar pasajeros por voucher, DNI o nombre y revisar su ficha.</p>
-                <span class="tool-action">Abrir formulario <span aria-hidden="true">&#8594;</span></span>
-            </a>
+            <article class="menu-card">
+                <span class="icon" aria-hidden="true">📄</span>
+                <h3>Ficha PAX</h3>
+                <p>Consultar pasajeros y generar fichas.</p>
+                <a class="menu-button" href="client/fichaPax.html">
+                    Abrir formulario <span aria-hidden="true">→</span>
+                </a>
+            </article>
 
-            <a class="tool" href="client/balnearioVoucher.html">
-                <span class="tool-number">05 / BALNEARIO</span>
-                <h2>Voucher Diario de Balneario</h2>
+            <article class="menu-card">
+                <span class="icon" aria-hidden="true">🏖️</span>
+                <h3>Voucher Diario de Balneario</h3>
                 <p>Generar un voucher individual para acceder al balneario.</p>
-                <span class="tool-action">Abrir formulario <span aria-hidden="true">&#8594;</span></span>
-            </a>
+                <a class="menu-button secondary" href="client/balnearioVoucher.html">
+                    Abrir formulario <span aria-hidden="true">→</span>
+                </a>
+            </article>
         </nav>
     </main>
 
-    <footer>Solución Hotelera · Herramientas locales de recepción</footer>
+    <footer>
+        Sistema de gestión hotelera · SUTEBA
+    </footer>
 </body>
 </html>

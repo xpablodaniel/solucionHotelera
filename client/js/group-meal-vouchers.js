@@ -5,7 +5,7 @@ const {
     parseDateKey,
     buildVoucherHtmlForDate
 } = window.GroupMealVouchersCore;
-
+const dropArea = document.querySelector("#group-meal-drop-area");
 const csvInput = document.querySelector("#csv-input");
 const fileStatus = document.querySelector("#file-status");
 const fileWarnings = document.querySelector("#file-warnings");
@@ -122,9 +122,7 @@ function inspectCsv(csvText) {
 }
 
 
-async function handleFileSelection() {
-
-    const file = csvInput.files[0];
+async function handleFileSelection(file = csvInput.files[0]) {
     resetFileState();
 
     if (!file) {
@@ -315,7 +313,50 @@ function generateVoucher(mode) {
 }
 
 
-csvInput.addEventListener("change", handleFileSelection);
+
+let dragCounter = 0;
+
+function preventDropDefaults(event) {
+    event.preventDefault();
+    event.stopPropagation();
+}
+
+for (const eventName of ["dragenter", "dragover", "dragleave", "drop"]) {
+    dropArea.addEventListener(eventName, preventDropDefaults);
+}
+
+dropArea.addEventListener("dragenter", () => {
+    dragCounter++;
+    dropArea.classList.add("is-dragging");
+});
+
+dropArea.addEventListener("dragover", event => {
+    if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = "copy";
+    }
+});
+
+dropArea.addEventListener("dragleave", () => {
+    dragCounter = Math.max(0, dragCounter - 1);
+
+    if (dragCounter === 0) {
+        dropArea.classList.remove("is-dragging");
+    }
+});
+
+dropArea.addEventListener("drop", event => {
+    dragCounter = 0;
+    dropArea.classList.remove("is-dragging");
+
+    const file = event.dataTransfer?.files?.[0];
+
+    if (file) {
+        handleFileSelection(file);
+    }
+});
+
+csvInput.addEventListener("change", () => handleFileSelection());
+
 
 arrivalDate.addEventListener("change", () => {
     resetResults();

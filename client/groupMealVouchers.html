@@ -24,29 +24,39 @@
         <a class="back-link" href="../index.html">Volver al inicio</a>
 
         <section class="page-intro" aria-labelledby="page-title">
-            <p class="eyebrow">Emisión por voucher</p>
-            <h1 id="page-title">Vouchers grupales de comidas</h1>
-            <p>Cargá el CSV: se elige la próxima fecha de ingreso y se indican cuántos vouchers MAP o PC hay para imprimir.</p>
+
+            <h1 id="page-title">Vouchers de comidas</h1>
+
         </section>
 
-        <p class="demo-notice" role="note">
-            El CSV se procesa en este navegador. El archivo original no se modifica ni se envía.
-        </p>
 
-        <section class="workflow-section" aria-labelledby="upload-title">
-            <div class="section-heading">
-                <div>
-                    <p class="step-label">Paso 1</p>
-                    <h2 id="upload-title">Archivo de reservas</h2>
-                </div>
-            </div>
-            <div class="upload-row">
-                <input class="file-input" id="csv-input" type="file" accept=".csv,text/csv" aria-describedby="file-status">
-                <label class="button button-secondary" for="csv-input">Seleccionar CSV</label>
-                <p class="file-status" id="file-status" role="status" aria-live="polite">Ningún archivo seleccionado</p>
-            </div>
-            <div class="file-warnings" id="file-warnings" role="status" aria-live="polite" hidden></div>
-        </section>
+
+        <section class="workflow-section upload-section" aria-labelledby="upload-title">
+    <div class="section-heading">
+        <div>
+            <h2 id="upload-title">Archivo de reservas</h2>
+        </div>
+    </div>
+
+    <label class="drop-area" id="group-meal-drop-area" for="csv-input">
+        <span class="drop-icon" aria-hidden="true">⇧</span>
+        <span class="drop-prompt">Arrastrá un archivo CSV aquí o seleccioná uno</span>
+        <span class="button button-primary">Seleccionar CSV</span>
+        <input
+            class="file-input"
+            id="csv-input"
+            type="file"
+            accept=".csv,text/csv"
+            aria-describedby="file-status"
+        >
+    </label>
+
+    <p class="file-status" id="file-status" role="status" aria-live="polite">
+        Ningún archivo seleccionado
+    </p>
+
+    <div class="file-warnings" id="file-warnings" role="status" aria-live="polite" hidden></div>
+</section>
 
         <section class="workflow-section" id="date-section" aria-labelledby="date-title" hidden>
             <div class="section-heading">

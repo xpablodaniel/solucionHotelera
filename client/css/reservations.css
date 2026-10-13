@@ -1,8 +1,8 @@
 :root {
     color-scheme: light;
-    font-family: Arial, sans-serif;
-    color: #263331;
-    background: #f4f6f4;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #333;
+    background: #f4f4f4;
 }
 
 * { box-sizing: border-box; }
@@ -14,41 +14,40 @@ body {
 }
 
 .masthead {
-    padding: 17px 24px;
-    background: #163b37;
-    color: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 14px 24px;
+    background: #fff;
 }
 
 .brand {
     display: flex;
     width: min(1100px, 100%);
     align-items: center;
-    gap: 12px;
+    gap: 14px;
     margin: 0 auto;
 }
 
-.brand-mark {
-    display: grid;
-    width: 38px;
-    aspect-ratio: 1;
-    place-items: center;
-    border: 1px solid #8db9a9;
-    border-radius: 50%;
-    color: #c2dfd2;
-    font-family: Georgia, serif;
-    font-size: 21px;
+.brand-logo {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
 }
 
 .brand-name {
     margin: 0;
-    font-size: 16px;
+    color: #333;
+    font-size: 17px;
     font-weight: 700;
 }
 
 .brand-context {
     margin: 3px 0 0;
-    color: #c4d6d0;
+    color: #666;
     font-size: 12px;
+}
+
+.brand .back-link {
+    margin: 0 0 0 auto;
 }
 
 main {
@@ -59,19 +58,21 @@ main {
 
 .back-link {
     display: inline-block;
-    margin-bottom: 22px;
-    color: #1769aa;
+    color: #007bff;
     font-size: 14px;
     font-weight: 700;
     text-decoration: none;
 }
 
-.back-link:hover { text-decoration: underline; }
+.back-link:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
 
 .back-link:focus-visible,
 .button:focus-visible,
 .drop-area:focus-within {
-    outline: 3px solid #d29337;
+    outline: 3px solid #80bdff;
     outline-offset: 3px;
 }
 
@@ -82,21 +83,33 @@ main {
 
 h1 {
     margin: 0;
-    color: #163b37;
-    font-family: Georgia, "Times New Roman", serif;
+    color: #333;
     font-size: clamp(27px, 4vw, 36px);
-    font-weight: 500;
+    font-weight: 700;
 }
 
 .page-intro p {
     margin: 8px 0 0;
-    color: #5b6865;
+    color: #666;
     font-size: 16px;
 }
 
 .upload-section {
     max-width: 760px;
     margin: 0 auto 30px;
+}
+
+.group-vouchers-upload {
+    border: 2px dashed #c8cdd2;
+    border-radius: 8px;
+    padding: 20px;
+    background: #fff;
+    transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.group-vouchers-upload:hover {
+    border-color: #007bff;
+    background: #f4f8ff;
 }
 
 .drop-area {
@@ -106,10 +119,10 @@ h1 {
     align-items: center;
     justify-content: center;
     gap: 12px;
-    border: 2px dashed #8d9b96;
+    border: 2px dashed #c8cdd2;
     border-radius: 8px;
     background: #fff;
-    color: #4c5955;
+    color: #555;
     cursor: pointer;
     text-align: center;
     transition: background-color 150ms ease, border-color 150ms ease;
@@ -117,12 +130,12 @@ h1 {
 
 .drop-area:hover,
 .drop-area.is-dragging {
-    border-color: #1769aa;
-    background: #edf5fa;
+    border-color: #007bff;
+    background: #f4f8ff;
 }
 
 .drop-icon {
-    color: #497568;
+    color: #007bff;
     font-size: 28px;
     line-height: 1;
 }
@@ -158,11 +171,17 @@ h1 {
 }
 
 .button-primary {
-    background: #287b50;
+    background: #007bff;
     color: #fff;
 }
 
-.button-primary:hover:not(:disabled) { background: #206642; }
+.button-primary:hover:not(:disabled) { background: #0056b3; }
+
+.download-button {
+    background: #28a745;
+}
+
+.download-button:hover:not(:disabled) { background: #218838; }
 
 .button:disabled {
     cursor: not-allowed;
@@ -172,7 +191,7 @@ h1 {
 .file-status {
     min-height: 20px;
     margin: 10px 0 0;
-    color: #5b6865;
+    color: #666;
     font-size: 14px;
     text-align: center;
     overflow-wrap: anywhere;
@@ -180,9 +199,9 @@ h1 {
 
 .file-warnings {
     margin-top: 12px;
-    border-left: 3px solid #b58a45;
+    border-left: 3px solid #d6a84f;
     padding: 10px 13px;
-    background: #f0ede4;
+    background: #fffaf0;
     color: #514a3d;
     font-size: 13px;
     line-height: 1.5;
@@ -192,13 +211,15 @@ h1 {
 .file-warnings p + p { margin-top: 5px; }
 
 .results-section {
-    border-top: 1px solid #d5ddd8;
-    padding-top: 22px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 22px;
+    background: #fff;
 }
 
 h2 {
     margin: 0;
-    color: #163b37;
+    color: #333;
     font-size: 21px;
 }
 
@@ -207,21 +228,21 @@ h2 {
     flex-wrap: wrap;
     gap: 10px 28px;
     margin: 14px 0 18px;
-    color: #3c514b;
+    color: #444;
 }
 
 .overview p { margin: 0; }
-.overview strong { color: #163b37; }
+.overview strong { color: #333; }
 
 .empty-message {
     margin: 18px 0;
-    color: #5b6865;
+    color: #666;
     text-align: center;
 }
 
 .table-scroll {
     overflow: auto;
-    border: 1px solid #d5ddd8;
+    border: 1px solid #ddd;
     border-radius: 5px;
     background: #fff;
 }
@@ -234,7 +255,7 @@ table {
 
 th,
 td {
-    border-bottom: 1px solid #dfe5e1;
+    border-bottom: 1px solid #e5e5e5;
     padding: 9px 10px;
     text-align: left;
     vertical-align: top;
@@ -242,27 +263,22 @@ td {
 }
 
 th {
-    background: #edf1ee;
-    color: #34443f;
+    background: #f4f4f4;
+    color: #333;
     font-weight: 700;
 }
 
 tbody tr:last-child td { border-bottom: 0; }
-tbody tr:hover { background: #f7faf8; }
+tbody tr:hover { background: #f8f9fa; }
 tbody td:first-child,
 tbody td:nth-child(7) { font-weight: 700; }
-
-.download-button {
-    display: flex;
-    margin: 18px auto 0;
-}
 
 footer {
     width: min(1100px, calc(100% - 40px));
     margin: 0 auto;
-    border-top: 1px solid #d5ddd8;
+    border-top: 1px solid #ddd;
     padding: 16px 0 22px;
-    color: #697572;
+    color: #666;
     font-size: 13px;
     text-align: center;
 }
@@ -273,11 +289,23 @@ footer {
     main,
     footer { width: calc(100% - 28px); }
 
-    .masthead { padding: 15px 14px; }
+    .masthead { padding: 12px 14px; }
+    .brand-logo { width: 48px; height: 48px; }
+    .brand { gap: 10px; }
+    .brand .back-link { font-size: 13px; }
     .drop-area { min-height: 165px; }
     .overview { flex-direction: column; gap: 8px; }
+    .results-section { padding: 16px; }
     th,
     td { padding: 8px; }
+}
+
+@media (max-width: 420px) {
+    .brand { flex-wrap: wrap; }
+    .brand .back-link {
+        width: 100%;
+        margin-left: 58px;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
