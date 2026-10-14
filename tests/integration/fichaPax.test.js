@@ -210,7 +210,7 @@ test("home page links to the independent Ficha PAX module", () => {
     );
 
     assert.ok(link);
-    assert.equal(link.querySelector("h2").textContent, "Ficha PAX");
+    assert.equal(link.closest("article")?.querySelector("h3")?.textContent, "Ficha PAX");
 });
 
 
@@ -266,12 +266,15 @@ test("previews all pages with repeated holder and voucher details", async () => 
 
         const pages = [...dom.window.document.querySelectorAll(".ficha-page")];
         assert.equal(pages.length, 3);
-        assert.ok(pages.every(page => page.textContent.includes("TITULAR PRIMERO")));
+        assert.ok(pages.every(page => page.textContent.includes("Titular pendiente de identificar")));
+        assert.ok(pages.every(page => page.textContent.includes("Pasajeros registrados (titular pendiente)")));
         assert.ok(pages.every(page => page.textContent.includes("FICHA-001")));
         assert.deepEqual(
             pages.map(page => page.querySelectorAll(".ficha-companion").length),
-            [3, 3, 1]
+            [3, 3, 2]
         );
+        assert.ok(pages[0].textContent.includes("TITULAR PRIMERO"),
+            "El primer pasajero debe conservarse como pasajero, no elevarse automáticamente a titular");
         assert.ok(pages[0].textContent.includes("39 - CHIVILCOY"));
         assert.ok(pages[0].textContent.includes("HOTEL 23 DE MAYO"));
         assert.ok(pages[0].textContent.includes("11/03/2026"));
@@ -285,12 +288,12 @@ test("previews all pages with repeated holder and voucher details", async () => 
     }
 });
 
-test("downloads official-template PDFs for every preview page", async () => {
+test("does not generate a Ficha PAX PDF while titularity is pending", async () => {
 
     const dom = createApp();
     const passengers = Array.from({ length: 8 }, (_, index) =>
         makeRecord(index + 1, {
-            name: index === 0 ? "TITULAR PRIMERO" : `ACOMPANANTE ${index}`,
+            name: index === 0 ? "PAX SIN TITULAR CONFIRMADO" : `PASAJERO ${index}`,
             service: "MEDIA PENSION"
         })
     );
@@ -300,77 +303,19 @@ test("downloads official-template PDFs for every preview page", async () => {
         search(dom, "FICHA-001");
         dom.window.document.querySelector(".ficha-result button").click();
 
-        dom.window.document.querySelector("#download-pdf").click();
-        for (let attempt = 0; attempt < 50; attempt++) {
-            const status = dom.window.document.querySelector("#pdf-status").textContent;
-            if (status.startsWith("Ficha PDF generada:")) {
-                break;
-            }
-            await new Promise(resolve => setTimeout(resolve, 0));
-        }
-
-        const trace = dom.window.__pdfTrace;
-        assert.deepEqual(
-            trace.fetchUrls,
-            ["../assets/templates/1fichaPax.pdf"]
-        );
-        assert.equal(trace.pages.length, 3);
-        assert.deepEqual(
-            trace.pages.map(page => page.text
-                .filter(item => item.text.startsWith("ACOMPANANTE "))
-                .length),
-            [3, 3, 1]
-        );
-        assert.ok(trace.pages.every(page =>
-            page.text.some(item => item.text === "TITULAR PRIMERO") &&
-            page.text.some(item => item.text === "FICHA-001")
-        ));
-        assert.ok(trace.pages[0].text.some(item =>
-            item.text === "X" && Math.round(item.options.x) === Math.round(113 * 72 / 25.4)
-        ));
-        assert.deepEqual(trace.openedLinks.map(link => link.download), [
-            "ficha_pax_FICHA-001.pdf"
-        ]);
+        const downloadButton = dom.window.document.querySelector("#download-pdf");
+        assert.equal(downloadButton.disabled, true);
         assert.match(
             dom.window.document.querySelector("#pdf-status").textContent,
-            /Ficha PDF generada/
+            /hasta confirmar quién contrató y pagó/
         );
+        downloadButton.click();
+        assert.deepEqual(dom.window.__pdfTrace.fetchUrls, []);
     } finally {
         dom.window.close();
     }
 });
 
-test("reports a missing official PDF template without starting a download", async () => {
-
-    const dom = createApp();
-
-    try {
-        await uploadCsv(dom, makeCsv([makeRecord(1)]));
-        search(dom, "FICHA-001");
-        dom.window.document.querySelector(".ficha-result button").click();
-        dom.window.fetch = async () => ({
-            ok: false,
-            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0))
-        });
-
-        dom.window.document.querySelector("#download-pdf").click();
-        for (let attempt = 0; attempt < 50; attempt++) {
-            const status = dom.window.document.querySelector("#pdf-status").textContent;
-            if (status.startsWith("No se pudo generar")) {
-                break;
-            }
-            await new Promise(resolve => setTimeout(resolve, 0));
-        }
-
-        assert.match(
-            dom.window.document.querySelector("#pdf-status").textContent,
-            /No se pudo cargar la plantilla PDF oficial/
-        );
-        assert.deepEqual(dom.window.__pdfTrace.openedLinks, []);
-    } finally {
-        dom.window.close();
-    }
-});
 
 test("does not offer PDF generation for contingent reservations", async () => {
 
@@ -418,6 +363,204 @@ test("renders CSV values as text instead of interpreting markup", async () => {
             dom.window.document.querySelector(".ficha-page").textContent
                 .includes("<img src=x onerror=alert(1)>")
         );
+    } finally {
+        dom.window.close();
+    }
+});
+
+
+test("rejects a DNI that does not belong to the selected reservation", async () => {
+    const dom = createApp();
+
+    try {
+        await uploadCsv(dom, makeCsv([
+            makeRecord(1, { name: "PASAJERO UNO" }),
+            makeRecord(2, { name: "PASAJERO DOS" })
+        ]));
+
+        search(dom, "FICHA-001");
+        dom.window.document.querySelector(".ficha-result button").click();
+
+        const document = dom.window.document;
+        const dni = document.querySelector("#titular-dni");
+        const verify = document.querySelector("#verificar-titular");
+        const confirm = document.querySelector("#confirmar-titular");
+
+        dni.value = "99999999";
+        verify.click();
+
+        assert.match(
+            document.querySelector("#titular-candidato").textContent,
+            /No se encontró ese DNI/
+        );
+        assert.equal(confirm.disabled, true);
+        assert.equal(document.querySelector("#download-pdf").disabled, true);
+        assert.deepEqual(dom.window.__pdfTrace.fetchUrls, []);
+    } finally {
+        dom.window.close();
+    }
+});
+
+
+test("requires receptionist confirmation before enabling titular confirmation", async () => {
+    const dom = createApp();
+
+    try {
+        await uploadCsv(dom, makeCsv([
+            makeRecord(1, { name: "PASAJERO UNO" }),
+            makeRecord(2, {
+                name: "CONTRATANTE CONFIRMADO",
+                document: "20123456"
+            })
+        ]));
+
+        search(dom, "FICHA-001");
+        dom.window.document.querySelector(".ficha-result button").click();
+
+        const document = dom.window.document;
+        const dni = document.querySelector("#titular-dni");
+        const verify = document.querySelector("#verificar-titular");
+        const checkbox = document.querySelector("#titular-verificado");
+        const confirm = document.querySelector("#confirmar-titular");
+
+        dni.value = "20.123.456";
+        verify.click();
+
+        assert.match(
+            document.querySelector("#titular-candidato").textContent,
+            /CONTRATANTE CONFIRMADO/
+        );
+        assert.equal(checkbox.disabled, false);
+        assert.equal(confirm.disabled, true);
+        assert.equal(document.querySelector("#download-pdf").disabled, true);
+
+        checkbox.checked = true;
+        checkbox.dispatchEvent(
+            new dom.window.Event("change", { bubbles: true })
+        );
+
+        assert.equal(confirm.disabled, false);
+        assert.equal(document.querySelector("#download-pdf").disabled, true);
+        assert.deepEqual(dom.window.__pdfTrace.fetchUrls, []);
+    } finally {
+        dom.window.close();
+    }
+});
+
+
+test("confirms the selected passenger and generates the PDF with that titular", async () => {
+    const dom = createApp();
+
+    try {
+        await uploadCsv(dom, makeCsv([
+            makeRecord(1, {
+                name: "ACOMPANANTE PRIMERO",
+                document: "10000001"
+            }),
+            makeRecord(2, {
+                name: "TITULAR ELEGIDO",
+                document: "20123456"
+            })
+        ]));
+
+        search(dom, "FICHA-001");
+        dom.window.document.querySelector(".ficha-result button").click();
+
+        const document = dom.window.document;
+        document.querySelector("#titular-dni").value = "20123456";
+        document.querySelector("#verificar-titular").click();
+
+        const checkbox = document.querySelector("#titular-verificado");
+        checkbox.checked = true;
+        checkbox.dispatchEvent(
+            new dom.window.Event("change", { bubbles: true })
+        );
+
+        document.querySelector("#confirmar-titular").click();
+
+        assert.equal(document.querySelector("#download-pdf").disabled, false);
+        assert.equal(document.querySelector("#titular-checkin").hidden, true);
+
+        const preview = document.querySelector("#ficha-pages").textContent;
+        assert.ok(preview.includes("TITULAR ELEGIDO"));
+        assert.ok(preview.includes("ACOMPANANTE PRIMERO"));
+
+        document.querySelector("#download-pdf").click();
+
+        for (let attempt = 0; attempt < 50; attempt++) {
+            if (
+                document.querySelector("#pdf-status").textContent
+                    .startsWith("Ficha PDF generada:")
+            ) {
+                break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+
+        const trace = dom.window.__pdfTrace;
+
+        assert.deepEqual(trace.fetchUrls, [
+            "../assets/templates/1fichaPax.pdf"
+        ]);
+        assert.equal(trace.pages.length, 1);
+        assert.ok(trace.pages[0].text.some(
+            item => item.text === "TITULAR ELEGIDO"
+        ));
+        assert.deepEqual(
+            trace.openedLinks.map(link => link.download),
+            ["ficha_pax_FICHA-001.pdf"]
+        );
+        assert.match(
+            document.querySelector("#pdf-status").textContent,
+            /Ficha PDF generada/
+        );
+    } finally {
+        dom.window.close();
+    }
+});
+
+
+test("clears check-in state when a new CSV is uploaded", async () => {
+    const dom = createApp();
+
+    try {
+        await uploadCsv(dom, makeCsv([
+            makeRecord(1, {
+                name: "TITULAR ANTERIOR",
+                document: "20123456"
+            })
+        ]));
+
+        search(dom, "FICHA-001");
+        dom.window.document.querySelector(".ficha-result button").click();
+
+        const document = dom.window.document;
+        document.querySelector("#titular-dni").value = "20123456";
+        document.querySelector("#verificar-titular").click();
+
+        const checkbox = document.querySelector("#titular-verificado");
+        checkbox.checked = true;
+        checkbox.dispatchEvent(
+            new dom.window.Event("change", { bubbles: true })
+        );
+
+        document.querySelector("#confirmar-titular").click();
+
+        assert.equal(document.querySelector("#download-pdf").disabled, false);
+
+        await uploadCsv(dom, makeCsv([
+            makeRecord(3, {
+                voucher: "FICHA-002",
+                name: "NUEVA RESERVA",
+                document: "30987654"
+            })
+        ]));
+
+        assert.equal(document.querySelector("#titular-dni").value, "");
+        assert.equal(document.querySelector("#titular-verificado").checked, false);
+        assert.equal(document.querySelector("#confirmar-titular").disabled, true);
+        assert.equal(document.querySelector("#download-pdf").disabled, true);
+        assert.equal(document.querySelector("#preview-section").hidden, true);
     } finally {
         dom.window.close();
     }

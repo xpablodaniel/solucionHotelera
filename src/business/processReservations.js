@@ -10,7 +10,7 @@
  * IMPORTANTE:
  * Este módulo NO parsea CSV.
  * Este módulo NO modifica registros originales.
- * Este módulo NO determina titulares.
+ * La titularidad se resuelve únicamente desde una marca explícita pax.esTitular.
  * Este módulo NO calcula comidas.
  */
 
@@ -24,6 +24,10 @@ const {
 const {
     classifyReservation
 } = require("./classification");
+
+const {
+    resolveTitularidad
+} = require("./titularity");
 
 
 // ---------------------------------------------------------
@@ -68,6 +72,8 @@ function processReservations(records) {
         return {
 
             voucher: group.voucher,
+
+            titularidad: resolveTitularidad(pasajeros),
 
             pasajeros,
 

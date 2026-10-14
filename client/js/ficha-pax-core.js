@@ -677,6 +677,59 @@ var FichaPaxCore = (() => {
     }
   });
 
+  // src/business/titularity.js
+  var require_titularity = __commonJS({
+    "src/business/titularity.js"(exports, module) {
+      function resolveTitularidad(pasajeros) {
+        const lista = Array.isArray(pasajeros) ? pasajeros : [];
+        const marcados = lista.filter((pasajero) => pasajero?.pax?.esTitular === true);
+        if (marcados.length === 1) {
+          return {
+            estado: "confirmada",
+            pasajero: marcados[0],
+            origen: "marca_explicita"
+          };
+        }
+        if (marcados.length > 1) {
+          return {
+            estado: "ambigua",
+            pasajero: null,
+            origen: "marcas_multiples"
+          };
+        }
+        return {
+          estado: "pendiente",
+          pasajero: null,
+          origen: null
+        };
+      }
+      function getTitularidad(reserva) {
+        if (!reserva || typeof reserva !== "object") {
+          return resolveTitularidad([]);
+        }
+        if (reserva.titularidad && typeof reserva.titularidad === "object") {
+          const { estado, pasajero, origen } = reserva.titularidad;
+          if (["confirmada", "pendiente", "ambigua"].includes(estado)) {
+            const pasajeros = Array.isArray(reserva.pasajeros) ? reserva.pasajeros : [];
+            if (estado === "confirmada" && (!pasajero || !pasajeros.includes(pasajero))) {
+              return { estado: "ambigua", pasajero: null, origen: "referencia_no_pertenece_a_reserva" };
+            }
+            return {
+              estado,
+              pasajero: estado === "confirmada" ? pasajero : null,
+              origen: origen ?? null
+            };
+          }
+        }
+        return resolveTitularidad(reserva.pasajeros);
+      }
+      module.exports = {
+        resolveTitularidad,
+        getTitularidad
+      };
+    }
+  });
+
   // src/business/processReservations.js
   var require_processReservations = __commonJS({
     "src/business/processReservations.js"(exports, module) {
@@ -687,6 +740,9 @@ var FichaPaxCore = (() => {
       var {
         classifyReservation
       } = require_classification();
+      var {
+        resolveTitularidad
+      } = require_titularity();
       function processReservations(records) {
         if (!Array.isArray(records)) {
           throw new TypeError(
@@ -701,6 +757,7 @@ var FichaPaxCore = (() => {
           const habitaciones = groupByRoom(pasajeros, esContingente);
           return {
             voucher: group.voucher,
+            titularidad: resolveTitularidad(pasajeros),
             pasajeros,
             cantidadPasajeros: pasajeros.length,
             clasificacion: {
@@ -724,6 +781,7 @@ var FichaPaxCore = (() => {
   var require_fichaPax = __commonJS({
     "src/business/fichaPax.js"(exports, module) {
       var COMPANIONS_PER_PAGE = 3;
+      var { getTitularidad } = require_titularity();
       function normalizeSearchValue(value) {
         if (value === void 0 || value === null) {
           return "";
@@ -796,31 +854,38 @@ var FichaPaxCore = (() => {
         if (reservation.pasajeros.length === 0) {
           return [];
         }
-        const [sourceTitular, ...sourceCompanions] = reservation.pasajeros;
+        const titularidad = getTitularidad(reservation);
+        const sourceTitular = titularidad.estado === "confirmada" ? titularidad.pasajero : null;
         const titular = projectPassenger(sourceTitular);
-        const companions = sourceCompanions.map(projectPassenger);
-        const titularStay = titular?.estadia ?? {
+        const otherPassengers = reservation.pasajeros.filter((passenger) => passenger !== sourceTitular).map(projectPassenger);
+        const peopleToPaginate = otherPassengers;
+        const hasReservationMetadata = (passenger) => Boolean(
+          passenger?.estadia?.ingreso || passenger?.estadia?.egreso || passenger?.hotel
+        );
+        const metadataPassenger = sourceTitular && hasReservationMetadata(sourceTitular) ? sourceTitular : reservation.pasajeros.find(hasReservationMetadata) || sourceTitular;
+        const metadataStay = metadataPassenger?.estadia ?? {
           ingreso: null,
           egreso: null
         };
+        const metadata = projectPassenger(metadataPassenger);
         const habitaciones = getDistinctRooms(
           reservation.habitaciones || []
         );
         const pages = [];
-        for (let start = 0; start < companions.length || start === 0; start += COMPANIONS_PER_PAGE) {
+        for (let start = 0; start < peopleToPaginate.length || start === 0; start += COMPANIONS_PER_PAGE) {
           pages.push({
             voucher: reservation.voucher ?? null,
+            titularidad: { estado: titularidad.estado, origen: titularidad.origen },
             titular,
-            acompanantes: companions.slice(
-              start,
-              start + COMPANIONS_PER_PAGE
-            ),
+            metadata,
+            acompanantes: sourceTitular ? peopleToPaginate.slice(start, start + COMPANIONS_PER_PAGE) : [],
+            pasajerosSinTitular: sourceTitular ? [] : peopleToPaginate.slice(start, start + COMPANIONS_PER_PAGE),
             estadia: {
-              ingreso: titularStay.ingreso ?? null,
-              egreso: titularStay.egreso ?? null
+              ingreso: metadataStay.ingreso ?? null,
+              egreso: metadataStay.egreso ?? null
             },
             habitaciones: habitaciones.map((room) => ({ ...room })),
-            servicios: titular?.servicios ?? null
+            servicios: metadataPassenger?.servicios ?? null
           });
         }
         return pages;

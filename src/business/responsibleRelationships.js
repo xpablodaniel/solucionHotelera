@@ -2,7 +2,7 @@
  * Relación de vouchers por responsable documental.
  *
  * Regla estricta:
- * El único DNI candidato a responsable es el de pasajeros[0].pax.numeroDocumento.
+ * Solo se utiliza el DNI de una titularidad explícitamente confirmada.
  *
  * Esta capa NO modifica las reservas originales ni las agrupa por DNI arbitrario.
  * Solo construye una estructura paralela que relaciona vouchers por responsable.
@@ -13,6 +13,7 @@ const {
 } = require("../normalizer/textNormalization");
 
 const normalizeResponsibleDni = normalizeNonEmptyString;
+const { getTitularidad } = require("./titularity");
 
 function getReservationVoucher(reserva) {
     if (!reserva || typeof reserva !== "object") {
@@ -24,29 +25,16 @@ function getReservationVoucher(reserva) {
 
 
 function getResponsibleDni(reserva) {
-    if (!reserva || typeof reserva !== "object") {
+    const titularidad = getTitularidad(reserva);
+    if (titularidad.estado !== "confirmada" || !titularidad.pasajero) {
         return null;
     }
 
-    const pasajeros = Array.isArray(reserva.pasajeros)
-        ? reserva.pasajeros
-        : [];
-
-    const primerPasajero = pasajeros[0] || null;
-
-    if (!primerPasajero || typeof primerPasajero !== "object") {
-        return null;
-    }
-
-    const pax = primerPasajero.pax || null;
-
-    if (!pax || typeof pax !== "object") {
-        return null;
-    }
-
-    return normalizeResponsibleDni(pax.numeroDocumento);
+    const pax = titularidad.pasajero.pax;
+    return pax && typeof pax === "object"
+        ? normalizeResponsibleDni(pax.numeroDocumento)
+        : null;
 }
-
 
 function getVoucherRoomSummary(reserva) {
     if (!reserva || typeof reserva !== "object") {
@@ -122,12 +110,8 @@ function buildResponsibleRelationships(reservas) {
             continue;
         }
 
-        const primerPasajero = pasajeros[0];
-        const pax = primerPasajero && typeof primerPasajero === "object"
-            ? primerPasajero.pax || null
-            : null;
-
-        if (!pax || typeof pax !== "object") {
+        const titularidad = getTitularidad(reserva);
+        if (titularidad.estado !== "confirmada" || !titularidad.pasajero) {
             orphanReservations.push({
                 voucher,
                 motivo: "sinTitularValido"
@@ -135,7 +119,10 @@ function buildResponsibleRelationships(reservas) {
             continue;
         }
 
-        const dniResponsable = normalizeResponsibleDni(pax.numeroDocumento);
+        const pax = titularidad.pasajero.pax || null;
+        const dniResponsable = pax && typeof pax === "object"
+            ? normalizeResponsibleDni(pax.numeroDocumento)
+            : null;
 
         if (!dniResponsable) {
             ignoredReservations.push({

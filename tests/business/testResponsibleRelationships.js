@@ -22,7 +22,8 @@ function makeReservation({
         paxList.unshift({
             pax: {
                 numeroDocumento: titularDni,
-                nombre: "TITULAR"
+                nombre: "TITULAR",
+                esTitular: true
             }
         });
     }
@@ -60,7 +61,7 @@ const reservas = [
         voucher: "C",
         titularDni: "11111111",
         passengers: [
-            { pax: { numeroDocumento: "11111111", nombre: "TITULAR" } },
+            { pax: { numeroDocumento: "11111111", nombre: "TITULAR", esTitular: true } },
             { pax: { numeroDocumento: "12345678", nombre: "ACOMPAÑANTE" } }
         ],
         habitaciones: [
@@ -71,7 +72,7 @@ const reservas = [
         voucher: "D",
         titularDni: "22222222",
         passengers: [
-            { pax: { numeroDocumento: "22222222", nombre: "TITULAR" } },
+            { pax: { numeroDocumento: "22222222", nombre: "TITULAR", esTitular: true } },
             { pax: { numeroDocumento: "12345678", nombre: "ACOMPAÑANTE" } }
         ],
         habitaciones: [
@@ -86,7 +87,7 @@ const reservas = [
     {
         voucher: "Y",
         pasajeros: [
-            { pax: { nombre: "SIN DNI" } }
+            { pax: { nombre: "SIN DNI", esTitular: true } }
         ],
         habitaciones: []
     },
@@ -107,7 +108,7 @@ const reservas = [
     {
         voucher: "Z",
         pasajeros: [
-            { pax: { numeroDocumento: "55555555", nombre: "TITULAR SIN HABITACION" } }
+            { pax: { numeroDocumento: "55555555", nombre: "TITULAR SIN HABITACION", esTitular: true } }
         ],
         habitaciones: [
             { alojamiento: null, numero: "101" }
@@ -116,7 +117,7 @@ const reservas = [
     {
         voucher: "W",
         pasajeros: [
-            { pax: { numeroDocumento: "77777777", nombre: "TITULAR" } }
+            { pax: { numeroDocumento: "77777777", nombre: "TITULAR", esTitular: true } }
         ],
         habitaciones: [
             { alojamiento: null, numero: "202" }
@@ -152,7 +153,7 @@ const acompañanteCoincidente = buildResponsibleRelationships([
     {
         voucher: "C-ACOMPAÑANTE",
         pasajeros: [
-            { pax: { numeroDocumento: "11111111", nombre: "TITULAR" } },
+            { pax: { numeroDocumento: "11111111", nombre: "TITULAR", esTitular: true } },
             { pax: { numeroDocumento: "12345678", nombre: "ACOMPAÑANTE" } }
         ],
         habitaciones: [{ alojamiento: "900", numero: "201" }]
@@ -160,7 +161,7 @@ const acompañanteCoincidente = buildResponsibleRelationships([
     {
         voucher: "D-ACOMPAÑANTE",
         pasajeros: [
-            { pax: { numeroDocumento: "22222222", nombre: "TITULAR" } },
+            { pax: { numeroDocumento: "22222222", nombre: "TITULAR", esTitular: true } },
             { pax: { numeroDocumento: "12345678", nombre: "ACOMPAÑANTE" } }
         ],
         habitaciones: [{ alojamiento: "901", numero: "11" }]
@@ -185,7 +186,7 @@ assert(
 
 assert(
     relacionados.ignoredReservations.some(item => item.voucher === "Y" && item.motivo === "dniResponsableNoDisponible"),
-    "Primer PAX sin DNI debe quedar en ignoredReservations"
+    "Titular confirmado sin DNI debe quedar en ignoredReservations"
 );
 
 assert(
@@ -226,5 +227,16 @@ assert(
     relacionados.indexByResponsibleDni["12345678"].vouchers.length === 2,
     "No debe duplicar vouchers bajo el mismo índice"
 );
+
+const titularPendiente = buildResponsibleRelationships([{
+    voucher: "PENDIENTE",
+    pasajeros: [
+        { pax: { numeroDocumento: "88888888", nombre: "NO CONFIRMADO" } },
+        { pax: { numeroDocumento: "99999999", nombre: "ACOMPANANTE" } }
+    ],
+    habitaciones: []
+}]);
+assert(titularPendiente.indexByResponsibleDni["88888888"] === undefined, "No debe indexar un DNI sin titularidad confirmada");
+assert(titularPendiente.orphanReservations.some(item => item.voucher === "PENDIENTE"));
 
 console.log("OK relaciones por responsable");

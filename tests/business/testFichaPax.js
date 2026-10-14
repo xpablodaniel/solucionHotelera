@@ -84,6 +84,7 @@ function makeReservations() {
     );
     firstVoucherPassengers[0].pax.edad = 22;
     firstVoucherPassengers[1].pax.edad = 91;
+    firstVoucherPassengers[0].pax.esTitular = true;
 
     return [
         makeReservation("VOUCHER-001", firstVoucherPassengers),
@@ -94,7 +95,8 @@ function makeReservations() {
                     numeroDocumento: "20999999",
                     nombre: "GOMEZ MARTA",
                     edad: 45,
-                    fechaNacimiento: null
+                    fechaNacimiento: null,
+                    esTitular: true
                 }
             })
         ])
@@ -104,12 +106,15 @@ function makeReservations() {
 
 test("one voucher produces one page when its companions fit", () => {
 
-    const reservation = makeReservation("VOUCHER-ONE", [
+    const passengers = [
         makePassenger(1),
         makePassenger(2),
         makePassenger(3)
-    ]);
+    ];
 
+    passengers[0].pax.esTitular = true;
+
+    const reservation = makeReservation("VOUCHER-ONE", passengers);
     const pages = buildFichaPaxPages(reservation);
 
     assert.equal(pages.length, 1);
@@ -118,7 +123,7 @@ test("one voucher produces one page when its companions fit", () => {
 });
 
 
-test("uses the first CSV passenger as titular, not the oldest passenger", () => {
+test("uses only an explicitly confirmed titular, regardless of passenger age", () => {
 
     const reservation = makeReservations()[0];
     const pages = buildFichaPaxPages(reservation);
@@ -131,6 +136,23 @@ test("uses the first CSV passenger as titular, not the oldest passenger", () => 
     assert.equal(reservation.pasajeros[1].pax.edad, 91);
 });
 
+
+test("does not invent a titular when the reservation has no explicit confirmation", () => {
+    const reservation = makeReservation("VOUCHER-PENDIENTE", [
+        makePassenger(1),
+        makePassenger(2)
+    ]);
+    delete reservation.titularidad;
+    const pages = buildFichaPaxPages(reservation);
+
+    assert.equal(pages[0].titular, null);
+    assert.equal(pages[0].titularidad.estado, "pendiente");
+    assert.deepEqual(
+        pages.flatMap(page => page.pasajerosSinTitular).map(p => p.pax.nombre),
+        reservation.pasajeros.map(p => p.pax.nombre)
+    );
+    assert.deepEqual(pages.flatMap(page => page.acompanantes), []);
+});
 
 test("preserves CSV order for companions", () => {
 
@@ -239,7 +261,8 @@ test("does not invent missing passenger or voucher data", () => {
             numeroDocumento: null,
             nombre: null,
             edad: null,
-            fechaNacimiento: null
+            fechaNacimiento: null,
+            esTitular: true
         }
     });
     const reservation = makeReservation(null, [passenger]);
@@ -265,7 +288,8 @@ test("declaration discrepancies do not change titular order", () => {
                 numeroDocumento: "10000001",
                 nombre: "PRIMER PAX",
                 edad: 25,
-                fechaNacimiento: null
+                fechaNacimiento: null,
+                esTitular: true
             }
         }),
         makePassenger(2, {

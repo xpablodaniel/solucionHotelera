@@ -1,5 +1,7 @@
 const COMPANIONS_PER_PAGE = 3;
 
+const { getTitularidad } = require("./titularity");
+
 
 function normalizeSearchValue(value) {
 
@@ -98,13 +100,26 @@ function buildFichaPaxPages(reservation) {
         return [];
     }
 
-    const [sourceTitular, ...sourceCompanions] = reservation.pasajeros;
+    const titularidad = getTitularidad(reservation);
+    const sourceTitular = titularidad.estado === "confirmada"
+        ? titularidad.pasajero
+        : null;
     const titular = projectPassenger(sourceTitular);
-    const companions = sourceCompanions.map(projectPassenger);
-    const titularStay = titular?.estadia ?? {
+    const otherPassengers = reservation.pasajeros
+        .filter(passenger => passenger !== sourceTitular)
+        .map(projectPassenger);
+    const peopleToPaginate = otherPassengers;
+    const hasReservationMetadata = passenger => Boolean(
+        passenger?.estadia?.ingreso || passenger?.estadia?.egreso || passenger?.hotel
+    );
+    const metadataPassenger = sourceTitular && hasReservationMetadata(sourceTitular)
+        ? sourceTitular
+        : reservation.pasajeros.find(hasReservationMetadata) || sourceTitular;
+    const metadataStay = metadataPassenger?.estadia ?? {
         ingreso: null,
         egreso: null
     };
+    const metadata = projectPassenger(metadataPassenger);
     const habitaciones = getDistinctRooms(
         reservation.habitaciones || []
     );
@@ -112,22 +127,26 @@ function buildFichaPaxPages(reservation) {
 
     for (
         let start = 0;
-        start < companions.length || start === 0;
+        start < peopleToPaginate.length || start === 0;
         start += COMPANIONS_PER_PAGE
     ) {
         pages.push({
             voucher: reservation.voucher ?? null,
+            titularidad: { estado: titularidad.estado, origen: titularidad.origen },
             titular,
-            acompanantes: companions.slice(
-                start,
-                start + COMPANIONS_PER_PAGE
-            ),
+            metadata,
+            acompanantes: sourceTitular
+                ? peopleToPaginate.slice(start, start + COMPANIONS_PER_PAGE)
+                : [],
+            pasajerosSinTitular: sourceTitular
+                ? []
+                : peopleToPaginate.slice(start, start + COMPANIONS_PER_PAGE),
             estadia: {
-                ingreso: titularStay.ingreso ?? null,
-                egreso: titularStay.egreso ?? null
+                ingreso: metadataStay.ingreso ?? null,
+                egreso: metadataStay.egreso ?? null
             },
             habitaciones: habitaciones.map(room => ({ ...room })),
-            servicios: titular?.servicios ?? null
+            servicios: metadataPassenger?.servicios ?? null
         });
     }
 

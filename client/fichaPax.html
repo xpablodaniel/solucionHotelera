@@ -71,6 +71,31 @@
                     <h2 id="preview-title">Ficha PAX</h2>
                 </div>
             </div>
+            <section id="titular-checkin" class="titular-checkin"
+    aria-labelledby="titular-checkin-title">
+    <h3 id="titular-checkin-title">Confirmar titular en el check-in</h3>
+    <p>Buscá el DNI de la persona presente y verificá quién contrató y pagó la reserva.</p>
+
+    <div class="titular-checkin-search">
+        <label for="titular-dni">DNI del pasajero</label>
+        <div class="titular-checkin-controls">
+            <input id="titular-dni" type="text" inputmode="numeric"
+                autocomplete="off" placeholder="Ingresar DNI">
+            <button class="button button-secondary" id="verificar-titular"
+                type="button">Verificar DNI</button>
+        </div>
+    </div>
+
+    <p id="titular-candidato" role="status" aria-live="polite"></p>
+
+    <label class="titular-checkin-confirm">
+        <input id="titular-verificado" type="checkbox" disabled>
+        Verifiqué la identidad y confirmé que esta persona contrató y pagó la reserva.
+    </label>
+
+    <button class="button button-primary" id="confirmar-titular"
+        type="button" disabled>Confirmar titular</button>
+</section>
             <div class="ficha-pdf-actions">
                 <button class="button button-primary" id="download-pdf" type="button">
                     Descargar ficha PDF

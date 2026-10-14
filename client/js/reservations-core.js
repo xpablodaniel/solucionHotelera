@@ -677,6 +677,59 @@ var ReservationsCore = (() => {
     }
   });
 
+  // src/business/titularity.js
+  var require_titularity = __commonJS({
+    "src/business/titularity.js"(exports, module) {
+      function resolveTitularidad(pasajeros) {
+        const lista = Array.isArray(pasajeros) ? pasajeros : [];
+        const marcados = lista.filter((pasajero) => pasajero?.pax?.esTitular === true);
+        if (marcados.length === 1) {
+          return {
+            estado: "confirmada",
+            pasajero: marcados[0],
+            origen: "marca_explicita"
+          };
+        }
+        if (marcados.length > 1) {
+          return {
+            estado: "ambigua",
+            pasajero: null,
+            origen: "marcas_multiples"
+          };
+        }
+        return {
+          estado: "pendiente",
+          pasajero: null,
+          origen: null
+        };
+      }
+      function getTitularidad(reserva) {
+        if (!reserva || typeof reserva !== "object") {
+          return resolveTitularidad([]);
+        }
+        if (reserva.titularidad && typeof reserva.titularidad === "object") {
+          const { estado, pasajero, origen } = reserva.titularidad;
+          if (["confirmada", "pendiente", "ambigua"].includes(estado)) {
+            const pasajeros = Array.isArray(reserva.pasajeros) ? reserva.pasajeros : [];
+            if (estado === "confirmada" && (!pasajero || !pasajeros.includes(pasajero))) {
+              return { estado: "ambigua", pasajero: null, origen: "referencia_no_pertenece_a_reserva" };
+            }
+            return {
+              estado,
+              pasajero: estado === "confirmada" ? pasajero : null,
+              origen: origen ?? null
+            };
+          }
+        }
+        return resolveTitularidad(reserva.pasajeros);
+      }
+      module.exports = {
+        resolveTitularidad,
+        getTitularidad
+      };
+    }
+  });
+
   // src/business/processReservations.js
   var require_processReservations = __commonJS({
     "src/business/processReservations.js"(exports, module) {
@@ -687,6 +740,9 @@ var ReservationsCore = (() => {
       var {
         classifyReservation
       } = require_classification();
+      var {
+        resolveTitularidad
+      } = require_titularity();
       function processReservations(records) {
         if (!Array.isArray(records)) {
           throw new TypeError(
@@ -701,6 +757,7 @@ var ReservationsCore = (() => {
           const habitaciones = groupByRoom(pasajeros, esContingente);
           return {
             voucher: group.voucher,
+            titularidad: resolveTitularidad(pasajeros),
             pasajeros,
             cantidadPasajeros: pasajeros.length,
             clasificacion: {
@@ -745,6 +802,7 @@ var ReservationsCore = (() => {
         normalizeNonEmptyString
       } = require_textNormalization();
       var normalizeResponsibleDni = normalizeNonEmptyString;
+      var { getTitularidad } = require_titularity();
       function getReservationVoucher(reserva) {
         if (!reserva || typeof reserva !== "object") {
           return null;
@@ -752,19 +810,12 @@ var ReservationsCore = (() => {
         return reserva.voucher ?? null;
       }
       function getResponsibleDni(reserva) {
-        if (!reserva || typeof reserva !== "object") {
+        const titularidad = getTitularidad(reserva);
+        if (titularidad.estado !== "confirmada" || !titularidad.pasajero) {
           return null;
         }
-        const pasajeros = Array.isArray(reserva.pasajeros) ? reserva.pasajeros : [];
-        const primerPasajero = pasajeros[0] || null;
-        if (!primerPasajero || typeof primerPasajero !== "object") {
-          return null;
-        }
-        const pax = primerPasajero.pax || null;
-        if (!pax || typeof pax !== "object") {
-          return null;
-        }
-        return normalizeResponsibleDni(pax.numeroDocumento);
+        const pax = titularidad.pasajero.pax;
+        return pax && typeof pax === "object" ? normalizeResponsibleDni(pax.numeroDocumento) : null;
       }
       function getVoucherRoomSummary(reserva) {
         if (!reserva || typeof reserva !== "object") {
@@ -819,16 +870,16 @@ var ReservationsCore = (() => {
             });
             continue;
           }
-          const primerPasajero = pasajeros[0];
-          const pax = primerPasajero && typeof primerPasajero === "object" ? primerPasajero.pax || null : null;
-          if (!pax || typeof pax !== "object") {
+          const titularidad = getTitularidad(reserva);
+          if (titularidad.estado !== "confirmada" || !titularidad.pasajero) {
             orphanReservations.push({
               voucher,
               motivo: "sinTitularValido"
             });
             continue;
           }
-          const dniResponsable = normalizeResponsibleDni(pax.numeroDocumento);
+          const pax = titularidad.pasajero.pax || null;
+          const dniResponsable = pax && typeof pax === "object" ? normalizeResponsibleDni(pax.numeroDocumento) : null;
           if (!dniResponsable) {
             ignoredReservations.push({
               voucher,

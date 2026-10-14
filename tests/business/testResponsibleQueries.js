@@ -18,7 +18,7 @@ function makeReservation(voucher, dni, habitaciones) {
 
     return {
         voucher,
-        pasajeros: [{ pax: { numeroDocumento: dni } }],
+        pasajeros: [{ pax: { numeroDocumento: dni, esTitular: true } }],
         habitaciones
     };
 }
@@ -40,7 +40,7 @@ const reservas = [
     {
         voucher: "D",
         pasajeros: [
-            { pax: { numeroDocumento: "99999999" } },
+            { pax: { numeroDocumento: "99999999", esTitular: true } },
             { pax: { numeroDocumento: "12345678" } }
         ],
         habitaciones: [{ alojamiento: "901", numero: "11" }]
@@ -48,7 +48,7 @@ const reservas = [
     {
         voucher: "E",
         pasajeros: [
-            { pax: { numeroDocumento: "88888888" } },
+            { pax: { numeroDocumento: "88888888", esTitular: true } },
             { pax: { numeroDocumento: "77777777" } }
         ],
         habitaciones: [{ alojamiento: "901", numero: "12" }]

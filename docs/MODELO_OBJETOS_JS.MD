@@ -215,29 +215,31 @@ El modelo debe permitir identificar al titular:
 pax.esTitular
 ```
 
-Para reservas individuales, la regla inicial será:
+La titularidad se confirma únicamente cuando una marca explícita y única `pax.esTitular === true` está presente en los datos de entrada. El CSV de 28 columnas analizado no incluye ese campo, por lo que las reservas provenientes solo de ese CSV quedan con titularidad `pendiente` hasta que una fuente confiable confirme quién contrató y pagó.
 
-```text
-Primer PAX del voucher
-        ↓
-Titular / solicitante
-```
-
-Los siguientes PAX serán considerados acompañantes salvo que una regla específica indique lo contrario.
-
-### Importante
-
-La edad no determina al titular.
-
-No debe utilizarse:
-
-```javascript
-pax.edad
-```
-
-para seleccionar automáticamente al titular.
+El orden del CSV, la edad, el DNI, el parentesco y el campo `usuario` no se utilizan para seleccionar automáticamente al titular. Si hay más de una marca explícita, el estado es `ambigua` y no se selecciona a nadie.
 
 ---
+
+
+
+La reserva procesada incorpora además el estado central de titularidad:
+
+```javascript
+{
+    titularidad: {
+        estado: "confirmada" | "pendiente" | "ambigua",
+        pasajero: /* referencia al pasajero confirmado o null */,
+        origen: "marca_explicita" | null
+    }
+}
+```
+
+`processReservations()` calcula este estado a partir de `pax.esTitular === true`:
+una única marca confirma la titularidad; ninguna la deja pendiente; más de una
+la vuelve ambigua. Los módulos consumidores deben usar este contrato común y
+no volver a elegir al titular por su cuenta. El CSV actual no proporciona esa
+marca, por lo que los registros parseados solo desde ese CSV quedan pendientes.
 
 # 10. Acompañantes
 
@@ -804,7 +806,7 @@ El contrato del reporte de vouchers es:
 
 `buildVoucherReport()` ordena los reportes por habitacion minima y conserva el
 orden de aparicion de las habitaciones. El nombre y DNI del representante se
-obtienen del primer pasajero en el orden original del CSV; si ese pasajero no
+se obtienen del titular explícitamente confirmado; si no hay titular confirmado
 tiene DNI, el campo se deja vacio y no se busca sustituto. La seleccion
 historica por DNI se conserva para hotel y fechas.
 
@@ -860,7 +862,7 @@ fusiona con otros.
 ## 27.2 Relaciones y vistas de la interfaz Reservas
 
 `buildResponsibleRelationships()` construye un indice paralelo por DNI del
-primer PAX del voucher, junto con las colecciones de reservas huerfanas e
+titular explícitamente confirmado del voucher, junto con las colecciones de reservas huérfanas e
 ignoradas. `findRelatedReservationsByDni()` consulta ese indice. La UI 2
 proyecta el detalle de los vouchers relacionados; la UI 3 presenta su
 consolidacion conservando el detalle por voucher. La UI 4 convierte las
@@ -902,9 +904,7 @@ Su contrato de reporte es:
 }
 ```
 
-El titular es el primer pasajero del voucher en el orden original del CSV. Es
-la representación del afiliado que realizo y pago la reserva. Esta regla no
-debe reemplazarse por edad, DNI ni ordenamiento posterior.
+El titular es el pasajero identificado mediante una marca explícita y fiable de titularidad. El orden original del CSV no demuestra quién realizó y pagó la reserva. Si no existe una marca explícita, el campo `titular` queda vacío y `titularidad.estado` informa `pendiente`; si existen marcas múltiples, informa `ambigua`. Esta regla no se reemplaza por edad, DNI ni ordenamiento posterior.
 
 Las letras de asignacion de habitacion (`A`, `B`, `C`) se conservan en el
 pasajero original, pero el reporte visual utiliza solamente el numero de

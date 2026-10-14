@@ -126,29 +126,27 @@ PAX 2 → pareja de 45 años
 PAX 3 → hijo de 10 años
 ```
 
-El primer PAX puede ser el titular aunque exista otro integrante de mayor edad.
+El orden de las filas no demuestra quién realizó la contratación y el pago.
 
 ### Regla funcional
 
-Para reservas individuales:
+La titularidad solo se considera confirmada cuando existe una marca explícita y fiable que identifica al afiliado que contrató y pagó la estadía. El CSV de 28 columnas analizado no contiene un campo específico de titularidad; por lo tanto, si no llega una marca explícita desde otra fuente, el estado queda **pendiente de identificar**.
 
-> **El primer PAX que aparece para un voucher en el orden original del CSV se considera titular/solicitante.**
+No se debe inferir el titular usando:
 
-La edad no debe utilizarse para determinar el titular.
-
-Tampoco debe utilizarse:
-
-* el DNI menor;
-* el DNI mayor;
-* una selección aleatoria;
+* el orden de las filas;
+* la edad;
+* el DNI menor o mayor;
+* el parentesco;
 * el tipo de habitación;
-* cualquier otra heurística no definida.
+* el campo `Usuario`, que identifica una intervención en la carga del sistema;
+* cualquier otra heurística no confirmada.
 
 ---
 
 ## 4.5 Acompañante
 
-Los PAX posteriores al titular dentro del mismo voucher son considerados acompañantes de la reserva.
+Una vez identificado el titular, los demás PAX del mismo voucher son acompañantes. Si la titularidad está pendiente o es ambigua, no se debe clasificar automáticamente a ninguna persona como titular.
 
 Ejemplo:
 
@@ -686,18 +684,7 @@ Debe utilizar reglas específicas para contingentes y no generar fichas individu
 
 Genera la documentación correspondiente a las reservas.
 
-Para reservas individuales:
-
-```text
-Primer PAX del voucher
-→ Titular
-```
-
-Los restantes:
-
-```text
-→ Acompañantes
-```
+Para reservas individuales, solo una marca explícita y única de titularidad permite identificar al titular. Sin esa marca, la reserva queda pendiente de identificación. Una vez confirmado el titular, los restantes pasajeros son acompañantes.
 
 ---
 
@@ -909,7 +896,7 @@ PAX 1 → titular, 32 años
 PAX 2 → acompañante, 45 años
 ```
 
-Debe mantenerse como titular el primer PAX.
+Debe mantenerse como titular únicamente el PAX identificado mediante una marca explícita y fiable; el orden no determina titularidad.
 
 ---
 
@@ -1069,7 +1056,7 @@ Solucion Hotel Tools v2 seguirá los siguientes principios:
 5. **El contexto de varias filas puede ser más confiable que un campo aislado.**
 6. **El voucher es una clave fundamental para reconstruir una contratación.**
 7. **El orden original de los PAX dentro de un voucher tiene significado.**
-8. **El primer PAX de una reserva individual es el titular/solicitante.**
+8. **La titularidad requiere una marca explícita y fiable; si no existe, queda pendiente.**
 9. **La edad no determina al titular.**
 10. **La capacidad de una habitación no equivale a su ocupación real.**
 11. **Las reservas individuales y los contingentes requieren tratamientos diferentes.**
@@ -1123,7 +1110,7 @@ habitaciones. Vouchers distintos que comparten una habitacion no se fusionan.
 
 El reporte conserva la cantidad real de pasajeros asociada al voucher. Para la
 salida MAP/PC, el nombre y DNI del representante visual corresponden al primer
-pasajero en el orden original del CSV. Si ese pasajero no tiene DNI, el campo
+titular explícitamente confirmado. Si ese titular no tiene DNI, el campo
 queda vacio y no se reemplaza por el documento de otro pasajero. La seleccion
 historica por DNI se conserva para los metadatos de hotel y fechas.
 
@@ -1185,8 +1172,7 @@ para una fecha seleccionada. La fecha determina dos selecciones distintas:
    informativa independiente de la fecha y no altera pasajeros, titulares,
    conteos, relaciones ni salidas.
 
-El responsable candidato se determina usando el DNI del primer PAX del voucher
-en el orden original. No se elige a otro pasajero como sustituto. Las relaciones
+El responsable candidato se determina usando el DNI del titular explícitamente confirmado del voucher. No se elige a otro pasajero como sustituto. Las relaciones
 son una vista paralela y no alteran las reservas procesadas.
 
 ## 37.2 Salidas de Voucher MAP y Voucher PC
@@ -1207,9 +1193,7 @@ período de estadía válido:
   mediante `reviewRequired` con motivo `MISSING_OR_INVALID_DATES` y no se
   genera automáticamente.
 
-El representante que aparece en el voucher es el primer PAX en el orden
-original del CSV. Si no tiene DNI, el nombre se conserva y el DNI queda vacío;
-no se busca un sustituto por DNI ni por edad.
+El representante que aparece en el voucher es el titular explícitamente confirmado, cuando existe. Si no tiene DNI, el nombre se conserva y el DNI queda vacío; no se busca un sustituto por DNI ni por edad. Si no hay titular confirmado, la reserva queda en `reviewRequired` con motivo `TITULAR_NOT_CONFIRMED` y no se genera el voucher MAP/PC automáticamente.
 
 ## 37.3 Salidas de Rooming MAP y Rooming PC
 

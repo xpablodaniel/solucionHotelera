@@ -23,7 +23,8 @@ function passenger(name, dni, arrival, service, room) {
         },
         pax: {
             nombre: name,
-            numeroDocumento: dni
+            numeroDocumento: dni,
+            esTitular: name === "JUAN"
         }
     };
 }
@@ -98,6 +99,11 @@ const reservations = [
     divergentDateVoucher,
     missingDateVoucher
 ];
+for (const reservation of reservations) {
+    if (reservation.pasajeros[0]?.pax) {
+        reservation.pasajeros[0].pax.esTitular = true;
+    }
+}
 const baseUrl = "https://hotel.example/client/reservations.html";
 
 const mapOutput = buildVoucherHtmlForDate(
@@ -116,7 +122,7 @@ assert(
     mapOutput.reportes[0].representante === "JUAN" &&
         mapOutput.reportes[0].dni === "90000000" &&
         mapOutput.reportes[0].cantidadPasajeros === 2,
-    "Debe conservar el voucher completo y su primer PAX como representante"
+    "Debe conservar el voucher completo y el titular explícito como representante"
 );
 assert(
     mapOutput.reportes[0].habitaciones.join(",") === "101,102" &&

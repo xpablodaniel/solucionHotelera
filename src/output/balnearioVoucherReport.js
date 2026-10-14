@@ -1,3 +1,5 @@
+const { getTitularidad } = require("../business/titularity");
+
 function getRoomLabel(passenger) {
 
     const room = passenger && passenger.habitacion;
@@ -46,9 +48,18 @@ function buildBalnearioVoucherReport(reservas) {
             const pasajeros = Array.isArray(reserva.pasajeros)
                 ? reserva.pasajeros
                 : [];
-            const titular = pasajeros[0] || {};
-            const titularPax = titular.pax || {};
-            const titularStay = titular.estadia || {};
+            const titularidad = getTitularidad(reserva);
+            const titular = titularidad.estado === "confirmada"
+                ? titularidad.pasajero
+                : null;
+            const titularPax = titular?.pax || {};
+            const hasReservationMetadata = passenger => Boolean(
+                passenger?.estadia?.ingreso || passenger?.estadia?.egreso || passenger?.hotel
+            );
+            const metadataPassenger = titular && hasReservationMetadata(titular)
+                ? titular
+                : pasajeros.find(hasReservationMetadata) || titular || {};
+            const metadataStay = metadataPassenger.estadia || {};
             const habitaciones = Array.from(
                 new Set(
                     pasajeros
@@ -59,14 +70,15 @@ function buildBalnearioVoucherReport(reservas) {
 
             return {
                 voucher: reserva.voucher,
+                titularidad: { estado: titularidad.estado, origen: titularidad.origen },
                 titular: {
                     nombre: titularPax.nombre || null,
                     dni: titularPax.numeroDocumento || null
                 },
-                hotel: titular.hotel || null,
+                hotel: metadataPassenger.hotel || null,
                 habitaciones,
-                fechaIngreso: titularStay.ingreso || null,
-                fechaEgreso: titularStay.egreso || null,
+                fechaIngreso: metadataStay.ingreso || null,
+                fechaEgreso: metadataStay.egreso || null,
                 cantidadPasajeros: pasajeros.length
             };
         });

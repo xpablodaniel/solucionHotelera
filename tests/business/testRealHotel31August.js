@@ -76,6 +76,8 @@ test("parses synthetic Hotel 31 de Agosto room and passenger records", () => {
     assert.equal(JSON.stringify(reservations), snapshot);
     assert.deepEqual(
         Object.keys(relationships.indexByResponsibleDni),
-        ["TEST-DOC-1"]
+        [],
+        "El CSV sintético no contiene marca de titularidad y no debe crear un responsable por posición"
     );
+    assert(relationships.orphanReservations.some(item => item.voucher === "SYN-H31-ROOM-12"));
 });

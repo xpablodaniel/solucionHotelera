@@ -199,38 +199,18 @@ test("group vouchers preserve MAP/PC print output and date filtering", async () 
     selectDate(dom);
     dom.window.document.querySelector("#voucher-map-button").click();
 
-    assert.equal(dom.window.__openedLinks.length, 1);
-    const mapLink = dom.window.__openedLinks[0];
-    assert.equal(mapLink.target, "_blank");
-    assert.equal(mapLink.rel, "noopener");
-    const mapHtml = await readBlobText(
-        dom,
-        dom.window.__createdBlobs.get(mapLink.href)
-    );
-    assert.match(mapHtml, /Voucher de Comidas/);
-    assert.match(mapHtml, /<button type="button" onclick="window\.print\(\)">Imprimir<\/button>/);
-    assert.match(mapHtml, /@media print \{ \.print-toolbar \{ display: none; \} \}/);
-    assert.match(mapHtml, /MAP-PRIMER-PAX/);
-    assert.doesNotMatch(mapHtml, /MAP-SEGUNDO-PAX|PC-PAX|NO-DEBE-SALIR/);
-    assert.match(mapHtml, /Cant\. Pax:<\/strong> 2/);
-    assert.match(mapHtml, /<base href="http:\/\/localhost\/client\/groupMealVouchers\.html">/);
-    assert.equal(
-        dom.window.document.querySelector("#output-status").textContent.trim(),
-        "Vista imprimible de Voucher MAP abierta: 1 voucher."
+    assert.equal(dom.window.__openedLinks.length, 0,
+        "No se deben abrir vouchers cuando falta confirmar titularidad");
+    assert.match(
+        dom.window.document.querySelector("#output-status").textContent,
+        /titular no confirmado; se necesita verificar quién contrató y pagó/
     );
 
     dom.window.document.querySelector("#voucher-pc-button").click();
-    assert.equal(dom.window.__openedLinks.length, 2);
-    const pcHtml = await readBlobText(
-        dom,
-        dom.window.__createdBlobs.get(dom.window.__openedLinks[1].href)
-    );
-    assert.match(pcHtml, /Voucher de Comidas PPJ/);
-    assert.match(pcHtml, /PC-PAX/);
-    assert.doesNotMatch(pcHtml, /MAP-PRIMER-PAX|NO-DEBE-SALIR/);
-    assert.equal(
-        dom.window.document.querySelector("#output-status").textContent.trim(),
-        "Vista imprimible de Voucher PC abierta: 1 voucher."
+    assert.equal(dom.window.__openedLinks.length, 0);
+    assert.match(
+        dom.window.document.querySelector("#output-status").textContent,
+        /titular no confirmado; se necesita verificar quién contrató y pagó/
     );
     dom.window.close();
 });
@@ -264,20 +244,21 @@ test("group voucher page reports empty outputs and vouchers requiring review", a
     selectDate(dom);
     const { document } = dom.window;
     assert.equal(document.querySelector("#voucher-map-button").disabled, true);
-    assert.equal(document.querySelector("#voucher-pc-button").disabled, false);
+    assert.equal(document.querySelector("#voucher-pc-button").disabled, true);
     assert.match(
         [...document.querySelectorAll("#output-status p")]
             .map(paragraph => paragraph.textContent)
             .join(" "),
-        /1 voucher requiere revisión: Voucher REVIEW-MAP: períodos de ingreso\/egreso diferentes entre pasajeros\./
+        /titular no confirmado; se necesita verificar quién contrató y pagó/
     );
     assert.equal(dom.window.__openedLinks.length, 0);
 
     document.querySelector("#voucher-pc-button").click();
-    assert.equal(dom.window.__openedLinks.length, 1);
+    assert.equal(dom.window.__openedLinks.length, 0,
+        "Un voucher PC sin titular confirmado debe quedar pendiente de revisión");
     assert.match(
         document.querySelector("#output-status").textContent,
-        /Vista imprimible de Voucher PC abierta: 1 voucher/
+        /titular no confirmado; se necesita verificar quién contrató y pagó/
     );
     dom.window.close();
 });
@@ -311,7 +292,7 @@ test("group voucher page preselects the next arrival date and shows MAP/PC count
     assert.equal(document.querySelector("#process-button"), null);
     assert.equal(
         document.querySelector("#voucher-pc-button").textContent,
-        "Generar Voucher PC · 2 vouchers"
+        "Generar Voucher PC · 0 vouchers"
     );
     assert.equal(
         document.querySelector("#voucher-map-button").textContent,
@@ -322,7 +303,7 @@ test("group voucher page preselects the next arrival date and shows MAP/PC count
     selectDate(dom, "20/01/2099");
     assert.equal(
         document.querySelector("#voucher-map-button").textContent,
-        "Generar Voucher MAP · 1 voucher"
+        "Generar Voucher MAP · 0 vouchers"
     );
     assert.equal(document.querySelector("#voucher-pc-button").disabled, true);
     dom.window.close();
@@ -338,7 +319,7 @@ test("group voucher page falls back to the latest date when all are past", async
     dom.window.close();
 });
 
-test("home navigation puts group vouchers at 02 and Balneario at 05", () => {
+test("home navigation keeps group vouchers before reservations and Balneario after Ficha PAX", () => {
     const home = fs.readFileSync(path.join(root, "index.html"), "utf8");
     const groupLink = home.indexOf('href="client/groupMealVouchers.html"');
     const reservationsLink = home.indexOf('href="client/reservations.html"');
@@ -347,6 +328,6 @@ test("home navigation puts group vouchers at 02 and Balneario at 05", () => {
 
     assert.ok(groupLink >= 0 && groupLink < reservationsLink);
     assert.ok(reservationsLink < fichaLink && fichaLink < balnearioLink);
-    assert.match(home.slice(groupLink, reservationsLink), /02 \/ COMIDAS GRUPALES/);
-    assert.match(home.slice(balnearioLink), /05 \/ BALNEARIO/);
+    assert.match(home, /Vouchers grupales de comidas/);
+    assert.match(home, /Voucher Diario de Balneario/);
 });

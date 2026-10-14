@@ -34,7 +34,8 @@ function passenger({
         },
         pax: {
             numeroDocumento: dni,
-            nombre
+            nombre,
+            esTitular: nombre === "TITULAR RESERVA" || nombre === "GOMEZ GRACIELA"
         }
     };
 }
@@ -97,7 +98,7 @@ const reporteVoucher1 = reporte.find(item => item.voucher === "VOUCHER-1");
 assert(
     reporteVoucher1.titular.nombre === "TITULAR RESERVA" &&
         reporteVoucher1.titular.dni === "30000000",
-    "El titular debe ser el primer pasajero, sin ordenar por DNI"
+    "El titular debe provenir de una marca explícita"
 );
 
 assert(
@@ -136,6 +137,30 @@ try {
 assert(
     errorDetectado,
     "El reporte debe validar que la entrada sea un array"
+);
+
+const reporteSinTitularConfirmado = buildBalnearioVoucherReport([{
+    voucher: "SIN-TITULAR-CONFIRMADO",
+    pasajeros: [passenger({ dni: "11111111", nombre: "NO CONFIRMADO", habitacion: "240" })]
+}])[0];
+assert(
+    reporteSinTitularConfirmado.titular.nombre === null &&
+        reporteSinTitularConfirmado.titularidad.estado === "pendiente",
+    "Balneario no debe inferir titularidad desde la primera fila"
+);
+
+const pasajerosTitularEnSegundoLugar = [
+    passenger({ dni: "11111111", nombre: "ACOMPANANTE PRIMERO", habitacion: "241" }),
+    passenger({ dni: "22222222", nombre: "TITULAR EN SEGUNDO LUGAR", habitacion: "241" })
+];
+pasajerosTitularEnSegundoLugar[1].pax.esTitular = true;
+const balnearioTitularEnSegundoLugar = buildBalnearioVoucherReport([{
+    voucher: "TITULAR-SEGUNDO",
+    pasajeros: pasajerosTitularEnSegundoLugar
+}])[0];
+assert(
+    balnearioTitularEnSegundoLugar.titular.nombre === "TITULAR EN SEGUNDO LUGAR",
+    "Balneario debe respetar la marca explícita sin depender de la posición"
 );
 
 console.log("OK reporte Alicante: titular, habitaciones, fechas y sin dias");
@@ -184,7 +209,7 @@ const reporteCompleto = buildBalnearioVoucherReport([{
 assert(
     reporteCompleto.titular.nombre === "GOMEZ GRACIELA" &&
         reporteCompleto.titular.dni === "30000000",
-    "El titular debe ser el primer pasajero aunque otro tenga menor DNI"
+    "El titular debe provenir de una marca explícita aunque otro tenga menor DNI"
 );
 
 assert(
@@ -281,6 +306,7 @@ assert(
 
 const camposEsperados = [
     "voucher",
+    "titularidad",
     "titular",
     "hotel",
     "habitaciones",

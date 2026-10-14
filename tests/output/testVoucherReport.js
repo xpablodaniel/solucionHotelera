@@ -20,7 +20,8 @@ function passenger({
     alojamiento = null,
     hotel = "HOTEL DEMO",
     ingreso = "20/09/2026",
-    egreso = "25/09/2026"
+    egreso = "25/09/2026",
+    esTitular = false
 }) {
 
     return {
@@ -37,7 +38,8 @@ function passenger({
         },
         pax: {
             numeroDocumento: dni,
-            nombre
+            nombre,
+            esTitular: esTitular || nombre === "PEREZ DOS" || nombre === "OTRO PASAJERO" || nombre === "PRIMER PAX" || nombre === "DNI VALIDO" || nombre === "PRIMER PAX SIN DNI"
         }
     };
 }
@@ -55,7 +57,8 @@ const reservas = [
                 voucher: "VOUCHER-A",
                 dni: "30000000",
                 nombre: "PEREZ DOS",
-                habitacion: "238"
+                habitacion: "238",
+                esTitular: true
             }),
             passenger({
                 voucher: "VOUCHER-A",
@@ -116,7 +119,7 @@ assert(
 assert(
     voucherMap.representante === "PEREZ DOS" &&
         voucherMap.dni === "30000000",
-    "El representante deberia ser el primer pasajero aunque otro tenga menor DNI"
+    "El representante debe ser el titular marcado explícitamente, no el menor DNI"
 );
 
 assert(
@@ -142,8 +145,73 @@ assert(
 
 console.log("OK agrupacion, representante y habitaciones");
 
+console.log("Probando titularidad pendiente y ambigua...");
 
-console.log("Probando representante igual al menor DNI...");
+// Caso 1: ningún pasajero tiene una marca explícita.
+const reservaPendiente = {
+    voucher: "TITULAR-PENDIENTE",
+    pasajeros: [
+        passenger({
+            voucher: "TITULAR-PENDIENTE",
+            dni: "11111111",
+            nombre: "PASAJERO UNO",
+            habitacion: "301"
+        }),
+        passenger({
+            voucher: "TITULAR-PENDIENTE",
+            dni: "22222222",
+            nombre: "PASAJERO DOS",
+            habitacion: "301"
+        })
+    ]
+};
+
+const reportePendiente = buildVoucherReport(
+    [reservaPendiente],
+    "MAP"
+)[0];
+
+assert(
+    reportePendiente.titularidad.estado === "pendiente" &&
+        reportePendiente.representante === null &&
+        reportePendiente.dni === "",
+    "Sin marcas explícitas, la titularidad debe quedar pendiente y sin representante"
+);
+
+// Caso 2: dos pasajeros tienen una marca explícita.
+const pasajerosAmbiguos = [
+    passenger({
+        voucher: "TITULAR-AMBIGUO",
+        dni: "33333333",
+        nombre: "POSIBLE TITULAR UNO",
+        habitacion: "302",
+        esTitular: true
+    }),
+    passenger({
+        voucher: "TITULAR-AMBIGUO",
+        dni: "44444444",
+        nombre: "POSIBLE TITULAR DOS",
+        habitacion: "302",
+        esTitular: true
+    })
+];
+
+const reporteAmbiguo = buildVoucherReport([{
+    voucher: "TITULAR-AMBIGUO",
+    pasajeros: pasajerosAmbiguos
+}], "MAP")[0];
+
+assert(
+    reporteAmbiguo.titularidad.estado === "ambigua" &&
+        reporteAmbiguo.representante === null &&
+        reporteAmbiguo.dni === "",
+    "Dos marcas explícitas deben producir titularidad ambigua, sin elegir un representante"
+);
+
+console.log("OK titularidad pendiente y ambigua");
+
+
+console.log("Probando titular explícito con menor DNI...");
 
 const primerPaxEsMenorDni = buildVoucherReport([
     {
@@ -153,7 +221,8 @@ const primerPaxEsMenorDni = buildVoucherReport([
                 voucher: "PRIMER-PAX-MENOR-DNI",
                 dni: "10000000",
                 nombre: "PRIMER PAX",
-                habitacion: "201"
+                habitacion: "201",
+                esTitular: true
             }),
             passenger({
                 voucher: "PRIMER-PAX-MENOR-DNI",
@@ -168,10 +237,25 @@ const primerPaxEsMenorDni = buildVoucherReport([
 assert(
     primerPaxEsMenorDni.representante === "PRIMER PAX" &&
         primerPaxEsMenorDni.dni === "10000000",
-    "El primer PAX debe seguir siendo representante cuando también tiene el menor DNI"
+    "El titular explícito debe ser representante cuando tiene el menor DNI"
 );
 
-console.log("OK primer PAX con menor DNI");
+console.log("OK titular explícito con menor DNI");
+
+const titularSegundaPosicionPasajeros = [
+    passenger({ voucher: "TITULAR-SEGUNDO", dni: "10000000", nombre: "ACOMPANANTE PRIMERO", habitacion: "205" }),
+    passenger({ voucher: "TITULAR-SEGUNDO", dni: "90000000", nombre: "TITULAR CONFIRMADO", habitacion: "205" })
+];
+titularSegundaPosicionPasajeros[1].pax.esTitular = true;
+const titularEnSegundaPosicion = buildVoucherReport([{
+    voucher: "TITULAR-SEGUNDO",
+    pasajeros: titularSegundaPosicionPasajeros
+}], "MAP")[0];
+assert(
+    titularEnSegundaPosicion.representante === "TITULAR CONFIRMADO" &&
+        titularEnSegundaPosicion.dni === "90000000",
+    "MAP/PC debe usar la titularidad explícita aunque el titular no sea el primer pasajero"
+);
 
 
 console.log("Probando identidad de habitaciones multi-hotel...");
@@ -389,7 +473,8 @@ const reporteDniNoNumerico = buildVoucherReport([
                 voucher: "VOUCHER-D",
                 dni: "10000000",
                 nombre: "DNI VALIDO",
-                habitacion: "242"
+                habitacion: "242",
+                esTitular: true
             }),
             passenger({
                 voucher: "VOUCHER-D",
@@ -404,7 +489,7 @@ const reporteDniNoNumerico = buildVoucherReport([
 assert(
     reporteDniNoNumerico.representante === "DNI VALIDO" &&
         reporteDniNoNumerico.dni === "10000000",
-    "El primer PAX debe ser representante independientemente del DNI de los siguientes"
+    "El titular explícito debe ser representante independientemente del DNI de los siguientes"
 );
 
 const primerPaxSinDni = buildVoucherReport([
@@ -415,7 +500,8 @@ const primerPaxSinDni = buildVoucherReport([
                 voucher: "PRIMER-PAX-SIN-DNI",
                 dni: null,
                 nombre: "PRIMER PAX SIN DNI",
-                habitacion: "242"
+                habitacion: "242",
+                esTitular: true
             }),
             passenger({
                 voucher: "PRIMER-PAX-SIN-DNI",
@@ -430,7 +516,7 @@ const primerPaxSinDni = buildVoucherReport([
 assert(
     primerPaxSinDni.representante === "PRIMER PAX SIN DNI" &&
         primerPaxSinDni.dni === "",
-    "Si el primer PAX no tiene DNI, el reporte debe dejarlo vacío sin buscar sustituto"
+    "Si el titular confirmado no tiene DNI, el reporte debe dejarlo vacío sin buscar sustituto"
 );
 
 assert(

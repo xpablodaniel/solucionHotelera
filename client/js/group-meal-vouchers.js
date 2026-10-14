@@ -254,9 +254,11 @@ function processSelectedDate() {
 
 function getReviewMessage(review) {
 
-    const reason = review.reason === "DIVERGENT_STAY_PERIODS"
-        ? "períodos de ingreso/egreso diferentes entre pasajeros"
-        : "fechas ausentes o inválidas";
+    const reason = review.reason === "TITULAR_NOT_CONFIRMED"
+        ? "titular no confirmado; se necesita verificar quién contrató y pagó"
+        : review.reason === "DIVERGENT_STAY_PERIODS"
+            ? "períodos de ingreso/egreso diferentes entre pasajeros"
+            : "fechas ausentes o inválidas";
 
     return `Voucher ${review.voucher || "sin número"}: ${reason}.`;
 }

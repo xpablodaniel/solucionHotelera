@@ -42,6 +42,7 @@ function passenger({
 }
 
 function reservation(voucher, passengers) {
+    if (passengers[0]?.pax) passengers[0].pax.esTitular = true;
     return {
         voucher,
         pasajeros: passengers,

@@ -14,6 +14,8 @@ const {
     renderVouchersHtml
 } = require("./voucherHtml");
 
+const { getTitularidad } = require("../business/titularity");
+
 
 function normalizeService(value) {
     return String(value ?? "")
@@ -170,6 +172,15 @@ function buildVoucherHtmlForDate(reservations, selectedDate, mode, baseUrl) {
     const reportableReservations = [];
 
     for (const reservation of eligibleReservations) {
+        const titularidad = getTitularidad(reservation);
+        if (titularidad.estado !== "confirmada") {
+            reviewRequired.push({
+                voucher: reservation.voucher ?? null,
+                reason: "TITULAR_NOT_CONFIRMED"
+            });
+            continue;
+        }
+
         const reason = getStayPeriodStatus(reservation);
 
         if (reason) {

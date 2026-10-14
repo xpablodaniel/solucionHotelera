@@ -93,6 +93,36 @@ assert(
     "La reserva debería tener dos pasajeros"
 );
 
+assert(
+    reservasIndividual[0].titularidad.estado === "pendiente" &&
+        reservasIndividual[0].titularidad.pasajero === null,
+    "La reserva sin marca explícita debe conservar titularidad pendiente"
+);
+
+const registrosConTitularMarcado = [{
+    voucher: "TITULAR-EXPLICITO",
+    pax: { nombre: "ACOMPANANTE PRIMERO" }
+}, {
+    voucher: "TITULAR-EXPLICITO",
+    pax: { nombre: "TITULAR SEGUNDO", esTitular: true }
+}];
+const reservaTitularMarcado = processReservations(registrosConTitularMarcado)[0];
+assert(
+    reservaTitularMarcado.titularidad.estado === "confirmada" &&
+        reservaTitularMarcado.titularidad.pasajero.pax.nombre === "TITULAR SEGUNDO",
+    "La titularidad explícita debe prevalecer aunque el titular no sea el primer pasajero"
+);
+
+const reservaTitularAmbiguo = processReservations([
+    { voucher: "TITULAR-AMBIGUO", pax: { nombre: "PAX A", esTitular: true } },
+    { voucher: "TITULAR-AMBIGUO", pax: { nombre: "PAX B", esTitular: true } }
+])[0];
+assert(
+    reservaTitularAmbiguo.titularidad.estado === "ambigua" &&
+        reservaTitularAmbiguo.titularidad.pasajero === null,
+    "Las marcas múltiples no deben confirmar arbitrariamente a una persona"
+);
+
 
 assert(
     reservasIndividual[0].clasificacion.tipo ===

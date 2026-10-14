@@ -33,7 +33,8 @@ function passenger({ dni, nombre, habitacion, asignacion }) {
         },
         pax: {
             numeroDocumento: dni,
-            nombre
+            nombre,
+            esTitular: nombre === "GOMEZ GRACIELA"
         }
     };
 }

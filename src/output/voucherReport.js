@@ -44,27 +44,6 @@ function calculateStayDays(ingreso, egreso) {
 }
 
 
-function compareDocuments(passengerA, passengerB) {
-
-    const documentA = Number.parseInt(
-        passengerA && passengerA.pax
-            ? passengerA.pax.numeroDocumento
-            : null,
-        10
-    );
-
-    const documentB = Number.parseInt(
-        passengerB && passengerB.pax
-            ? passengerB.pax.numeroDocumento
-            : null,
-        10
-    );
-
-    return (Number.isNaN(documentA) ? 0 : documentA) -
-        (Number.isNaN(documentB) ? 0 : documentB);
-}
-
-
 function getRoom(passenger) {
 
     const habitacion = passenger && passenger.habitacion;
@@ -98,6 +77,8 @@ function getStayDays(passengers) {
 }
 
 
+const { getTitularidad } = require("../business/titularity");
+
 function buildVoucherReport(reservas, mode) {
 
     if (!Array.isArray(reservas)) {
@@ -121,12 +102,17 @@ function buildVoucherReport(reservas, mode) {
             const pasajerosOriginales = Array.isArray(reserva.pasajeros)
                 ? [...reserva.pasajeros]
                 : [];
-            const pasajerosPorDocumento = [...pasajerosOriginales]
-                .sort(compareDocuments);
-
-            const representative = pasajerosOriginales[0] || {};
-            const representativePax = representative.pax || {};
-            const metadataRepresentative = pasajerosPorDocumento[0] || {};
+            const titularidad = getTitularidad(reserva);
+            const representative = titularidad.estado === "confirmada"
+                ? titularidad.pasajero
+                : null;
+            const representativePax = representative?.pax || {};
+            const hasReservationMetadata = passenger => Boolean(
+                passenger?.estadia?.ingreso || passenger?.estadia?.egreso || passenger?.hotel
+            );
+            const metadataRepresentative = representative && hasReservationMetadata(representative)
+                ? representative
+                : pasajerosOriginales.find(hasReservationMetadata) || representative || {};
             const metadataStay = metadataRepresentative.estadia || {};
             const roomsByIdentity = new Map();
 
@@ -149,10 +135,11 @@ function buildVoucherReport(reservas, mode) {
             }
 
             const rooms = Array.from(roomsByIdentity.values());
-            const diasEstadia = getStayDays(pasajerosPorDocumento);
+            const diasEstadia = getStayDays(pasajerosOriginales);
 
             return {
                 voucher: reserva.voucher,
+                titularidad: { estado: titularidad.estado, origen: titularidad.origen },
                 representante: representativePax.nombre || null,
                 dni: representativePax.numeroDocumento ?? "",
                 hotel: metadataRepresentative.hotel || null,

@@ -677,6 +677,59 @@ var GroupMealVouchersCore = (() => {
     }
   });
 
+  // src/business/titularity.js
+  var require_titularity = __commonJS({
+    "src/business/titularity.js"(exports, module) {
+      function resolveTitularidad(pasajeros) {
+        const lista = Array.isArray(pasajeros) ? pasajeros : [];
+        const marcados = lista.filter((pasajero) => pasajero?.pax?.esTitular === true);
+        if (marcados.length === 1) {
+          return {
+            estado: "confirmada",
+            pasajero: marcados[0],
+            origen: "marca_explicita"
+          };
+        }
+        if (marcados.length > 1) {
+          return {
+            estado: "ambigua",
+            pasajero: null,
+            origen: "marcas_multiples"
+          };
+        }
+        return {
+          estado: "pendiente",
+          pasajero: null,
+          origen: null
+        };
+      }
+      function getTitularidad(reserva) {
+        if (!reserva || typeof reserva !== "object") {
+          return resolveTitularidad([]);
+        }
+        if (reserva.titularidad && typeof reserva.titularidad === "object") {
+          const { estado, pasajero, origen } = reserva.titularidad;
+          if (["confirmada", "pendiente", "ambigua"].includes(estado)) {
+            const pasajeros = Array.isArray(reserva.pasajeros) ? reserva.pasajeros : [];
+            if (estado === "confirmada" && (!pasajero || !pasajeros.includes(pasajero))) {
+              return { estado: "ambigua", pasajero: null, origen: "referencia_no_pertenece_a_reserva" };
+            }
+            return {
+              estado,
+              pasajero: estado === "confirmada" ? pasajero : null,
+              origen: origen ?? null
+            };
+          }
+        }
+        return resolveTitularidad(reserva.pasajeros);
+      }
+      module.exports = {
+        resolveTitularidad,
+        getTitularidad
+      };
+    }
+  });
+
   // src/business/processReservations.js
   var require_processReservations = __commonJS({
     "src/business/processReservations.js"(exports, module) {
@@ -687,6 +740,9 @@ var GroupMealVouchersCore = (() => {
       var {
         classifyReservation
       } = require_classification();
+      var {
+        resolveTitularidad
+      } = require_titularity();
       function processReservations(records) {
         if (!Array.isArray(records)) {
           throw new TypeError(
@@ -701,6 +757,7 @@ var GroupMealVouchersCore = (() => {
           const habitaciones = groupByRoom(pasajeros, esContingente);
           return {
             voucher: group.voucher,
+            titularidad: resolveTitularidad(pasajeros),
             pasajeros,
             cantidadPasajeros: pasajeros.length,
             clasificacion: {
@@ -830,17 +887,6 @@ var GroupMealVouchersCore = (() => {
           (end.getTime() - start.getTime()) / millisecondsPerDay
         );
       }
-      function compareDocuments(passengerA, passengerB) {
-        const documentA = Number.parseInt(
-          passengerA && passengerA.pax ? passengerA.pax.numeroDocumento : null,
-          10
-        );
-        const documentB = Number.parseInt(
-          passengerB && passengerB.pax ? passengerB.pax.numeroDocumento : null,
-          10
-        );
-        return (Number.isNaN(documentA) ? 0 : documentA) - (Number.isNaN(documentB) ? 0 : documentB);
-      }
       function getRoom(passenger) {
         const habitacion = passenger && passenger.habitacion;
         const numero = habitacion ? habitacion.numero : null;
@@ -859,6 +905,7 @@ var GroupMealVouchersCore = (() => {
         }).filter((value) => value !== null);
         return days.length > 0 ? Math.max(...days) : null;
       }
+      var { getTitularidad } = require_titularity();
       function buildVoucherReport(reservas, mode) {
         if (!Array.isArray(reservas)) {
           throw new TypeError(
@@ -873,10 +920,13 @@ var GroupMealVouchersCore = (() => {
         const mealMultiplier = mode === "PC" ? 2 : 1;
         const reportes = reservas.filter((reserva) => reserva && reserva.voucher).map((reserva) => {
           const pasajerosOriginales = Array.isArray(reserva.pasajeros) ? [...reserva.pasajeros] : [];
-          const pasajerosPorDocumento = [...pasajerosOriginales].sort(compareDocuments);
-          const representative = pasajerosOriginales[0] || {};
-          const representativePax = representative.pax || {};
-          const metadataRepresentative = pasajerosPorDocumento[0] || {};
+          const titularidad = getTitularidad(reserva);
+          const representative = titularidad.estado === "confirmada" ? titularidad.pasajero : null;
+          const representativePax = representative?.pax || {};
+          const hasReservationMetadata = (passenger) => Boolean(
+            passenger?.estadia?.ingreso || passenger?.estadia?.egreso || passenger?.hotel
+          );
+          const metadataRepresentative = representative && hasReservationMetadata(representative) ? representative : pasajerosOriginales.find(hasReservationMetadata) || representative || {};
           const metadataStay = metadataRepresentative.estadia || {};
           const roomsByIdentity = /* @__PURE__ */ new Map();
           for (const passenger of pasajerosOriginales) {
@@ -893,9 +943,10 @@ var GroupMealVouchersCore = (() => {
             }
           }
           const rooms = Array.from(roomsByIdentity.values());
-          const diasEstadia = getStayDays(pasajerosPorDocumento);
+          const diasEstadia = getStayDays(pasajerosOriginales);
           return {
             voucher: reserva.voucher,
+            titularidad: { estado: titularidad.estado, origen: titularidad.origen },
             representante: representativePax.nombre || null,
             dni: representativePax.numeroDocumento ?? "",
             hotel: metadataRepresentative.hotel || null,
@@ -1078,6 +1129,7 @@ ${pages.join("")}
       var {
         renderVouchersHtml
       } = require_voucherHtml();
+      var { getTitularidad } = require_titularity();
       function normalizeService(value) {
         return String(value ?? "").trim().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       }
@@ -1178,6 +1230,14 @@ ${pages.join("")}
         const reviewRequired = [];
         const reportableReservations = [];
         for (const reservation of eligibleReservations) {
+          const titularidad = getTitularidad(reservation);
+          if (titularidad.estado !== "confirmada") {
+            reviewRequired.push({
+              voucher: reservation.voucher ?? null,
+              reason: "TITULAR_NOT_CONFIRMED"
+            });
+            continue;
+          }
           const reason = getStayPeriodStatus(reservation);
           if (reason) {
             reviewRequired.push({

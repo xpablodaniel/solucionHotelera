@@ -25,7 +25,7 @@ function passenger(document, ingreso, egreso, servicios) {
 
 
 function reservation(voucher, passengers, rooms) {
-
+    if (passengers[0]?.pax) passengers[0].pax.esTitular = true;
     return {
         voucher,
         pasajeros: passengers,

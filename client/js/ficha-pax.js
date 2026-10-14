@@ -18,6 +18,14 @@ const previewSection = document.querySelector("#preview-section");
 const fichaPages = document.querySelector("#ficha-pages");
 const downloadPdfButton = document.querySelector("#download-pdf");
 const pdfStatus = document.querySelector("#pdf-status");
+const titularCheckin = document.querySelector("#titular-checkin");
+const titularDniInput = document.querySelector("#titular-dni");
+const verificarTitularButton = document.querySelector("#verificar-titular");
+const titularCandidato = document.querySelector("#titular-candidato");
+const titularVerificado = document.querySelector("#titular-verificado");
+const confirmarTitularButton = document.querySelector("#confirmar-titular");
+
+let titularCandidate = null;
 const mmToPt = 72 / 25.4;
 const templateUrl = "../assets/templates/1fichaPax.pdf";
 
@@ -27,7 +35,118 @@ let selectedReservation = null;
 function clearChildren(element) {
     element.replaceChildren();
 }
+function normalizeDni(value) {
+    return String(value ?? "").replace(/\D/g, "");
+}
 
+
+function resetTitularCheckin() {
+    titularCandidate = null;
+    titularDniInput.value = "";
+    titularVerificado.checked = false;
+    titularVerificado.disabled = true;
+    confirmarTitularButton.disabled = true;
+    titularCandidato.textContent = "";
+}
+
+
+function updatePdfAvailability(reservation) {
+    const isContingent =
+        reservation?.clasificacion?.tipo === "CONTINGENTE";
+
+    const titularConfirmed =
+        reservation?.titularidad?.estado === "confirmada";
+
+    downloadPdfButton.disabled =
+        !reservation || isContingent || !titularConfirmed;
+}
+
+
+function verifyTitularDni() {
+    titularCandidate = null;
+    titularVerificado.checked = false;
+    titularVerificado.disabled = true;
+    confirmarTitularButton.disabled = true;
+
+    const dni = normalizeDni(titularDniInput.value);
+
+    if (!selectedReservation) {
+        titularCandidato.textContent = "Seleccioná una reserva primero.";
+        return;
+    }
+
+    if (!dni) {
+        titularCandidato.textContent = "Ingresá un DNI válido.";
+        return;
+    }
+
+    const matches = selectedReservation.pasajeros.filter(passenger =>
+        normalizeDni(passenger?.pax?.numeroDocumento) === dni
+    );
+
+    if (matches.length === 0) {
+        titularCandidato.textContent =
+            "No se encontró ese DNI en la reserva seleccionada.";
+        return;
+    }
+
+    if (matches.length > 1) {
+        titularCandidato.textContent =
+            "El DNI aparece más de una vez en la reserva. Se requiere revisión manual.";
+        return;
+    }
+
+    titularCandidate = matches[0];
+
+    const nombre = titularCandidate.pax?.nombre || "Nombre no informado";
+
+    titularCandidato.textContent =
+        `Pasajero encontrado: ${nombre} · DNI ${dni}. Verificá quién contrató y pagó.`;
+
+    titularVerificado.disabled = false;
+}
+
+titularDniInput.addEventListener("input", () => {
+    titularCandidate = null;
+    titularVerificado.checked = false;
+    titularVerificado.disabled = true;
+    confirmarTitularButton.disabled = true;
+    titularCandidato.textContent = "";
+});
+
+
+verificarTitularButton.addEventListener("click", verifyTitularDni);
+
+
+titularVerificado.addEventListener("change", () => {
+    confirmarTitularButton.disabled =
+        !titularCandidate || !titularVerificado.checked;
+});
+
+
+confirmarTitularButton.addEventListener("click", () => {
+    if (
+        !selectedReservation ||
+        !titularCandidate ||
+        !titularVerificado.checked ||
+        !selectedReservation.pasajeros.includes(titularCandidate)
+    ) {
+        return;
+    }
+
+    if (selectedReservation.clasificacion?.tipo === "CONTINGENTE") {
+        return;
+    }
+
+    selectedReservation.titularidad = {
+        estado: "confirmada",
+        pasajero: titularCandidate,
+        origen: "checkin_manual"
+    };
+
+    resetTitularCheckin();
+    showPreview(selectedReservation);
+});
 
 function addField(container, label, value) {
 
@@ -64,7 +183,7 @@ function renderPage(page, index, total) {
     eyebrow.textContent = `Ficha PAX · Página ${index + 1} de ${total}`;
 
     const title = document.createElement("h3");
-    title.textContent = page.titular?.pax?.nombre || "Ficha de pasajero";
+    title.textContent = page.titular?.pax?.nombre || (page.titularidad?.estado === "ambigua" ? "Titular ambiguo: requiere revisión" : "Titular pendiente de identificar");
 
     const voucher = document.createElement("span");
     voucher.textContent = `Voucher: ${page.voucher || "Sin dato"}`;
@@ -80,11 +199,12 @@ function renderPage(page, index, total) {
             .filter(Boolean)
             .join(" ")
     );
-    addField(fields, "Teléfono", page.titular?.contacto?.celular || page.titular?.contacto?.telefono);
-    addField(fields, "Email", page.titular?.contacto?.email);
-    addField(fields, "Sede", page.titular?.sede);
+    const metadata = page.metadata || page.titular;
+    addField(fields, "Teléfono", metadata?.contacto?.celular || metadata?.contacto?.telefono);
+    addField(fields, "Email", metadata?.contacto?.email);
+    addField(fields, "Sede", metadata?.sede);
     addField(fields, "Fecha de nacimiento", page.titular?.pax?.fechaNacimiento);
-    addField(fields, "Hotel", page.titular?.hotel);
+    addField(fields, "Hotel", metadata?.hotel);
     addField(fields, "Habitación/es", formatRooms(page.habitaciones));
     addField(fields, "Fecha de ingreso", page.estadia.ingreso);
     addField(fields, "Fecha de egreso", page.estadia.egreso);
@@ -93,16 +213,22 @@ function renderPage(page, index, total) {
     const companionSection = document.createElement("section");
     companionSection.className = "ficha-companions";
     const companionHeading = document.createElement("h4");
-    companionHeading.textContent = "Acompañantes";
+    const titularConfirmado = page.titularidad?.estado === "confirmada";
+    const listedPassengers = titularConfirmado
+        ? page.acompanantes
+        : (page.pasajerosSinTitular || []);
+    companionHeading.textContent = titularConfirmado
+        ? "Acompañantes"
+        : "Pasajeros registrados (titular pendiente)";
     companionSection.append(companionHeading);
 
-    if (page.acompanantes.length === 0) {
+    if (listedPassengers.length === 0) {
         const emptyMessage = document.createElement("p");
         emptyMessage.className = "ficha-empty";
         emptyMessage.textContent = "No hay acompañantes en esta página.";
         companionSection.append(emptyMessage);
     } else {
-        for (const passenger of page.acompanantes) {
+        for (const passenger of listedPassengers) {
             const row = document.createElement("div");
             row.className = "ficha-companion";
 
@@ -131,15 +257,28 @@ function showPreview(reservation) {
 
     const pages = buildFichaPaxPages(reservation);
     selectedReservation = pages.length > 0 ? reservation : null;
-    const isContingent = reservation.clasificacion?.tipo === "CONTINGENTE";
-    downloadPdfButton.disabled = isContingent;
+        const isContingent =
+        reservation.clasificacion?.tipo === "CONTINGENTE";
+
+    const titularConfirmado =
+        reservation.titularidad?.estado === "confirmada";
+
+    updatePdfAvailability(reservation);
+
+    titularCheckin.hidden = isContingent || titularConfirmado;
+
     pdfStatus.textContent = isContingent
         ? "No se genera ficha PAX para reservas de contingentes."
-        : "";
+        : !titularConfirmado
+            ? "No se genera el PDF hasta confirmar quién contrató y pagó la reserva."
+            : "";
+
     pdfStatus.classList.remove("error");
     pages.forEach((page, index) => {
         fichaPages.append(renderPage(page, index, pages.length));
     });
+
+    
 
     previewSection.hidden = pages.length === 0;
     if (pages.length > 0) {
@@ -173,7 +312,9 @@ function renderSearchResults(matches, query) {
 
         const details = document.createElement("div");
         const title = document.createElement("h3");
-        title.textContent = reservation.pasajeros[0]?.pax?.nombre || "Sin titular identificado";
+        title.textContent = reservation.titularidad?.estado === "confirmada"
+            ? (reservation.titularidad.pasajero?.pax?.nombre || "Titular confirmado sin nombre")
+            : "Titular pendiente de identificar";
 
         const voucher = document.createElement("p");
         voucher.textContent = `Voucher: ${reservation.voucher || "Sin dato"}`;
@@ -255,21 +396,22 @@ function getPassengerText(passenger, property) {
 function drawFichaPage(page, ficha, regularFont, boldFont) {
 
     const titular = ficha.titular;
+    const metadata = ficha.metadata || titular;
     const nombre = getPassengerText(titular, "nombre").toLocaleUpperCase();
     const tipoDocumento = getPassengerText(titular, "tipoDocumento");
     const numeroDocumento = getPassengerText(titular, "numeroDocumento");
     const documento = [tipoDocumento, numeroDocumento].filter(Boolean).join(": ");
     const telefonoRaw = cleanPdfValue(
-        titular?.contacto?.celular || titular?.contacto?.telefono
+        metadata?.contacto?.celular || metadata?.contacto?.telefono
     );
     const telefono = telefonoRaw.replace(/[^\d]/g, "").length >= 6
         ? telefonoRaw
         : "";
-    const emailRaw = cleanPdfValue(titular?.contacto?.email);
+    const emailRaw = cleanPdfValue(metadata?.contacto?.email);
     const email = emailRaw.includes("@") && emailRaw.length > 5
         ? emailRaw
         : "";
-    const sede = cleanPdfValue(titular?.sede)
+    const sede = cleanPdfValue(metadata?.sede)
         .replace(/^\s*\d+\s*[-–—]\s*/, "");
     const habitaciones = ficha.habitaciones
         .map(room => cleanPdfValue(room.numero))
@@ -352,6 +494,9 @@ async function createFichaPdf(reservation) {
 
     if (reservation.clasificacion?.tipo === "CONTINGENTE") {
         throw new Error("No se genera ficha PAX para reservas de contingentes.");
+    }
+    if (reservation.titularidad?.estado !== "confirmada") {
+        throw new Error("No se genera ficha PAX hasta confirmar la titularidad de la reserva.");
     }
 
     const pdfLibrary = window.PDFLib;
@@ -438,8 +583,7 @@ downloadPdfButton.addEventListener("click", async () => {
         pdfStatus.classList.add("error");
     } finally {
         downloadPdfButton.disabled =
-            !selectedReservation ||
-            selectedReservation.clasificacion?.tipo === "CONTINGENTE";
+                    updatePdfAvailability(selectedReservation);
     }
 });
 
@@ -468,6 +612,9 @@ function resetFileState() {
     clearChildren(fichaPages);
     previewSection.hidden = true;
     showFileWarnings([]);
+    resetTitularCheckin();
+    titularCheckin.hidden = true;
+    downloadPdfButton.disabled = true;
 }
 
 

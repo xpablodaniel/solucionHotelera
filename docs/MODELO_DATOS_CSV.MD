@@ -355,17 +355,7 @@ No debe utilizarse para determinar automáticamente quién es el titular de una 
 
 ### Regla
 
-El titular de una reserva individual se determina por el **orden original de aparición dentro del voucher**, no por edad.
-
-Esto evita situaciones como:
-
-```text
-PAX 1 → afiliado / solicitante, 32 años
-PAX 2 → acompañante, 45 años
-PAX 3 → hijo, 5 años
-```
-
-El PAX 1 continúa siendo el titular aunque sea menor que el PAX 2.
+El orden original de aparición dentro del voucher no demuestra la titularidad. El CSV analizado no contiene un campo explícito que identifique al afiliado que contrató y pagó. Por eso, la titularidad debe permanecer pendiente salvo que otra fuente confiable proporcione una marca explícita. La edad, el DNI y el parentesco no determinan al titular.
 
 ---
 
@@ -717,21 +707,7 @@ El procesamiento debe conservar el orden de aparición de los PAX.
 
 # 13. Titular y acompañantes
 
-Para reservas individuales:
-
-```text
-Primer PAX del voucher
-        ↓
-Titular / solicitante
-
-PAX siguientes
-        ↓
-Acompañantes
-```
-
-Esta regla se basa en el funcionamiento operativo de la reserva:
-
-> La persona que aparece primero es quien solicitó la reserva en la seccional y realizó la contratación/pago para sí misma y/o sus acompañantes.
+Para reservas individuales, la titularidad requiere una marca explícita y fiable que identifique al afiliado que contrató y pagó. El CSV analizado no contiene ese campo; por tanto, el orden de las filas no se interpreta como titularidad. Sin confirmación, el estado queda pendiente. Una vez confirmado el titular, los demás PAX son acompañantes.
 
 La edad no modifica esta regla.
 
@@ -1095,7 +1071,7 @@ Hasta la versión 0.1 quedan confirmadas las siguientes reglas:
 3. El voucher es una clave fundamental para agrupar registros.
 4. Una reserva puede contener varios PAX.
 5. Una reserva puede contener varias habitaciones.
-6. El primer PAX de una reserva individual es el titular/solicitante.
+6. La titularidad requiere una marca explícita y fiable; si falta, queda pendiente de identificar.
 7. Los PAX siguientes son acompañantes.
 8. La edad no determina al titular.
 9. La capacidad de una habitación no equivale necesariamente a su ocupación real.
